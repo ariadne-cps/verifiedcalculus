@@ -1,0 +1,8 @@
+-R . Lib
+R_addenda.v
+Floats.v
+PolynomialModels.v
+PolynomialModelsSum.v
+PolynomialModelsScalar.v
+PolynomialModelsMonomial.v
+PolynomialModelsProduct.v
