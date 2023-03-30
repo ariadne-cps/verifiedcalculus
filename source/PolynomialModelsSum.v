@@ -13,13 +13,15 @@ Require Import Lia.
 Require Import Ring.
 
 Set Implicit Arguments.
+
 Section Polynomial_Models_Sum.
 
-Variable Flt : Float.
+Open Scope R_scope.
 
+Context `{F : Type} `{FltF : Float F}.
 
-Function pre_merge (p1p2: list (nat*Flt)* list (nat*Flt))
-   {measure (fun l1l2=> (length (fst l1l2) + length (snd l1l2)))%nat p1p2} : list (nat*Flt) :=
+Function pre_merge (p1p2: list (nat*F)* list (nat*F))
+   {measure (fun l1l2=> (length (fst l1l2) + length (snd l1l2)))%nat p1p2} : list (nat*F) :=
          match p1p2 with
          | (nil, nil) => nil
          | (nil, fn2 :: p2') => fn2 :: p2'
@@ -27,7 +29,7 @@ Function pre_merge (p1p2: list (nat*Flt)* list (nat*Flt))
          | (fn1 :: p1' , fn2 :: p2') =>
                  match lt_eq_lt_dec (fst fn1) (fst fn2) with
                  | inleft (left _) => (fst fn1 , snd fn1) :: pre_merge (p1',(fn2 :: p2'))
-                 | inleft (right _) => (fst fn1, add_near (snd fn1) (snd fn2)) :: pre_merge (p1',p2')
+                 | inleft (right _) => (fst fn1, Fadd_near (snd fn1) (snd fn2)) :: pre_merge (p1',p2')
                  | inright _ => (fst fn2 , snd fn2) :: pre_merge  ((fn1 :: p1'),p2')
                  end
          end.
@@ -56,7 +58,7 @@ Lemma pre_merge_eq_cons_cons: forall fn1 p1 fn2 p2,
  pre_merge (fn1 :: p1, fn2 :: p2) =
                  match lt_eq_lt_dec (fst fn1) (fst fn2) with
                  | inleft (left _) => (fst fn1 , snd fn1) :: pre_merge (p1,(fn2 :: p2))
-                 | inleft (right _) => (fst fn1, add_near (snd fn1) (snd fn2)) :: pre_merge (p1,p2)
+                 | inleft (right _) => (fst fn1, Fadd_near (snd fn1) (snd fn2)) :: pre_merge (p1,p2)
                  | inright _ => (fst fn2 , snd fn2) :: pre_merge ((fn1 :: p1),p2)
                  end.
 Proof.
@@ -88,7 +90,7 @@ Proof.
 Qed.
 
 Lemma pre_merge_eq_4: forall fn1 p1 fn2 p2, (fst fn1 = fst fn2) %nat ->
- pre_merge (fn1 :: p1, fn2 :: p2) = (fst fn1, add_near (snd fn1) (snd fn2)) :: pre_merge (p1,p2).
+ pre_merge (fn1 :: p1, fn2 :: p2) = (fst fn1, Fadd_near (snd fn1) (snd fn2)) :: pre_merge (p1,p2).
 Proof.
  local_tactic_prove_pre_merge_equation.
 Qed.
@@ -127,8 +129,8 @@ Proof.
                   ((fst a2, snd a2) :: pre_merge (p', b1 :: q))
                   (fst a2, snd a2) ); simpl; trivial...
       apply (is_sorted_cons (fst a1) (snd a1)
-                      ((fst a2, add_near (snd a2) (snd b1)):: pre_merge (p', q))
-                      (fst a2, add_near (snd a2) (snd b1))); simpl; trivial.
+                      ((fst a2, Fadd_near (snd a2) (snd b1)):: pre_merge (p', q))
+                      (fst a2, Fadd_near (snd a2) (snd b1))); simpl; trivial.
       apply (is_sorted_cons (fst a1) (snd a1)
                       ((fst b1, snd b1) :: pre_merge (a2 :: p', q))
                       (fst b1, snd b1)); simpl; trivial.
@@ -140,10 +142,10 @@ Proof.
      (* a1 :: nil , b1 :: b2 :: q' *)
      assert (H_b12: (fst b1<fst b2)%nat); [inversion H_bq; injection H1; intros H_tmp; subst b2; assumption|].
      assert (H_a1_b2: (fst a1<fst b2)%nat); [rewrite Heq; assumption|].
-     rewrite pre_merge_eq_2; apply (is_sorted_cons (fst a1) (add_near (snd a1) (snd b1)) (b2 :: q') b2); trivial.
+     rewrite pre_merge_eq_2; apply (is_sorted_cons (fst a1) (Fadd_near (snd a1) (snd b1)) (b2 :: q') b2); trivial.
      (* a1 :: a2 :: p' , b1 :: nil *)
      assert (H_a12: (fst a1<fst a2)%nat); [inversion H_ap; injection H1; intros H_tmp; subst a2; assumption|].
-     rewrite pre_merge_eq_1; apply (is_sorted_cons (fst a1) (add_near (snd a1) (snd b1)) (a2 :: p') a2); trivial.
+     rewrite pre_merge_eq_1; apply (is_sorted_cons (fst a1) (Fadd_near (snd a1) (snd b1)) (a2 :: p') a2); trivial.
      (* a1 :: a2 :: p' , b1 :: b2 :: q' *)
      assert (H_a12: (fst a1<fst a2)%nat); [inversion H_ap; injection H1; intros H_tmp; subst a2; assumption|].
      assert (H_b12: (fst b1<fst b2)%nat); [inversion H_bq; injection H1; intros H_tmp; subst b2; assumption|].
@@ -151,13 +153,13 @@ Proof.
      revert hyp.
      rewrite pre_merge_eq_cons_cons.
      destruct (lt_eq_lt_dec (fst a2) (fst b2)) as [[Hlt' | Heq'] | Hlt']; intros hyp.
-      apply (is_sorted_cons (fst a1) (add_near (snd a1) (snd b1))
+      apply (is_sorted_cons (fst a1) (Fadd_near (snd a1) (snd b1))
                   ((fst a2, snd a2) :: pre_merge (p', b2 :: q'))
                   (fst a2, snd a2) ); simpl; trivial...
-      apply (is_sorted_cons (fst a1) (add_near (snd a1) (snd b1))
-                      ((fst a2, add_near (snd a2) (snd b2)):: pre_merge (p', q'))
-                      (fst a2, add_near (snd a2) (snd b2))); simpl; trivial.
-      apply (is_sorted_cons (fst a1) (add_near (snd a1) (snd b1))
+      apply (is_sorted_cons (fst a1) (Fadd_near (snd a1) (snd b1))
+                      ((fst a2, Fadd_near (snd a2) (snd b2)):: pre_merge (p', q'))
+                      (fst a2, Fadd_near (snd a2) (snd b2))); simpl; trivial.
+      apply (is_sorted_cons (fst a1) (Fadd_near (snd a1) (snd b1))
                       ((fst b2, snd b2) :: pre_merge (a2 :: p', q'))
                       (fst b2, snd b2)); simpl; trivial.
     (* 3 *)
@@ -174,16 +176,16 @@ Proof.
                   ((fst a1, snd a1) :: pre_merge (p, b2 :: q'))
                   (fst a1, snd a1) ); simpl; trivial...
       apply (is_sorted_cons (fst b1) (snd b1)
-                      ((fst a1, add_near (snd a1) (snd b2)):: pre_merge (p, q'))
-                      (fst a1, add_near (snd a1) (snd b2))); simpl; trivial.
+                      ((fst a1, Fadd_near (snd a1) (snd b2)):: pre_merge (p, q'))
+                      (fst a1, Fadd_near (snd a1) (snd b2))); simpl; trivial.
       apply (is_sorted_cons (fst b1) (snd b1)
                       ((fst b2, snd b2) :: pre_merge (a1 :: p, q'))
                       (fst b2, snd b2)); simpl; trivial.
 Qed.
 
 
-Function pre_merge_error (p1p2: list (nat*Flt)* list (nat*Flt))
-   {measure (fun l1l2=> (length (fst l1l2) + length (snd l1l2)))%nat} : list (nat*Flt) :=
+Function pre_merge_error (p1p2: list (nat*F)* list (nat*F))
+   {measure (fun l1l2=> (length (fst l1l2) + length (snd l1l2)))%nat} : list (nat*F) :=
          match p1p2 with
          | (nil, nil) => nil
          | (nil, fn2 :: p2') => nil
@@ -191,7 +193,7 @@ Function pre_merge_error (p1p2: list (nat*Flt)* list (nat*Flt))
          | (fn1 :: p1' , fn2 :: p2') =>
                  match lt_eq_lt_dec (fst fn1) (fst fn2) with
                  | inleft (left _) => pre_merge_error (p1',(fn2 :: p2'))
-                 | inleft (right _) => (fst fn1, div2_up (minus_up (add_up (snd fn1) (snd fn2)) (add_down (snd fn1) (snd fn2)))) :: pre_merge_error (p1',p2')
+                 | inleft (right _) => (fst fn1, Fdiv2_up (Fsub_up (Fadd_up (snd fn1) (snd fn2)) (Fadd_down (snd fn1) (snd fn2)))) :: pre_merge_error (p1',p2')
                  | inright _ => pre_merge_error ((fn1 :: p1'),p2')
                  end
          end.
@@ -220,7 +222,7 @@ Lemma pre_merge_error_eq_cons_cons: forall fn1 p1 fn2 p2,
  pre_merge_error  (fn1 :: p1, fn2 :: p2) =
                  match lt_eq_lt_dec (fst fn1) (fst fn2) with
                  | inleft (left _) => pre_merge_error  (p1,(fn2 :: p2))
-                 | inleft (right _) => (fst fn1, div2_up (minus_up (add_up (snd fn1) (snd fn2)) (add_down (snd fn1) (snd fn2)) )) :: pre_merge_error  (p1,p2)
+                 | inleft (right _) => (fst fn1, Fdiv2_up (Fsub_up (Fadd_up (snd fn1) (snd fn2)) (Fadd_down (snd fn1) (snd fn2)) )) :: pre_merge_error  (p1,p2)
                  | inright _ => pre_merge_error  ((fn1 :: p1),p2)
                  end.
 Proof.
@@ -251,7 +253,7 @@ Proof.
 Qed.
 
 Lemma pre_merge_error_eq_4: forall  fn1 p1 fn2 p2, (fst fn1 = fst fn2) %nat ->
- pre_merge_error  (fn1 :: p1, fn2 :: p2) = (fst fn1, div2_up (minus_up (add_up (snd fn1) (snd fn2)) (add_down (snd fn1) (snd fn2)))) :: pre_merge_error  (p1,p2).
+ pre_merge_error  (fn1 :: p1, fn2 :: p2) = (fst fn1, Fdiv2_up (Fsub_up (Fadd_up (snd fn1) (snd fn2)) (Fadd_down (snd fn1) (snd fn2)))) :: pre_merge_error  (p1,p2).
 Proof.
  local_tactic_prove_pre_merge_error_equation.
 Qed.
@@ -262,22 +264,22 @@ Proof.
  local_tactic_prove_pre_merge_error_equation.
 Qed.
 
-Definition pre_merge_add_error p1 p2 : list (nat*Flt) := pre_merge_error (p1,p2).
+Definition pre_merge_add_error p1 p2 : list (nat*F) := pre_merge_error (p1,p2).
 
-Definition error_add t1 t2 : Flt := add_up t1.(error) (add_up t2.(error) (sum_add_up (pre_merge_add_error t1.(spolynom) t2.(spolynom)))).
+Definition error_add t1 t2 : F := Fadd_up t1.(error) (Fadd_up t2.(error) (Fsum_snd_add up (pre_merge_add_error t1.(spolynom) t2.(spolynom)))).
 
-Definition pre_merge_add_spolynom p1 p2 : list (nat*Flt) := pre_merge (p1,p2).
+Definition pre_merge_add_spolynom p1 p2 : list (nat*F) := pre_merge (p1,p2).
 
-Definition merge_add_near sp1 sp2 : Sparse_polynom Flt :=
+Definition merge_add_near sp1 sp2 : Sparse_polynom :=
        match sp1, sp2 with
        | {| polynom:=p1;polynom_sorted:= H1 |}, {| polynom:=p2; polynom_sorted:= H2 |} =>
                {| polynom:=pre_merge_add_spolynom p1 p2; polynom_sorted:=@pre_merge_sorted p1 p2 H1 H2 |}
        end.
 
-Definition add_PolynomialM t1 t2 : Polynomial_model Flt:=
+Definition add_PolynomialM t1 t2 : Polynomial_model :=
  {| spolynom:= merge_add_near t1.(spolynom) t2.(spolynom); error:=error_add t1 t2 |}.
 
-Lemma sum_add_up_nonneg:forall (t1 t2: Polynomial_model Flt), 0<= inj_R( sum_add_up (pre_merge_add_error (spolynom t1) (spolynom t2))).
+Lemma sum_add_up_nonneg:forall (t1 t2: Polynomial_model), 0<= FinjR ( Fsum_snd_add up (pre_merge_add_error (spolynom t1) (spolynom t2))).
 Proof.
  intros [[p1 H1] e1].
  induction p1; intros [[p2 H2] e2].
@@ -295,36 +297,37 @@ Proof.
    unfold pre_merge_add_error.
    rewrite pre_merge_error_eq_cons_cons.
    destruct (lt_eq_lt_dec (fst a) (fst a0)) as [[Hlt | Heq] | Hlt].
-(*
-    apply (IHp1 H_p1 (Build_Polynomial_model (Build_Sparse_polynom (a0 :: p2) H2) e2)).
-    apply Rle_trans with (inj_R (div2_up (minus_up (add_up (snd a) (snd a0)) (add_down (snd a) (snd a0)))) +
-                          inj_R (sum_add_up (pre_merge_error (p1,p2)))); [|apply flt_add_u].
-    apply Rplus_le_le_0_compat.
-     (*    0 <= inj_R (div2_up (minus_up (add_up x y) (add_down x y))) *)
-     generalize (snd a) (snd a0); intros x y.
-     apply Rle_trans with (Rabs ( (inj_R  (add_near x y))- ((inj_R x)+(inj_R y)) )); [apply Rabs_pos|apply flt_add_n_u_d_div2]...
 
+    apply (IHp1 H_p1 (Build_Polynomial_model (Build_Sparse_polynom (a0 :: p2) H2) e2)).
+    apply Rle_trans with (FinjR (Fdiv2_up (Fsub_up (Fadd_up (snd a) (snd a0)) (Fadd_down (snd a) (snd a0)))) +
+                          FinjR (Fsum_snd_add up (pre_merge_error (p1,p2)))); [|apply Rge_le; apply flt_add_up].
+    apply Rplus_le_le_0_compat.
+     (*    0 <= FinjR (div2_up (Fsub_up (add_up x y) (add_down x y))) *)
+     generalize (snd a) (snd a0); intros x y.
+     apply Rle_trans with (Rabs ( (FinjR  (Fadd_near x y))- ((FinjR x)+(FinjR y)) )). 
+       apply Rabs_pos.
+       unfold Fadd_near, Fadd_up, Fadd_down.
+       replace Fadd with (Fapply Add); [|trivial]. replace Rplus with (Rapply Add); [|trivial].
+       apply flt_op_near_up_down_sub_hlf_up.
      apply (IHp1 H_p1 (Build_Polynomial_model (Build_Sparse_polynom p2 H_p2) e2)).
 
     apply IHp2; assumption.
-*)
-Admitted.
+Qed.
 
-Lemma sum_add_up_property: forall (sp1 sp2:Sparse_polynom Flt) x,  -1 <= x <= 1 ->
-   Rabs (ax_eval_Sparse_polynom sp1 x + ax_eval_Sparse_polynom sp2 x - ax_eval_Sparse_polynom (merge_add_near sp1 sp2) x) <=
-        inj_R (sum_add_up (pre_merge_add_error sp1 sp2)).
+Lemma sum_add_up_property: forall (sp1 sp2:Sparse_polynom) x,  -1 <= x <= 1 ->
+   Rabs (@ax_eval_Sparse_polynom F FltF sp1 x + @ax_eval_Sparse_polynom F FltF sp2 x - @ax_eval_Sparse_polynom F FltF (merge_add_near sp1 sp2) x) <=
+        FinjR (Fsum_snd_add up (pre_merge_add_error sp1 sp2)).
 Proof.
-(*
  intros [p1 H1].
  induction p1; intros [p2 H2].
   intros  x _; simpl; unfold merge_add_near, pre_merge_add_spolynom, pre_merge_add_error in *.
   rewrite pre_merge_eq_2, pre_merge_error_eq_2; simpl.
-  stepl 0; [ rewrite flt_null; fourier | symmetry; stepl (Rabs 0); [apply Rabs_R0|f_equal; ring]].
+  stepl 0; [ rewrite flt_null; lra | symmetry; stepl (Rabs 0); [apply Rabs_R0|f_equal; ring]].
 
   induction p2.
    intros x _; simpl; unfold merge_add_near, pre_merge_add_spolynom, pre_merge_add_error in *.
    rewrite pre_merge_eq_1, pre_merge_error_eq_1; simpl.
-   stepl 0; [ rewrite flt_null; fourier | symmetry; stepl (Rabs 0); [apply Rabs_R0|f_equal; ring]].
+   stepl 0; [ rewrite flt_null; lra | symmetry; stepl (Rabs 0); [apply Rabs_R0|f_equal; ring]].
 
    intros x Hx.
    unfold merge_add_near, pre_merge_add_spolynom, pre_merge_add_error.
@@ -340,84 +343,89 @@ Proof.
     rewrite (ax_eval_Sparse_polynom_eq_1) with (H2:=H_p1).
     set (sp1:=Build_Sparse_polynom p1 H_p1).
     set (sp2:=Build_Sparse_polynom (a0 :: p2) H2).
-    replace (ax_eval_polynom ((fst a, snd a) :: pre_merge (p1, a0 :: p2)) x) with
-            (inj_R (snd a) *(pow x (fst a)) + (ax_eval_Sparse_polynom (merge_add_near sp1 sp2) x)); [|trivial].
+    replace (@ax_eval_polynom F FltF ((fst a, snd a) :: pre_merge (p1, a0 :: p2)) x) with
+            (FinjR (snd a) *(pow x (fst a)) + (@ax_eval_Sparse_polynom F FltF (merge_add_near sp1 sp2) x)); [|trivial].
     replace (pre_merge_error (p1, a0 :: p2)) with
             (pre_merge_add_error sp1 sp2); [|trivial].
-    stepl (Rabs (ax_eval_Sparse_polynom sp1 x +
-                 ax_eval_Sparse_polynom sp2 x -
-                 ax_eval_Sparse_polynom (merge_add_near sp1 sp2) x)) ;[|f_equal; ring].
-    apply (IHp1 _ _ _ Hx).
+    stepl (Rabs (@ax_eval_polynom F FltF sp1 x +
+                 @ax_eval_polynom F FltF sp2 x -
+                 @ax_eval_polynom F FltF (merge_add_near sp1 sp2) x)).
+      apply (IHp1 H_p1 sp2). exact Hx.
+      remember (merge_add_near sp1 sp2) as sp12.
+      f_equal; destruct sp12; simpl; ring.
+      
     (* 2 *)
 
     simpl.
-    apply Rle_trans with (  (inj_R(div2_up (minus_up (add_up (snd a) (snd a0)) (add_down (snd a) (snd a0)))) +
-                                    inj_R(sum_add_up (pre_merge_add_error (Build_Sparse_polynom p1 H_p1) (Build_Sparse_polynom p2 H_p2))))).
-    2: apply flt_add_u.
+    apply Rle_trans with (  (FinjR(Fdiv2_up (Fsub_up (Fadd_up (snd a) (snd a0)) (Fadd_down (snd a) (snd a0)))) +
+                                    FinjR(Fsum_snd_add up (pre_merge_add_error (Build_Sparse_polynom p1 H_p1) (Build_Sparse_polynom p2 H_p2))))).
+    2: apply Rge_le. 2: apply flt_add_up.
 
     rewrite <- Hlt.
     set (sp1:=Build_Sparse_polynom p1 H_p1).
     set (sp2:=Build_Sparse_polynom p2 H_p2).
-    stepl (Rabs ( ( (inj_R (snd a) + inj_R (snd a0)) * (pow x (fst a)) -
-                     inj_R (add_near (snd a) (snd a0)) * (pow x (fst a))
+    stepl (Rabs ( ( (FinjR (snd a) + FinjR (snd a0)) * (pow x (fst a)) -
+                     FinjR (Fadd_near (snd a) (snd a0)) * (pow x (fst a))
                    ) +
-                  (ax_eval_Sparse_polynom sp1 x + ax_eval_Sparse_polynom sp2 x - ax_eval_Sparse_polynom (merge_add_near sp1 sp2) x)
+                  (@ax_eval_Sparse_polynom F FltF sp1 x + @ax_eval_Sparse_polynom F FltF sp2 x - @ax_eval_Sparse_polynom F FltF (merge_add_near sp1 sp2) x)
                 ) ).
     2:f_equal; simpl; unfold merge_add_near, pre_merge_add_spolynom; ring.
-    apply Rle_trans with (Rabs ( inj_R (add_near (snd a) (snd a0)) -
-                                  (inj_R (snd a) + inj_R (snd a0))
+    apply Rle_trans with (Rabs ( FinjR (Fadd_near (snd a) (snd a0)) -
+                                  (FinjR (snd a) + FinjR (snd a0))
                                ) * Rabs (pow x (fst a)) +
-                         Rabs (ax_eval_Sparse_polynom sp1 x + ax_eval_Sparse_polynom sp2 x - ax_eval_Sparse_polynom (merge_add_near sp1 sp2) x) );
+                         Rabs (@ax_eval_Sparse_polynom F FltF sp1 x + @ax_eval_Sparse_polynom F FltF sp2 x - @ax_eval_Sparse_polynom F FltF (merge_add_near sp1 sp2) x) );
     [ rewrite <- Rabs_mult;
-      replace ((inj_R (add_near (snd a) (snd a0)) - (inj_R (snd a) + inj_R (snd a0))) * (pow x (fst a))) with
-      (inj_R (add_near (snd a) (snd a0))*(pow x (fst a)) - (inj_R (snd a) + inj_R (snd a0))*(pow x (fst a)));[|ring];
+      replace ((FinjR (Fadd_near (snd a) (snd a0)) - (FinjR (snd a) + FinjR (snd a0))) * (pow x (fst a))) with
+      (FinjR (Fadd_near (snd a) (snd a0))*(pow x (fst a)) - (FinjR (snd a) + FinjR (snd a0))*(pow x (fst a)));[|ring];
       rewrite Rabs_minus_sym; apply Rabs_triang; rewrite Rabs_minus_sym; apply Rabs_triang
     |].
     apply Rplus_le_compat; [| apply (IHp1 _ _ _ Hx)].
-    apply Rle_trans with (Rabs(inj_R (add_near (snd a) (snd a0)) - (inj_R (snd a) + inj_R (snd a0)))).
+    apply Rle_trans with (Rabs(FinjR (Fadd_near (snd a) (snd a0)) - (FinjR (snd a) + FinjR (snd a0)))).
      assert (H_xn_l:-1 <= (pow x (fst a)) );[apply pow_Rle_l_1; elim Hx; trivial|].
      assert (H_xn_r:(pow x (fst a))<= 1 );[apply pow_Rle_r_1; elim Hx; trivial|].
-     assert (H_xn_abs:=Rabs_Rle_1 (pow x (fst a)) H_xn_l H_xn_r).
-     stepr (Rabs (inj_R (add_near (snd a) (snd a0)) - (inj_R (snd a) + inj_R (snd a0))) * 1); [|ring].
+     assert (H_xn_abs:Rabs (pow x (fst a))<=1). { apply Rabs_Rle_1. split. exact H_xn_l. exact H_xn_r. }
+     stepr (Rabs (FinjR (Fadd_near (snd a) (snd a0)) - (FinjR (snd a) + FinjR (snd a0))) * 1); [|ring].
      apply Rmult_le_compat_l; trivial; apply Rabs_pos.
 
-     apply flt_add_n_u_d_div2...
+     unfold Fadd_near, Fadd_up, Fadd_down.
+     replace Fadd with (Fapply Add); [|trivial].
+     replace Rplus with (Rapply Add); [|trivial].
+     apply flt_op_near_up_down_sub_hlf_up.
 
     (* 3 *)
     rewrite (ax_eval_Sparse_polynom_eq_1) with (H2:=H_p2).
     set (sp1:=Build_Sparse_polynom (a :: p1) H1).
     set (sp2:=Build_Sparse_polynom p2 H_p2).
-    replace (ax_eval_polynom ((fst a0, snd a0) :: pre_merge (a :: p1, p2)) x) with
-            (inj_R (snd a0) *(pow x (fst a0)) + (ax_eval_Sparse_polynom (merge_add_near sp1 sp2) x)); [|trivial].
+    replace (@ax_eval_polynom F FltF ((fst a0, snd a0) :: pre_merge (a :: p1, p2)) x) with
+            (FinjR (snd a0) *(pow x (fst a0)) + (@ax_eval_Sparse_polynom F FltF (merge_add_near sp1 sp2) x)); [|trivial].
     replace (pre_merge_error (a :: p1, p2)) with
             (pre_merge_add_error sp1 sp2); [|trivial].
-    stepl (Rabs (ax_eval_Sparse_polynom sp1 x +
-                 ax_eval_Sparse_polynom sp2 x -
-                 ax_eval_Sparse_polynom (merge_add_near sp1 sp2) x)) ;[|f_equal; ring].
+    stepl (Rabs (@ax_eval_Sparse_polynom F FltF sp1 x +
+                 @ax_eval_Sparse_polynom F FltF sp2 x -
+                 @ax_eval_Sparse_polynom F FltF (merge_add_near sp1 sp2) x)) ;[|f_equal; ring].
     apply IHp2; assumption.
-*)
-Admitted.
+Qed.
 
-Theorem add_PolynomialM_correct:forall (t1 t2: Polynomial_model Flt) (f1 f2:R -> R), Models t1 f1 -> Models t2 f2 -> Models (add_PolynomialM t1 t2) (fun x=> f1(x)+ f2(x)).
+Theorem add_PolynomialM_correct:forall (t1 t2: Polynomial_model) (f1 f2:R -> R), 
+  @Models F FltF t1 f1 -> @Models F FltF t2 f2 -> @Models F FltF (add_PolynomialM t1 t2) (fun x=> f1(x)+ f2(x)).
 Proof.
-(*
  intros t1 t2 f1 f2 H1 H2 x hyp_x.
  specialize (H1 x hyp_x); specialize (H2 x hyp_x).
  assert (H_sum_err_nonneg:= sum_add_up_nonneg t1 t2).
- apply Rle_trans with (inj_R (error t1)+ inj_R (error t2) + inj_R (sum_add_up (pre_merge_add_error (spolynom t1) (spolynom t2)))).
+ apply Rle_trans with (FinjR (error t1)+ FinjR (error t2) + FinjR (Fsum_snd_add up (pre_merge_add_error (spolynom t1) (spolynom t2)))).
 
-  2:apply Rle_trans with (inj_R (error t1)+ inj_R (error t2) + inj_R (sum_add_up (pre_merge_add_error (spolynom t1) (spolynom t2))));
+  2:apply Rle_trans with (FinjR (error t1)+ FinjR (error t2) + FinjR (Fsum_snd_add up (pre_merge_add_error (spolynom t1) (spolynom t2))));
      [ apply Rplus_le_compat_l;
-       generalize (inj_R (sum_add_up (pre_merge_add_error (spolynom t1) (spolynom t2)))) H_sum_err_nonneg; intros r H_r; fourier
-     | apply Rle_trans with (inj_R (error t1)+ inj_R (add_up (error t2) (sum_add_up (pre_merge_add_error (spolynom t1) (spolynom t2)))));
-       [(stepl (inj_R (error t1)+ (inj_R (error t2) + inj_R (sum_add_up (pre_merge_add_error (spolynom t1) (spolynom t2))))) by ring) ;
-       apply Rplus_le_compat_l |] ; apply flt_add_u
+       generalize (FinjR (Fsum_snd_add up (pre_merge_add_error (spolynom t1) (spolynom t2)))) H_sum_err_nonneg; intros r H_r; lra
+     | apply Rle_trans with (FinjR (error t1)+ FinjR (Fadd_up (error t2) (Fsum_snd_add up (pre_merge_add_error (spolynom t1) (spolynom t2)))));
+       [(stepl (FinjR (error t1)+ (FinjR (error t2) + FinjR (Fsum_snd_add up (pre_merge_add_error (spolynom t1) (spolynom t2))))) by ring) ;
+       apply Rplus_le_compat_l |] ; apply Rge_le; apply flt_add_up
      ].
  destruct t1 as [sp1 e1]; destruct t2 as [sp2 e2].
  simpl in *.
- set (p1_x:= ax_eval_Sparse_polynom sp1 x).
- set (p2_x:= ax_eval_Sparse_polynom sp2 x).
- set (pp_x:= ax_eval_Sparse_polynom (merge_add_near sp1 sp2) x).
+ set (p1_x:= @ax_eval_Sparse_polynom F FltF sp1 x).
+ set (p2_x:= @ax_eval_Sparse_polynom F FltF sp2 x).
+ set (pp_x:= @ax_eval_Sparse_polynom F FltF (merge_add_near sp1 sp2) x).
  rewrite Rabs_minus_sym.
  stepl ( Rabs ( (f1(x) - p1_x) + (f2(x) - p2_x) + ( (p1_x + p2_x) - pp_x) ) ); [|f_equal; ring].
  apply Rle_trans with ( Rabs ( (f1(x) - p1_x) + (f2(x) - p2_x) ) + Rabs ( (p1_x + p2_x) - pp_x) ); [apply Rabs_triang |].
@@ -428,12 +436,12 @@ Proof.
   ].
  apply sum_add_up_property; assumption.
 Qed.
-*)
-Admitted.
+
+Close Scope R_scope.
 
 End Polynomial_Models_Sum.
 
 Unset Implicit Arguments.
 
-Arguments sum_add_up {F}.
-Arguments pre_merge_add_error {Flt}.
+Arguments Fsum_snd_add {I} {F} {Flt}.
+Arguments pre_merge_add_error {F} {FltF}.

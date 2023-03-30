@@ -1,5 +1,6 @@
 (************************************************************************)
 (* Copyright 2006 Milad Niqui                                           *)
+(*           2023 Pieter Collins                                        *)
 (* This file is distributed under the terms of the                      *)
 (* GNU Lesser General Public License Version 2.1                        *)
 (* A copy of the license can be found at                                *)
@@ -58,6 +59,23 @@ Declare Left Step Rneq_stepl.
 Declare Right Step Rneq_stepr.
 
 
+Lemma Ropp_0_le_contravar : forall (x:R), x <= 0 <-> 0 <= -x.
+Proof.
+  intro x.
+  split.
+  intro H. apply Ropp_0_ge_le_contravar. apply Rle_ge. exact H.
+  intro H. 
+  assert (x + 0 <= x + -x) as He. 
+  apply Rplus_le_compat. apply Rle_refl. exact H.
+  rewrite -> Rplus_0_r in He. rewrite -> Rplus_opp_r in He. exact He.
+Qed.
+
+Lemma Rminus_eq_0 : forall x, (x-x=0)%R.
+Proof.
+  intro x. 
+  ring. 
+Qed.
+
 Lemma Rlt_zero_Rminus : forall r1 r2:R , 0 < r1-r2  -> r2 < r1.
 Proof.
  intros r1 r2 H; apply Rminus_lt; apply Ropp_lt_cancel; rewrite Ropp_minus_distr; rewrite Ropp_0; assumption.
@@ -110,7 +128,9 @@ Definition Rmult_resp_nonzero:=RIneq.prod_neq_R0.
 Definition Rinv_resp_nonzero:=Rinv_neq_0_compat.
 Definition Ropp_resp_nonzero:=RIneq.Ropp_neq_0_compat.
 
+(*
 #[export]
+*)
 Hint Resolve Rlt_Ropp_pos Rinv_pos R1_neq_R0 Rle_mult_nonneg_nonneg
              Rlt_mult_pos_pos Rlt_mult_neg_neg Rlt_not_eq' Rlt_not_eq
              Rmult_resp_nonzero Rinv_resp_nonzero Ropp_resp_nonzero.
@@ -557,6 +577,13 @@ Ltac ring_exact_R hyp :=
  | ?X3 => fail 1
  end.
 
+
+Lemma Rabs_le_1 (a:R) : (-1 <= a) -> (a <= 1) -> (Rabs a) <= 1.
+Proof.
+  assert (-1 <= a <= 1 -> Rabs a <=1). { apply Rabs_le. }
+  auto.
+Qed.
+
 Lemma Rabs_pow_le_1 : forall (x : R) (n : nat), Rabs x <=1 -> Rabs (pow x n) <= 1.
 Proof.
   intros.
@@ -587,6 +614,26 @@ Proof.
 Qed.
 
 
+(* Unused *)
+Lemma Rle_or_ge : forall (x1 x2 : R), x1<=x2 \/ x1 >=x2.
+Proof.
+  intros x1 x2.
+  apply or_ind with (A:=x1<x2) (B:=x1=x2\/x1>x2).
+  - left. unfold Rle. left. assumption.
+  - right. unfold Rge. destruct H. right. assumption. left. assumption.
+  - apply Rtotal_order.
+Qed.
+
+
+Lemma Rle_or_le : forall (x1 x2 : R), x1<=x2 \/ x2 <=x1.
+Proof.
+  intros x1 x2.
+  apply or_ind with (A:=x1<x2) (B:=x1=x2\/x1>x2).
+  - left. unfold Rle. left. assumption.
+  - intro H. destruct H. left. unfold Rle. right. assumption. right. unfold Rle. left. apply Rgt_lt. assumption.
+  - apply Rtotal_order.
+Qed.
+
 Lemma pow_Rle_1  : forall (x : R) (n : nat), -1 <= x <= 1 -> -1 <= pow x n <= 1.
 Proof.
   intros.
@@ -596,3 +643,23 @@ Proof.
   exact H.
 Qed.
 
+Lemma pow_Rle_r_1  : forall (x : R) (n : nat), -1 <= x <= 1 -> pow x n <= 1.
+Proof.
+  apply pow_Rle_1.
+Qed.
+
+Lemma pow_Rle_l_1  : forall (x : R) (n : nat), -1 <= x -> -1 <= pow x n.
+Proof.
+  intros.
+  assert (x<=1 \/ 1<=x) as H1 by (apply Rle_or_le).
+  destruct H1 as [H1|H1].
+  - apply pow_Rle_1. split. apply H. apply H1.
+  - apply Rle_trans with (1). lra. apply pow_R1_Rle. exact H1.
+Qed.
+
+Lemma Rabs_Rle_1 : forall (x : R), -1 <= x <= 1 -> Rabs x <= 1.
+Proof.
+  intros x H. apply Rabs_le. lra.
+Qed.
+
+Close Scope R_scope.
