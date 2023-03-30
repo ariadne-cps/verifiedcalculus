@@ -35,7 +35,7 @@ Proof.
  intros; trivial.
 Qed.
 
-Lemma pre_monomial_sorted : forall n p, is_sorted p -> is_sorted (pre_monomial n p).
+Lemma pre_monomial_sorted : forall n p, is_sorted_fst p -> is_sorted_fst (pre_monomial n p).
 Proof.
  intros n;
  induction p as [|a0 [|a1 p]].
@@ -45,12 +45,12 @@ Proof.
   intros H_a; constructor 2.
   (* a :: p *)
   intros H_aap.
-  assert (H_ap:is_sorted (a1 :: p)); [apply is_sorted_cons_inv with (fst a0) (snd a0); rewrite <- (surjective_pairing); exact H_aap|].
+  assert (H_ap:is_sorted_fst (a1 :: p)); [apply is_sorted_fst_cons_inv with (fst a0) (snd a0); rewrite <- (surjective_pairing); exact H_aap|].
   rewrite pre_monomial_eq_cons.
-  apply (is_sorted_cons (n+(fst a0)) (snd a0) (pre_monomial n (a1 :: p))
+  apply (is_sorted_fst_cons (n+(fst a0)) (snd a0) (pre_monomial n (a1 :: p))
                          (n+(fst a1),snd a1) ); trivial.
    2: inversion H_aap; injection H1; intros; subst a1; trivial; apply IHp; assumption.
-   apply Nat.add_lt_mono_l; exact (is_sorted_cons_lt _ _ _ H_aap).
+   apply Nat.add_lt_mono_l; exact (is_sorted_fst_cons_lt _ _ _ H_aap).
 Qed.
 
 Definition sp_monomial n p : SparsePolynomial :=

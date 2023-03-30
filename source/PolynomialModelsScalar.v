@@ -39,7 +39,7 @@ Proof.
  intros; trivial.
 Qed.
 
-Lemma pre_scale_sorted : forall c p, is_sorted p -> is_sorted (pre_scale c p).
+Lemma pre_scale_sorted : forall c p, is_sorted_fst p -> is_sorted_fst (pre_scale c p).
 Proof.
  intros c;
  induction p as [|a0 [|a1 p]].
@@ -49,9 +49,9 @@ Proof.
   intros H_a; constructor 2.
   (* a :: p *)
   intros H_aap.
-  assert (H_ap:is_sorted (a1 :: p)); [apply is_sorted_cons_inv with (fst a0) (snd a0); rewrite <- (surjective_pairing); exact H_aap|].
+  assert (H_ap:is_sorted_fst (a1 :: p)); [apply is_sorted_fst_cons_inv with (fst a0) (snd a0); rewrite <- (surjective_pairing); exact H_aap|].
  rewrite pre_scale_eq_cons.
-  apply (@is_sorted_cons F (fst a0) (Fmul_near c (snd a0)) (pre_scale c (a1 :: p))
+  apply (@is_sorted_fst_cons F (fst a0) (Fmul_near c (snd a0)) (pre_scale c (a1 :: p))
                          (fst a1, Fmul_near c (snd a1)) ); trivial.
    inversion H_aap; injection H1; intros; subst a1; trivial.
    apply IHp; assumption.
@@ -76,7 +76,7 @@ Proof.
  intros c [[p H] e]; induction p; simpl in *.
   simpl; rewrite -> flt_null; auto with real.
 
-  assert (H_p:is_sorted p); [apply is_sorted_cons_inv with (fst a) (snd a); rewrite <- (surjective_pairing); exact H|].
+  assert (H_p:is_sorted_fst p); [apply is_sorted_fst_cons_inv with (fst a) (snd a); rewrite <- (surjective_pairing); exact H|].
   apply Rle_trans with (FinjR (Fdiv2_up (Fsub_up (Fmul_up c (snd a)) (Fmul_down c (snd a)))) +
                         FinjR (pre_error_scale c p)); [|apply Rge_le; apply flt_add_up].
    apply Rplus_le_le_0_compat.
@@ -101,7 +101,7 @@ Proof.
   induction p; intros x Hx; simpl in *.
     stepl 0; [ rewrite flt_null; lra | symmetry; stepl (Rabs 0); [apply Rabs_R0|f_equal; ring]].
 
-  assert (H_p:is_sorted p); [apply is_sorted_cons_inv with (fst a) (snd a); rewrite <- (surjective_pairing); exact H|].
+  assert (H_p:is_sorted_fst p); [apply is_sorted_fst_cons_inv with (fst a) (snd a); rewrite <- (surjective_pairing); exact H|].
   apply Rle_trans with ( (FinjR (Fdiv2_up (Fsub_up (Fmul_up c (snd a)) (Fmul_down c (snd a)))) +
                                 FinjR (pre_error_scale c p))).
    2: apply Rge_le. 2: apply flt_add_up.

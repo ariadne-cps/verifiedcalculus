@@ -103,7 +103,7 @@ Proof.
  local_tactic_prove_pre_merge_equation.
 Qed.
 
-Lemma pre_merge_sorted: forall p1 p2, is_sorted p1 -> is_sorted p2 -> is_sorted (pre_merge (p1,p2)).
+Lemma pre_merge_sorted: forall p1 p2, is_sorted_fst p1 -> is_sorted_fst p2 -> is_sorted_fst (pre_merge (p1,p2)).
 Proof.
  induction p1 as [|a1 p].
   (* nil , _ *)
@@ -113,41 +113,41 @@ Proof.
    (* a1 :: p , nil *)
    rewrite pre_merge_eq_1; assumption.
    (* a1 :: p , b1 : q *)
-   assert (H_p:is_sorted p); [apply is_sorted_cons_inv with (fst a1) (snd a1); rewrite <- (surjective_pairing); exact H_ap|].
-   assert (H_q:is_sorted q); [apply is_sorted_cons_inv with (fst b1) (snd b1); rewrite <- (surjective_pairing); exact H_bq|].
+   assert (H_p:is_sorted_fst p); [apply is_sorted_fst_cons_inv with (fst a1) (snd a1); rewrite <- (surjective_pairing); exact H_ap|].
+   assert (H_q:is_sorted_fst q); [apply is_sorted_fst_cons_inv with (fst b1) (snd b1); rewrite <- (surjective_pairing); exact H_bq|].
    rewrite pre_merge_eq_cons_cons.
    destruct (lt_eq_lt_dec (fst a1) (fst b1)) as [[Hlt | Heq] | Hlt].
     (* 1 *)
-    assert (hyp:is_sorted (pre_merge (p, b1 :: q))); [apply IHp; assumption|].
+    assert (hyp:is_sorted_fst (pre_merge (p, b1 :: q))); [apply IHp; assumption|].
     destruct p as  [|a2 p'].
      (* a1 :: nil , b1 :: q *)
-     rewrite pre_merge_eq_2; apply (is_sorted_cons (fst a1) (snd a1) (b1 :: q) b1); trivial.
+     rewrite pre_merge_eq_2; apply (is_sorted_fst_cons (fst a1) (snd a1) (b1 :: q) b1); trivial.
      (* a1 :: a2 :: p1' , b1 :: q *)
      assert (H_a12: (fst a1<fst a2)%nat); [inversion H_ap; injection H1; intros H_tmp; subst a2; assumption|].
      revert hyp.
      rewrite pre_merge_eq_cons_cons.
      destruct (lt_eq_lt_dec (fst a2) (fst b1)) as [[Hlt' | Heq'] | Hlt']; intros hyp.
-      apply (is_sorted_cons (fst a1) (snd a1)
+      apply (is_sorted_fst_cons (fst a1) (snd a1)
                   ((fst a2, snd a2) :: pre_merge (p', b1 :: q))
                   (fst a2, snd a2) ); simpl; trivial...
-      apply (is_sorted_cons (fst a1) (snd a1)
+      apply (is_sorted_fst_cons (fst a1) (snd a1)
                       ((fst a2, Fadd_near (snd a2) (snd b1)):: pre_merge (p', q))
                       (fst a2, Fadd_near (snd a2) (snd b1))); simpl; trivial.
-      apply (is_sorted_cons (fst a1) (snd a1)
+      apply (is_sorted_fst_cons (fst a1) (snd a1)
                       ((fst b1, snd b1) :: pre_merge (a2 :: p', q))
                       (fst b1, snd b1)); simpl; trivial.
     (* 2 *)
-    assert (hyp:is_sorted (pre_merge (p, q))); [apply IHp; assumption|].
+    assert (hyp:is_sorted_fst (pre_merge (p, q))); [apply IHp; assumption|].
     destruct p as  [|a2 p']; destruct q as [|b2 q'].
      (* a1 :: nil , b1 :: nil *)
-     rewrite pre_merge_eq_nil_nil; apply is_sorted_one.
+     rewrite pre_merge_eq_nil_nil; apply is_sorted_fst_one.
      (* a1 :: nil , b1 :: b2 :: q' *)
      assert (H_b12: (fst b1<fst b2)%nat); [inversion H_bq; injection H1; intros H_tmp; subst b2; assumption|].
      assert (H_a1_b2: (fst a1<fst b2)%nat); [rewrite Heq; assumption|].
-     rewrite pre_merge_eq_2; apply (is_sorted_cons (fst a1) (Fadd_near (snd a1) (snd b1)) (b2 :: q') b2); trivial.
+     rewrite pre_merge_eq_2; apply (is_sorted_fst_cons (fst a1) (Fadd_near (snd a1) (snd b1)) (b2 :: q') b2); trivial.
      (* a1 :: a2 :: p' , b1 :: nil *)
      assert (H_a12: (fst a1<fst a2)%nat); [inversion H_ap; injection H1; intros H_tmp; subst a2; assumption|].
-     rewrite pre_merge_eq_1; apply (is_sorted_cons (fst a1) (Fadd_near (snd a1) (snd b1)) (a2 :: p') a2); trivial.
+     rewrite pre_merge_eq_1; apply (is_sorted_fst_cons (fst a1) (Fadd_near (snd a1) (snd b1)) (a2 :: p') a2); trivial.
      (* a1 :: a2 :: p' , b1 :: b2 :: q' *)
      assert (H_a12: (fst a1<fst a2)%nat); [inversion H_ap; injection H1; intros H_tmp; subst a2; assumption|].
      assert (H_b12: (fst b1<fst b2)%nat); [inversion H_bq; injection H1; intros H_tmp; subst b2; assumption|].
@@ -155,32 +155,32 @@ Proof.
      revert hyp.
      rewrite pre_merge_eq_cons_cons.
      destruct (lt_eq_lt_dec (fst a2) (fst b2)) as [[Hlt' | Heq'] | Hlt']; intros hyp.
-      apply (is_sorted_cons (fst a1) (Fadd_near (snd a1) (snd b1))
+      apply (is_sorted_fst_cons (fst a1) (Fadd_near (snd a1) (snd b1))
                   ((fst a2, snd a2) :: pre_merge (p', b2 :: q'))
                   (fst a2, snd a2) ); simpl; trivial...
-      apply (is_sorted_cons (fst a1) (Fadd_near (snd a1) (snd b1))
+      apply (is_sorted_fst_cons (fst a1) (Fadd_near (snd a1) (snd b1))
                       ((fst a2, Fadd_near (snd a2) (snd b2)):: pre_merge (p', q'))
                       (fst a2, Fadd_near (snd a2) (snd b2))); simpl; trivial.
-      apply (is_sorted_cons (fst a1) (Fadd_near (snd a1) (snd b1))
+      apply (is_sorted_fst_cons (fst a1) (Fadd_near (snd a1) (snd b1))
                       ((fst b2, snd b2) :: pre_merge (a2 :: p', q'))
                       (fst b2, snd b2)); simpl; trivial.
     (* 3 *)
-    assert (hyp:is_sorted (pre_merge (a1 :: p, q))); [apply IHq; assumption|].
+    assert (hyp:is_sorted_fst (pre_merge (a1 :: p, q))); [apply IHq; assumption|].
     destruct q as  [|b2 q'].
      (* a1 :: p , b1 :: nil *)
-     rewrite pre_merge_eq_1; apply (is_sorted_cons (fst b1) (snd b1) (a1 :: p) a1); trivial.
+     rewrite pre_merge_eq_1; apply (is_sorted_fst_cons (fst b1) (snd b1) (a1 :: p) a1); trivial.
      (* a1 :: p , b1 :: b2 :: q' *)
      assert (H_b12: (fst b1<fst b2)%nat); [inversion H_bq; injection H1; intros H_tmp; subst b2; assumption|].
      revert hyp.
      rewrite pre_merge_eq_cons_cons.
      destruct (lt_eq_lt_dec (fst a1) (fst b2)) as [[Hlt' | Heq'] | Hlt']; intros hyp.
-      apply (is_sorted_cons (fst b1) (snd b1)
+      apply (is_sorted_fst_cons (fst b1) (snd b1)
                   ((fst a1, snd a1) :: pre_merge (p, b2 :: q'))
                   (fst a1, snd a1) ); simpl; trivial...
-      apply (is_sorted_cons (fst b1) (snd b1)
+      apply (is_sorted_fst_cons (fst b1) (snd b1)
                       ((fst a1, Fadd_near (snd a1) (snd b2)):: pre_merge (p, q'))
                       (fst a1, Fadd_near (snd a1) (snd b2))); simpl; trivial.
-      apply (is_sorted_cons (fst b1) (snd b1)
+      apply (is_sorted_fst_cons (fst b1) (snd b1)
                       ((fst b2, snd b2) :: pre_merge (a1 :: p, q'))
                       (fst b2, snd b2)); simpl; trivial.
 Qed.
@@ -293,8 +293,8 @@ Proof.
    (* a::p1, nil *)
    simpl; unfold pre_merge_add_error; rewrite pre_merge_error_eq_1; simpl; rewrite flt_null; auto with real.
    (* a::p1, a0::p2 *)
-   assert (H_p1:is_sorted p1); [apply is_sorted_cons_inv with (fst a) (snd a); rewrite <- (surjective_pairing); exact H1|].
-   assert (H_p2:is_sorted p2); [apply is_sorted_cons_inv with (fst a0) (snd a0); rewrite <- (surjective_pairing); exact H2|].
+   assert (H_p1:is_sorted_fst p1); [apply is_sorted_fst_cons_inv with (fst a) (snd a); rewrite <- (surjective_pairing); exact H1|].
+   assert (H_p2:is_sorted_fst p2); [apply is_sorted_fst_cons_inv with (fst a0) (snd a0); rewrite <- (surjective_pairing); exact H2|].
    simpl in *.
    unfold pre_merge_add_error.
    rewrite pre_merge_error_eq_cons_cons.
@@ -334,8 +334,8 @@ Proof.
 
    intros x Hx.
    unfold merge_add_near, pre_merge_add_spolynom, pre_merge_add_error.
-   assert (H_p1:is_sorted p1); [apply is_sorted_cons_inv with (fst a) (snd a); rewrite <- (surjective_pairing); exact H1|].
-   assert (H_p2:is_sorted p2); [apply is_sorted_cons_inv with (fst a0) (snd a0); rewrite <- (surjective_pairing); exact H2|].
+   assert (H_p1:is_sorted_fst p1); [apply is_sorted_fst_cons_inv with (fst a) (snd a); rewrite <- (surjective_pairing); exact H1|].
+   assert (H_p2:is_sorted_fst p2); [apply is_sorted_fst_cons_inv with (fst a0) (snd a0); rewrite <- (surjective_pairing); exact H2|].
    assert (H_p1_a0_p2:=@pre_merge_sorted p1 (a0 :: p2)  H_p1 H2).
 
    unfold SPax_eval at 3.

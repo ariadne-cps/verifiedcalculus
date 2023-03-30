@@ -21,17 +21,17 @@ Context `{F : Type} `{FltF : Float F}.
 Open Scope R_scope.
 
 
-Inductive is_sorted {A:Type} : list (nat*A) -> Prop :=
-   | is_sorted_nil : is_sorted nil
-   | is_sorted_one : forall m a, is_sorted (cons (m,a) nil)
-   | is_sorted_cons : forall m (a:A) xs a0, head xs = Some a0 -> (m<fst a0)%nat -> is_sorted xs -> is_sorted (cons (m,a) xs).
+Inductive is_sorted_fst {A:Type} : list (nat*A) -> Prop :=
+   | is_sorted_fst_nil : is_sorted_fst nil
+   | is_sorted_fst_one : forall m a, is_sorted_fst (cons (m,a) nil)
+   | is_sorted_fst_cons : forall m (a:A) xs a0, head xs = Some a0 -> (m<fst a0)%nat -> is_sorted_fst xs -> is_sorted_fst (cons (m,a) xs).
 
-Lemma is_sorted_cons_inv : forall {A:Type} m (a:A) xs, is_sorted (cons (m,a) xs) -> is_sorted xs.
+Lemma is_sorted_fst_cons_inv : forall {A:Type} m (a:A) xs, is_sorted_fst (cons (m,a) xs) -> is_sorted_fst xs.
 Proof.
- intros A m a xs H_ma; inversion H_ma; trivial; apply is_sorted_nil.
+ intros A m a xs H_ma; inversion H_ma; trivial; apply is_sorted_fst_nil.
 Qed.
 
-Lemma is_sorted_cons_lt: forall a0 a1 (p2: list (nat*F)), is_sorted (a0 :: a1 :: p2) -> (fst a0 < fst a1)%nat.
+Lemma is_sorted_fst_cons_lt: forall a0 a1 (p2: list (nat*F)), is_sorted_fst (a0 :: a1 :: p2) -> (fst a0 < fst a1)%nat.
 Proof.
  intros a0 a1 p2 H_aap; inversion H_aap; injection H1; intros H_; subst a1; assumption.
 Qed.
@@ -40,14 +40,14 @@ Definition Polynomial := list (nat*F).
 
 Record SparsePolynomial : Type :=
 { polynom:>list (nat*F)
-; polynom_sorted: is_sorted polynom
+; polynom_sorted: is_sorted_fst polynom
 }.
 
 Definition SPtail sp :=
     match sp with
-    | {| polynom := nil |} => {| polynom := nil; polynom_sorted := is_sorted_nil |}
+    | {| polynom := nil |} => {| polynom := nil; polynom_sorted := is_sorted_fst_nil |}
     | {| polynom := (n,a0) :: l; polynom_sorted := H_p |} =>
-          {| polynom := l; polynom_sorted := is_sorted_cons_inv _ _ _ H_p |}
+          {| polynom := l; polynom_sorted := is_sorted_fst_cons_inv _ _ _ H_p |}
     end.
 
 
@@ -94,7 +94,7 @@ Qed.
 
 Lemma Pnorm_cons: forall n0 a0 l H_p,
        Pnorm {| polynom := (n0,a0) :: l; polynom_sorted := H_p |} =
-          Fadd_up (Fabs_exact a0) (Pnorm {| polynom := l; polynom_sorted := is_sorted_cons_inv _ _ _ H_p |}).
+          Fadd_up (Fabs_exact a0) (Pnorm {| polynom := l; polynom_sorted := is_sorted_fst_cons_inv _ _ _ H_p |}).
 Proof.
  intros n0 a0 l H_p; rewrite Pnorm_equation; trivial.
 Qed.
@@ -116,7 +116,7 @@ Proof.
   rewrite Pnorm_cons.
   simpl in *.
   apply Rle_trans with ( (FinjR (Fabs_exact a0)) + FinjR (Pnorm
-           {| polynom := p; polynom_sorted := is_sorted_cons_inv n0 a0 p H_p |})); [| apply Rge_le; apply flt_add_up].
+           {| polynom := p; polynom_sorted := is_sorted_fst_cons_inv n0 a0 p H_p |})); [| apply Rge_le; apply flt_add_up].
   apply Rle_trans with ( (Rabs (FinjR a0 * (pow x n0))) + (Rabs (Pax_eval p x))); [apply Rabs_triang|].
   apply Rplus_le_compat; [|apply IHp].
   rewrite flt_abs_exact.
@@ -154,12 +154,12 @@ Qed.
 
 Definition PMzero : PolynomialModel :=
 {| spolynom := {| polynom :=nil
-                ;  polynom_sorted :=is_sorted_nil|}
+                ;  polynom_sorted :=is_sorted_fst_nil|}
  ; error:=Fnull |}.
 
 Definition PMconstant n a : PolynomialModel :=
 {| spolynom := {| polynom := (n, a) :: nil
-                ; polynom_sorted := is_sorted_one n a |}
+                ; polynom_sorted := is_sorted_fst_one n a |}
 ; error := a |}.
 
 
@@ -167,7 +167,7 @@ Definition PMtail t : PolynomialModel :=
     match t with
     | {| spolynom:={| polynom := nil |} |} => PMzero
     | {| spolynom:={| polynom := (n,a0) :: l; polynom_sorted := H_p |}; error :=e |} =>
-          {| spolynom:= {| polynom := l; polynom_sorted := is_sorted_cons_inv _ _ _ H_p |}; error := e |}
+          {| spolynom:= {| polynom := l; polynom_sorted := is_sorted_fst_cons_inv _ _ _ H_p |}; error := e |}
     end.
 
 Theorem PMtail_correct:forall t f, PMmodels t f -> forall n a l,

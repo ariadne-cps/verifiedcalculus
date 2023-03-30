@@ -44,7 +44,7 @@ Qed.
 Lemma PMmultiply_polynomial_cons : forall n0 a0 l H_p1 sp2,
        PMmultiply_polynomial {| polynom := (n0,a0) :: l; polynom_sorted := H_p1 |} sp2 =
               PMadd (PMscale a0 (PMmonomial_scale n0 {| spolynom:=sp2; error:=Fnull |}))
-                     (PMmultiply_polynomial {| polynom := l; polynom_sorted := is_sorted_cons_inv _ _ _ H_p1 |} sp2).
+                     (PMmultiply_polynomial {| polynom := l; polynom_sorted := is_sorted_fst_cons_inv _ _ _ H_p1 |} sp2).
 Proof.
  intros n0 a0 l H_p1 sp2; rewrite PMmultiply_polynomial_equation; trivial.
 Qed.
@@ -64,7 +64,7 @@ Proof.
 
   rewrite PMmultiply_polynomial_cons.
   simpl.
-  set (sp1:={| polynom := p1; polynom_sorted := is_sorted_cons_inv n0 a0 p1 H_p1 |}).
+  set (sp1:={| polynom := p1; polynom_sorted := is_sorted_fst_cons_inv n0 a0 p1 H_p1 |}).
   apply PMmodels_extensional with (f1:=fun x=> ((FinjR a0)*((pow x n0)*(SPax_eval sp2 x))) + ((SPax_eval sp1 x))*(SPax_eval sp2 x)) .
   2: intros; subst sp1; simpl; ring.
   apply PMadd_correct.
@@ -77,7 +77,7 @@ Qed.
 
 Theorem Pscale_norm_error : forall t1 t2 f1 f2,
   PMmodels t1 f1 -> PMmodels t2 f2 ->
-    PMmodels {| spolynom:={| polynom := nil; polynom_sorted := is_sorted_nil |}
+    PMmodels {| spolynom:={| polynom := nil; polynom_sorted := is_sorted_fst_nil |}
            ; error := (Fadd_up (Pscale_norm t1.(error) t2.(spolynom))
                               (Fadd_up (Pscale_norm t2.(error) t1.(spolynom))
                                       (Fmul_up t1.(error) t2.(error))))
@@ -125,7 +125,7 @@ Qed.
 
 Definition PMmultiply (t1 t2 : PolynomialModel) : PolynomialModel :=
     PMadd (PMmultiply_polynomial t1.(spolynom) t2.(spolynom))
-               {| spolynom:= {| polynom := nil; polynom_sorted := is_sorted_nil |}
+               {| spolynom:= {| polynom := nil; polynom_sorted := is_sorted_fst_nil |}
                 ; error:=  (Fadd_up (Pscale_norm t1.(error) t2.(spolynom))
                                    (Fadd_up (Pscale_norm t2.(error) t1.(spolynom))
                                            (Fmul_up t1.(error) t2.(error)))) |}.
