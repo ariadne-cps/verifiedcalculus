@@ -1,5 +1,5 @@
 (************************************************************************)
-(* Copyright 2006 Milad Niqui                                           *)
+(* Copyright 2006-10 Milad Niqui                                           *)
 (*           2023 Pieter Collins                                        *)
 (* This file is distributed under the terms of the                      *)
 (* GNU Lesser General Public License Version 2.1                        *)

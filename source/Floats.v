@@ -236,12 +236,12 @@ Fixpoint Fsum {F} {Flt : Float F} (r : Rounding) (xs : list F) :=
   match xs with | nil => Fnull | hd::tl => Fadd r hd (Fsum r tl) end.
   
 Definition Fsum_snd_add {I} {F} {Flt : Float F} (r : Rounding) : list (I * F) -> F
-  := fold_right (fun nf=> @Fadd F Flt r (snd nf)) Fnull.
+  := fold_right (fun nf=> Fadd r (snd nf)) Fnull.
 
 Fixpoint Fpow_up {F} {Flt : Float F} (x:F) (n:nat) :=
     match n with
     | O => Funit
-    | S n' => Fmul up x (@Fpow_up F Flt x n')
+    | S n' => Fmul up x (Fpow_up x n')
     end.
 
 Lemma flt_null : FinjR (Fnull) = 0%R.
@@ -348,7 +348,7 @@ Qed.
 Lemma flt_mul_near_up: forall {F:Type} {FltF:Float F} x y,
   Rabs ( (FinjR (Fmul near x y)) - ((FinjR x) * (FinjR y))) <= (FinjR (Fmul up x y)) - ((FinjR x) * (FinjR y)).
 Proof.
-  intros. apply (@flt_op_near_up F FltF Mul).
+  intros. apply (flt_op_near_up Mul).
 Qed.
 *)
 

@@ -16,17 +16,19 @@ Module FloatBounds.
 
 Open Scope R_scope.
 
+Context `{F : Type} `{FltF : Float F}.
 
-Inductive Bounds {F:Type} {cf : Float F} := 
+
+Inductive Bounds {F:Type} {FltF : Float F} := 
   bounds (lower:F) (upper:F).
 
 Check bounds.
 
-Definition models {F} {cF : Float F} : (@Bounds F cF) -> R -> Prop :=
+Definition models : Bounds -> R -> Prop :=
   fun x y => match x with bounds l u => FinjR l <= y /\ y <= FinjR u end.
 
 
-Definition add_bounds {F} {cF : Float F} : Bounds -> Bounds -> Bounds :=
+Definition add_bounds : Bounds -> Bounds -> Bounds :=
   fun x1 x2 => 
     match x1 with bounds l1 u1 
       => match x2 with bounds l2 u2
@@ -36,7 +38,7 @@ Definition add_bounds {F} {cF : Float F} : Bounds -> Bounds -> Bounds :=
   fun (bounds l1 u1) (bounds l2 u2) bounds (add down l1 l2) (add up u1 u2). 
 *)
 
-Lemma add_bounds_correct {F} {cF : Float F} :
+Lemma add_bounds_correct :
   forall (x1 x2 : Bounds) (y1 y2 : R),
     models x1 y1 -> models x2 y2 -> models (add_bounds x1 x2) (y1+y2).
 Proof.
@@ -53,8 +55,8 @@ Proof.
     -- apply Rge_le; apply flt_add_up.
 Qed.
   
-(* Definition sub_bounds {F} {cF : Float F} ((bounds l1 u1) : Bounds) (x2 : Bounds) : Bounds *)
-Definition sub_bounds {F} {cF : Float F} (x1 x2 : Bounds) : Bounds :=
+(* Definition sub_bounds ((bounds l1 u1) : Bounds) (x2 : Bounds) : Bounds *)
+Definition sub_bounds (x1 x2 : Bounds) : Bounds :=
   match x1 with bounds l1 u1 => match x2 with bounds l2 u2
       => bounds (Fsub down l1 u2) (Fsub up u1 l2) end end.
 
@@ -65,7 +67,7 @@ Proof.
   lra.
 Qed. 
 
-Lemma sub_bounds_correct {F} {cF : Float F} :
+Lemma sub_bounds_correct :
   forall (x1 x2 : Bounds) (y1 y2 : R),
     models x1 y1 -> models x2 y2 -> models (sub_bounds x1 x2) (y1-y2).
 Proof.
@@ -84,7 +86,7 @@ Qed.
   
 
 
-Definition mul_bounds {F} {cF : Float F} (x1 x2 : Bounds) : Bounds :=
+Definition mul_bounds (x1 x2 : Bounds) : Bounds :=
   match x1 with bounds l1 u1 => 
     match x2 with bounds l2 u2 => 
       if Fleb Fnull l1 then
@@ -136,7 +138,7 @@ Qed.
 
 
 
-Lemma flt_not_leb {F} {cF : Float F} : 
+Lemma flt_not_leb : 
   forall (x1 x2 : F), (false = Fleb x1 x2) -> (FinjR x2 <= FinjR x1).
 Proof.
   intros x1 x2. intro H.
@@ -151,7 +153,7 @@ Proof.
   - exact (Rle_or_le (FinjR x1) (FinjR x2)).
 Qed.
 
-Lemma flt_geb_0 {F} {cF : Float F} : 
+Lemma flt_geb_0 : 
   forall (x:F), (true = Fleb Fnull x) -> (0 <= FinjR x).
 Proof.
    intro x. intro H.
@@ -159,7 +161,7 @@ Proof.
    apply flt_leb. apply eq_sym. exact H.
 Qed.
 
-Lemma flt_leb_0 {F} {cF : Float F} : 
+Lemma flt_leb_0 : 
   forall (x:F), (true = Fleb x Fnull) -> (FinjR x <= 0).
 Proof.
    intro x. intro H.
@@ -167,13 +169,13 @@ Proof.
    apply flt_leb. apply eq_sym. exact H.
 Qed.
 
-Lemma flt_not_geb_0 {F} {cF : Float F} : 
+Lemma flt_not_geb_0 : 
   forall (x:F), (false = Fleb Fnull x) -> (FinjR x <= 0).
 Proof.
   intro x. replace 0 with (FinjR (NinjF 0%nat)) by (apply flt_ninjr); apply flt_not_leb.
 Qed.
 
-Lemma flt_not_leb_0 {F} {cF : Float F} : 
+Lemma flt_not_leb_0 : 
   forall (x:F), (false = Fleb x Fnull) -> (0 <= FinjR x).
 Proof.
   intro x. replace 0 with (FinjR (NinjF 0%nat)) by (apply flt_ninjr); apply flt_not_leb.
@@ -199,7 +201,7 @@ Qed.
 
 
 
-Lemma flt_mul_up_le {F} {FltF : Float F} : forall (x1 x2 : F),
+Lemma flt_mul_up_le : forall (x1 x2 : F),
   (FinjR x1) * (FinjR x2) <= FinjR (Fmul up x1 x2).
 Proof.
   intros x1 x2. apply Rge_le. apply flt_mul_up.
@@ -227,7 +229,7 @@ Qed.
 
 
 
-Lemma mul_bounds_correct {F} {cF : Float F} :
+Lemma mul_bounds_correct :
   forall (x1 x2 : Bounds) (y1 y2 : R),
     models x1 y1 -> models x2 y2 -> models (mul_bounds x1 x2) (y1*y2).
 Proof.
@@ -466,7 +468,7 @@ Proof.
 Qed.
 
 
-Definition div_bounds {F} {cF : Float F} (x1 x2 : Bounds) : Bounds :=
+Definition div_bounds (x1 x2 : Bounds) : Bounds :=
   match x1 with bounds l1 u1 => 
     match x2 with bounds l2 u2 => 
       if Fleb Fnull l1 then
@@ -488,8 +490,8 @@ Definition div_bounds {F} {cF : Float F} (x1 x2 : Bounds) : Bounds :=
   end
 .
 
-Definition lower {F} {cF : Float F} (x : @Bounds F cF) : F := match x with bounds l _ => l end.
-Definition upper {F} {cF : Float F} (x : @Bounds F cF) : F := match x with bounds _ u => u end.
+Definition lower (x : @Bounds F FltF) : F := match x with bounds l _ => l end.
+Definition upper (x : @Bounds F FltF) : F := match x with bounds _ u => u end.
 
 Lemma Ropp_0_lt_contravar : forall r : R, r < 0 <-> 0 < - r. 
 Proof.
@@ -503,8 +505,7 @@ Qed.
 Lemma Rinv_neg : forall r : R, r < 0 -> / r < 0.
 Proof.
   intro r. intro Hlt0. 
-  rewrite -> Ropp_0_lt_contravar. rewrite -> Ropp_inv_permute. apply Rinv_pos. rewrite <- Ropp_0_lt_contravar. exact Hlt0.
-  apply Rlt_not_eq. exact Hlt0.
+  rewrite -> Ropp_0_lt_contravar. rewrite <- Rinv_opp. apply Rinv_pos. rewrite <- Ropp_0_lt_contravar. exact Hlt0.
 Qed.
 
 Lemma Rinv_le_compat : forall r1 r2 : R, (0 < r1 \/ r2 < 0) -> r1 <= r2 ->  / r2 <=  / r1.
@@ -512,11 +513,9 @@ Proof.
   intros r1 r2 Hne0 H.
   destruct Hne0.
   - apply Rinv_le_contravar. exact H0. exact H.
-  - apply Ropp_le_cancel. rewrite -> Ropp_inv_permute. rewrite -> Ropp_inv_permute. apply Rinv_le_contravar. 
+  - apply Ropp_le_cancel. rewrite <- Rinv_opp. rewrite <- Rinv_opp. apply Rinv_le_contravar. 
     -- apply Ropp_0_lt_contravar. exact H0.
     -- apply Ropp_le_contravar. exact H.
-    -- apply Rlt_not_eq. exact H0.
-    -- apply Rlt_not_eq. apply Rle_lt_trans with (r2 := r2). exact H. exact H0.
 Qed.
 
 Lemma Rdiv_le_compat_l : forall r r1 r2 : R, 0 <= r -> (0 < r1 \/ r2 < 0) -> r1 <= r2 -> r / r2 <= r / r1.
@@ -561,7 +560,7 @@ Proof.
   - exact Hge0.
 Qed.
  
-Lemma flt_div_up_le {F} {FltF : Float F} : forall (x1 x2 : F),
+Lemma flt_div_up_le : forall (x1 x2 : F),
   (FinjR x2 <> 0) -> (FinjR x1) / (FinjR x2) <= FinjR (Fdiv up x1 x2).
 Proof.
   intros x1 x2 Hne0. apply Rge_le. apply flt_div_up. exact Hne0.
@@ -570,7 +569,7 @@ Qed.
 
 
 
-Lemma div_bounds_correct {F} {cF : Float F} :
+Lemma div_bounds_correct :
   forall (x1 x2 : Bounds) (y1 y2 : R),
     models x1 y1 -> models x2 y2 -> (0 < FinjR (lower x2) \/ FinjR (upper x2) < 0) -> models (div_bounds x1 x2) (y1/y2).
 Proof.
