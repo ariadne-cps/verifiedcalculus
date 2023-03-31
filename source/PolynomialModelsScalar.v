@@ -99,7 +99,7 @@ Lemma pre_error_scale_property : forall c (sp:SparsePolynomial) x,  -1 <= x <= 1
 Proof.
   intros c [p H].
   induction p; intros x Hx; simpl in *.
-    stepl 0; [ rewrite flt_null; lra | symmetry; stepl (Rabs 0); [apply Rabs_R0|f_equal; ring]].
+    stepl 0; [ rewrite flt_null; lra | symmetry; stepl (Rabs 0); [apply Rabs_R0|f_equal; unfold SPax_eval; simpl; ring]].
 
   assert (H_p:is_sorted_fst p); [apply is_sorted_fst_cons_inv with (fst a) (snd a); rewrite <- (surjective_pairing); exact H|].
   apply Rle_trans with ( (FinjR (Fdiv2_up (Fsub_up (Fmul_up c (snd a)) (Fmul_down c (snd a)))) +
@@ -127,6 +127,7 @@ Proof.
   apply flt_op_near_up_down_sub_hlf_up.
 
   (* Add variables to simplify form of equations *)
+  unfold SPax_eval. simpl.
   remember (Pax_eval (pre_scale c p) x) as cpx.
   remember (Pax_eval p x) as Rpx.
   remember (FinjR c) as Rc.
@@ -139,8 +140,7 @@ Proof.
   }
   assert ((Rc * Ra - Rcan) * Rpowxa + (Rc*Rpx-cpx) = Rc * (Ra * Rpowxa + Rpx) - (Rcan * Rpowxa + cpx)) as Hd.
   { ring. }
-
-  rewrite -> Hd. rewrite <- Hpr. reflexivity.
+  rewrite -> Hd. rewrite <- Hpr. simpl. reflexivity.
 Qed.
 
 

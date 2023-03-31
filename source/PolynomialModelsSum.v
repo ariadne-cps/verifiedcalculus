@@ -322,6 +322,7 @@ Lemma sum_add_up_property : forall (sp1 sp2:SparsePolynomial) x,  -1 <= x <= 1 -
         FinjR (Fsum_snd_add up (pre_merge_add_error sp1 sp2)).
 Proof.
  intros [p1 H1].
+ unfold SPax_eval in *.
  induction p1; intros [p2 H2].
   intros  x _; simpl; unfold merge_add_near, pre_merge_add_spolynom, pre_merge_add_error in *.
   rewrite pre_merge_eq_2, pre_merge_error_eq_2; simpl.
@@ -338,12 +339,11 @@ Proof.
    assert (H_p2:is_sorted_fst p2); [apply is_sorted_fst_cons_inv with (fst a0) (snd a0); rewrite <- (surjective_pairing); exact H2|].
    assert (H_p1_a0_p2:=@pre_merge_sorted p1 (a0 :: p2)  H_p1 H2).
 
-   unfold SPax_eval at 3.
    unfold polynom.
    rewrite pre_merge_eq_cons_cons, pre_merge_error_eq_cons_cons.
    destruct (lt_eq_lt_dec (fst a) (fst a0)) as [[Hlt | Hlt] | Hlt].
     (* 1 *)
-    rewrite (SPax_eval_eq_1) with (H2:=H_p1).
+    rewrite (Pax_eval_eq_1).
     set (sp1:=Build_SparsePolynomial p1 H_p1).
     set (sp2:=Build_SparsePolynomial (a0 :: p2) H2).
     replace (Pax_eval ((fst a, snd a) :: pre_merge (p1, a0 :: p2)) x) with
@@ -355,7 +355,7 @@ Proof.
                  Pax_eval (merge_add_near sp1 sp2) x)).
       apply (IHp1 H_p1 sp2). exact Hx.
       remember (merge_add_near sp1 sp2) as sp12.
-      f_equal; destruct sp12; simpl; ring.
+      f_equal. unfold SPax_eval. destruct sp12. simpl. ring.
 
     (* 2 *)
 
@@ -372,7 +372,7 @@ Proof.
                    ) +
                   (SPax_eval sp1 x + SPax_eval sp2 x - SPax_eval (merge_add_near sp1 sp2) x)
                 ) ).
-    2:f_equal; simpl; unfold merge_add_near, pre_merge_add_spolynom; ring.
+    2:f_equal; simpl; unfold SPax_eval, merge_add_near, pre_merge_add_spolynom; simpl; ring.
     apply Rle_trans with (Rabs ( FinjR (Fadd_near (snd a) (snd a0)) -
                                   (FinjR (snd a) + FinjR (snd a0))
                                ) * Rabs (pow x (fst a)) +
@@ -396,7 +396,7 @@ Proof.
      apply flt_op_near_up_down_sub_hlf_up.
 
     (* 3 *)
-    rewrite (SPax_eval_eq_1) with (H2:=H_p2).
+    rewrite (Pax_eval_eq_1).
     set (sp1:=Build_SparsePolynomial (a :: p1) H1).
     set (sp2:=Build_SparsePolynomial p2 H_p2).
     replace (Pax_eval ((fst a0, snd a0) :: pre_merge (a :: p1, p2)) x) with
@@ -405,8 +405,10 @@ Proof.
             (pre_merge_add_error sp1 sp2); [|trivial].
     stepl (Rabs (SPax_eval sp1 x +
                  SPax_eval sp2 x -
-                 SPax_eval (merge_add_near sp1 sp2) x)) ;[|f_equal; ring].
-    apply IHp2; assumption.
+                 SPax_eval (merge_add_near sp1 sp2) x)).
+      apply (IHp2 H_p2). exact Hx.
+      remember (merge_add_near sp1 sp2) as sp12.
+      f_equal. unfold SPax_eval. simpl. ring.
 Qed.
 
 Theorem PMadd_correct : forall (t1 t2: PolynomialModel) (f1 f2:R -> R),

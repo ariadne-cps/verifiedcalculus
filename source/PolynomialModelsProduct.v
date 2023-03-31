@@ -56,17 +56,19 @@ Proof.
  intros [p1 H_p1] sp2.
  induction p1 as [|(n0,a0) p1].
 
+  unfold SPax_eval in *.
   simpl in *.
   rewrite PMmultiply_polynomial_nil.
   apply PMmodels_extensional with (f1:=fun x=> 0).
-  2: intros; ring.
-  intros x _; simpl; stepl (Rabs 0); [|f_equal; ring]; rewrite flt_null; rewrite Rabs_R0; auto with real.
+  2: intros; simpl; ring.
+  intros x _; simpl.
+  stepl (Rabs 0); [|f_equal; unfold SPax_eval; simpl; ring]; rewrite flt_null; rewrite Rabs_R0; auto with real.
 
   rewrite PMmultiply_polynomial_cons.
   simpl.
   set (sp1:={| polynom := p1; polynom_sorted := is_sorted_fst_cons_inv n0 a0 p1 H_p1 |}).
   apply PMmodels_extensional with (f1:=fun x=> ((FinjR a0)*((pow x n0)*(SPax_eval sp2 x))) + ((SPax_eval sp1 x))*(SPax_eval sp2 x)) .
-  2: intros; subst sp1; simpl; ring.
+  2: intros; subst sp1; unfold SPax_eval; simpl; ring.
   apply PMadd_correct.
    apply PMscale_correct; apply PMmonomial_scale_correct.
    intros x _; simpl; stepl (Rabs 0); [|f_equal; ring]; rewrite flt_null; rewrite Rabs_R0; auto with real.
@@ -96,7 +98,7 @@ Proof.
 *) 
  stepl (Rabs ( (Pdifference t1.(spolynom) f1 x)*(SPax_eval t2.(spolynom) x) +
                ( (Pdifference t2.(spolynom) f2 x)*(SPax_eval t1.(spolynom) x) +
-                 (Pdifference t1.(spolynom) f1 x)*(Pdifference t2.(spolynom) f2 x) ))) by (f_equal; ring).
+                 (Pdifference t1.(spolynom) f1 x)*(Pdifference t2.(spolynom) f2 x) ))) by (f_equal; unfold SPax_eval; simpl; ring).
  apply Rle_trans with (    Rabs (Pdifference t1.(spolynom) f1 x * SPax_eval t2.(spolynom) x) +
                               (Rabs ( (Pdifference t2.(spolynom) f2 x * SPax_eval t1.(spolynom) x) +
                                        (Pdifference t1.(spolynom) f1 x * Pdifference t2.(spolynom) f2 x) ))); [apply Rabs_triang|].
@@ -114,8 +116,11 @@ Proof.
  assert (Hpd2:Rabs (Pdifference t2.(spolynom) f2 x) <= FinjR t2.(error));
   [unfold Pdifference; rewrite <- Rabs_Ropp; stepl (Rabs (SPax_eval t2.(spolynom) x - f2 x)); trivial; f_equal; unfold SPax_eval; destruct t2; simpl; ring|].
  repeat apply Rplus_le_compat; unfold Pscale_norm; rewrite Rabs_mult.
-  apply Rle_trans with ( (FinjR t1.(error))*(FinjR (Pnorm t2.(spolynom)))); [| apply flt_mul_up_le].
-   apply Rmult_le_compat; try apply Rabs_pos; trivial; apply Pnorm_property; trivial.
+  apply Rle_trans with ( (FinjR t1.(error))*(FinjR (SPnorm t2.(spolynom)))). {
+   apply Rmult_le_compat; try apply Rabs_pos; trivial. unfold SPax_eval. unfold SPnorm. simpl. apply Pnorm_property; trivial.
+  } 
+  apply Rle_trans with ( (FinjR t1.(error))*(FinjR (SPnorm t2.(spolynom)))); [| apply flt_mul_up_le].
+   apply Rle_refl.
   apply Rle_trans with ( (FinjR t2.(error))*(FinjR (Pnorm t1.(spolynom)))); [| apply flt_mul_up_le].
    apply Rmult_le_compat; try apply Rabs_pos; trivial; apply Pnorm_property; trivial.
   apply Rle_trans with ( (FinjR t1.(error))*(FinjR t2.(error))); [| apply flt_mul_up_le].
@@ -140,7 +145,7 @@ Proof.
                 ( (Pdifference t1.(spolynom) f1 x)*(SPax_eval t2.(spolynom) x) +
                  (Pdifference t2.(spolynom) f2 x)*(SPax_eval t1.(spolynom) x) +
                    (Pdifference t1.(spolynom) f1 x)*(Pdifference t2.(spolynom) f2 x) ) ).
- 2:intros x; unfold Pdifference; ring.
+ 2:intros x; unfold Pdifference; unfold SPax_eval; ring.
  unfold PMmultiply.
  apply PMadd_correct.
   apply PMmultiply_polynomial_correct.

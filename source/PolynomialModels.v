@@ -39,7 +39,7 @@ Qed.
 Definition Polynomial := list (nat*F).
 
 Record SparsePolynomial : Type :=
-{ polynom:>list (nat*F)
+{ polynom:>list (nat*F) (* Coersion to list (nat*F) *)
 ; polynom_sorted: is_sorted_fst polynom
 }.
 
@@ -56,84 +56,76 @@ Record PolynomialModel : Type :=
 ; error: F
 }.
 
-Fixpoint Pax_eval (p:Polynomial) (x:R) : R :=
+Fixpoint Pax_eval (p:list (nat*F)) (x:R) : R :=
     match p with
     | nil => 0
     | fn :: p0 =>  (FinjR (snd fn) * (pow x (fst fn))) + Pax_eval p0 x
     end.
 
-Definition SPax_eval (sp:SparsePolynomial) (x:R) : R  :=
-       match sp with
-       | {| polynom := p |} => Pax_eval p x
-       end.
-
-Lemma SPax_eval_eq_1 :forall fn p H1 H2 x, SPax_eval (Build_SparsePolynomial (fn :: p) H1) x =
-                                          (FinjR (snd fn)) * (pow x (fst fn)) + SPax_eval (Build_SparsePolynomial p H2) x.
+Definition SPax_eval (sp:SparsePolynomial) (x:R) : R :=
+  Pax_eval sp.(polynom) x.
+ 
+Lemma Pax_eval_eq_1 : forall t p x, 
+  Pax_eval (t :: p) x = (FinjR (snd t)) * (pow x (fst t)) + Pax_eval p x.
 Proof.
  intros; trivial.
 Qed.
 
 (* Polynomial norm: || p || = \sum_u |a_i| *)
-Function Pnorm (sp: SparsePolynomial)
-   {measure (fun sp0=> length sp0.(polynom)) sp} : F :=
-    match sp with
-    | {| polynom := nil |} => Fnull
-    | {| polynom := (n0,a0) :: l |} =>
-          Fadd_up (Fabs_exact a0) (Pnorm (SPtail sp))
-    end.
+Function Pnorm (p: Polynomial) : F :=
+  match p with
+  | nil  => Fnull
+  | (n0,a0) :: l => Fadd_up (Fabs_exact a0) (Pnorm l)
+  end.
+
+Function SPnorm (sp: SparsePolynomial) : F := 
+  Pnorm sp.(polynom).
+  
+Lemma Pnorm_nil :
+  Pnorm nil = Fnull.
 Proof.
- intros; simpl;
- lia.
+  rewrite Pnorm_equation; trivial.
 Qed.
 
-Lemma Pnorm_nil: forall H_p,
-       Pnorm {| polynom := nil; polynom_sorted := H_p |}  = Fnull.
+Lemma Pnorm_cons : forall n0 a0 l,
+  Pnorm ((n0,a0) :: l) = Fadd_up (Fabs_exact a0) (Pnorm l).
 Proof.
- intros H_p; rewrite Pnorm_equation; trivial.
-Qed.
-
-Lemma Pnorm_cons: forall n0 a0 l H_p,
-       Pnorm {| polynom := (n0,a0) :: l; polynom_sorted := H_p |} =
-          Fadd_up (Fabs_exact a0) (Pnorm {| polynom := l; polynom_sorted := is_sorted_fst_cons_inv _ _ _ H_p |}).
-Proof.
- intros n0 a0 l H_p; rewrite Pnorm_equation; trivial.
+  intros n0 a0 l; rewrite Pnorm_equation; trivial.
 Qed.
 
 Lemma Rpow_incr : forall (x y : R) (n : nat), 0<=x<=y -> x^n <= y^n.
 Proof. apply pow_incr. Qed.
 
-Lemma Pnorm_property: forall sp x,
- -1 <= x <= 1 -> Rabs (SPax_eval sp x) <= FinjR (Pnorm sp).
+Lemma Pnorm_property : forall p x,
+  -1 <= x <= 1 -> Rabs (Pax_eval p x) <= FinjR (Pnorm p).
 Proof.
- intros [p H_p].
- intros x Hx.
- induction p as [|(n0,a0) p].
+  intros p.
+  intros x Hx.
+  induction p as [|(n0,a0) p].
 
-  simpl in *.
-  rewrite Pnorm_nil.
-  unfold Fnull; rewrite flt_ninjr; rewrite Rabs_R0; auto with real.
+    simpl in *.
+    unfold Fnull; rewrite flt_ninjr; rewrite Rabs_R0; auto with real.
 
-  rewrite Pnorm_cons.
-  simpl in *.
-  apply Rle_trans with ( (FinjR (Fabs_exact a0)) + FinjR (Pnorm
-           {| polynom := p; polynom_sorted := is_sorted_fst_cons_inv n0 a0 p H_p |})); [| apply Rge_le; apply flt_add_up].
-  apply Rle_trans with ( (Rabs (FinjR a0 * (pow x n0))) + (Rabs (Pax_eval p x))); [apply Rabs_triang|].
-  apply Rplus_le_compat; [|apply IHp].
-  rewrite flt_abs_exact.
-  rewrite Rabs_mult.
-  stepr (Rabs (FinjR a0)*1) by ring.
-  apply Rmult_le_compat_l; [apply Rabs_pos|].
-  destruct Hx as [H1 H2].
-  apply Rabs_pow_le_1.
-  apply Rabs_le.
-  auto.
+    rewrite Pnorm_cons.
+    simpl in *.
+    apply Rle_trans with ( (FinjR (Fabs_exact a0)) + FinjR (Pnorm p) ); [| apply Rge_le; apply flt_add_up].
+    apply Rle_trans with ( (Rabs (FinjR a0 * (pow x n0))) + (Rabs (Pax_eval p x))); [apply Rabs_triang|].
+    apply Rplus_le_compat; [|apply IHp].
+    rewrite flt_abs_exact.
+    rewrite Rabs_mult.
+    stepr (Rabs (FinjR a0)*1) by ring.
+    apply Rmult_le_compat_l; [apply Rabs_pos|].
+    destruct Hx as [H1 H2].
+    apply Rabs_pow_le_1.
+    apply Rabs_le.
+    auto.
 Qed.
 
 (* `multiplying' by polynomial norm *)
 Definition Pscale_norm e sp := Fmul_up e (Pnorm sp).
 
 Definition Pdifference (sp:SparsePolynomial) (f:R->R) (x:R) := 
-  f(x)-(SPax_eval sp x).
+  f(x)-(Pax_eval sp x).
 
 Definition PMmodels (t:PolynomialModel) (f:R->R) := forall x,
   -1 <= x <= 1 -> Rabs ((SPax_eval t.(spolynom) x) - f(x)) <= FinjR (t.(error)) .
@@ -153,32 +145,32 @@ Proof.
 Qed.
 
 Definition PMzero : PolynomialModel :=
-{| spolynom := {| polynom :=nil
-                ;  polynom_sorted :=is_sorted_fst_nil|}
- ; error:=Fnull |}.
+  {| spolynom := {| polynom :=nil
+                  ;  polynom_sorted :=is_sorted_fst_nil|}
+   ; error:=Fnull |}.
 
 Definition PMconstant n a : PolynomialModel :=
-{| spolynom := {| polynom := (n, a) :: nil
-                ; polynom_sorted := is_sorted_fst_one n a |}
-; error := a |}.
+  {| spolynom := {| polynom := (n, a) :: nil
+                  ; polynom_sorted := is_sorted_fst_one n a |}
+  ; error := a |}.
 
 
 Definition PMtail t : PolynomialModel :=
-    match t with
-    | {| spolynom:={| polynom := nil |} |} => PMzero
-    | {| spolynom:={| polynom := (n,a0) :: l; polynom_sorted := H_p |}; error :=e |} =>
-          {| spolynom:= {| polynom := l; polynom_sorted := is_sorted_fst_cons_inv _ _ _ H_p |}; error := e |}
-    end.
+  match t with
+  | {| spolynom:={| polynom := nil |} |} => PMzero
+  | {| spolynom:={| polynom := (n,a0) :: l; polynom_sorted := H_p |}; error :=e |} =>
+        {| spolynom:= {| polynom := l; polynom_sorted := is_sorted_fst_cons_inv _ _ _ H_p |}; error := e |}
+  end.
 
 Theorem PMtail_correct:forall t f, PMmodels t f -> forall n a l,
-    polynom t.(spolynom) = (n,a) :: l -> PMmodels (PMtail t) (fun x=>f(x)- (FinjR a)*(pow x n)).
+  polynom t.(spolynom) = (n,a) :: l -> PMmodels (PMtail t) (fun x=>f(x)- (FinjR a)*(pow x n)).
 Proof.
- intros [[[|(n0,a0) l0] H_p] e] f H_t n a l hyp; unfold PMmodels in *; simpl in *.
+ intros [[[|(n0,a0) l0] H_p] e] f H_t n a l hyp; unfold PMmodels in *; unfold SPax_eval in *; simpl in *.
   discriminate hyp.
 
   intros x Hx;
   specialize (H_t _ Hx); inversion hyp; subst n0; subst a0; subst l0;
-  stepl (Rabs (FinjR a * x ^ n + Pax_eval l x - f x)); trivial; f_equal; ring.
+  stepl (Rabs (FinjR a * x ^ n + Pax_eval l x - f x)); trivial; f_equal. ring.
 Qed.
 
 Close Scope R_scope.
