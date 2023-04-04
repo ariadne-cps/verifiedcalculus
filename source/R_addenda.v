@@ -13,6 +13,7 @@
 
 Require Import Reals.
 Require Import Rdefinitions.
+Require Import Rfunctions.
 Require Import Lra.
 
 Open Scope R_scope.
@@ -74,6 +75,12 @@ Lemma Rminus_eq_0 : forall x, (x-x=0)%R.
 Proof.
   intro x. 
   ring. 
+Qed.
+
+Lemma Rminus_0_eq : forall r1 r2 : R, r1 - r2 = 0 -> r1 = r2.
+Proof.
+  intros. assert (r1=r2 \/ r1<>r2) as Heq_dec by (apply Req_dec).
+  destruct Heq_dec as [Heq|Hneq]. exact Heq. apply Rminus_eq_contra in Hneq. contradiction.
 Qed.
 
 Lemma Rlt_zero_Rminus : forall r1 r2:R , 0 < r1-r2  -> r2 < r1.
@@ -577,6 +584,16 @@ Ltac ring_exact_R hyp :=
  | ?X3 => fail 1
  end.
 
+Lemma Rabs_0_eq (a:R) : (Rabs a = 0) -> a=0.
+Proof.
+  intro H.
+  (* Req_dec : forall r1 r2, r1 = r2 \/ r1 <> r2. *)
+  assert (a=0 \/ a<>0) as Heq_dec by (apply Req_dec). 
+  destruct Heq_dec.
+  - assumption.
+  - assert (Rabs a <> 0) by (apply (Rabs_no_R0 a H0)). 
+    contradiction.
+Qed.
 
 Lemma Rabs_le_1 (a:R) : (-1 <= a) -> (a <= 1) -> (Rabs a) <= 1.
 Proof.
@@ -660,6 +677,35 @@ Qed.
 Lemma Rabs_Rle_1 : forall (x : R), -1 <= x <= 1 -> Rabs x <= 1.
 Proof.
   intros x H. apply Rabs_le. lra.
+Qed.
+
+
+
+
+Definition Rdist (x y:R) : R := Rabs (x - y).
+
+Lemma Rdist_pos : forall x y:R, Rdist x y >= 0.
+Proof. intros. unfold Rdist. apply Rle_ge. apply Rabs_pos. Qed.
+
+Lemma Rdist_sym : forall x y:R, Rdist x y = Rdist y x.
+Proof. intros. unfold Rdist. apply Rabs_minus_sym. Qed.
+
+Lemma Rdist_refl : forall x y:R, Rdist x y = 0 <-> x = y.
+Proof. intros. unfold Rdist. split.  
+  intro H. apply Rminus_0_eq. apply Rabs_0_eq. exact H.
+  intro H. rewrite <- H. rewrite -> Rminus_eq_0. rewrite -> Rabs_R0. reflexivity.
+Qed. 
+  
+Lemma Rdist_eq : forall x:R, Rdist x x = 0.
+Proof. 
+  intros. apply Rdist_refl. reflexivity.
+Qed.
+
+Lemma Rdist_triang : forall x y z:R, Rdist x y <= Rdist x z + Rdist z y.
+Proof.
+  intros. unfold Rdist. 
+  assert (x-y = (x-z)+(z-y)) as H by ring.
+  rewrite -> H. apply Rabs_triang. 
 Qed.
 
 Close Scope R_scope.
