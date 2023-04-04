@@ -258,6 +258,12 @@ Proof.
     intro Hfls.
     assert (Q2R y = Q2R 0) as H0. { apply Qeq_eqR. exact Hfls. } 
     rewrite -> Q2R_0 in H0. apply H. exact H0.
+  - (* div near *)
+    intros x y H. intro z. unfold Rdist.
+    rewrite <- Q2R_div. rewrite -> Rminus_eq_0. rewrite -> Rabs_R0. apply Rabs_pos.
+    intro Hfls.
+    assert (Q2R y = Q2R 0) as H0. { apply Qeq_eqR. exact Hfls. } 
+    rewrite -> Q2R_0 in H0. apply H. exact H0.
  - (* rec up *) 
     intros x H.
     rewrite <- Q2R_inv. apply Req_ge. reflexivity.
@@ -267,6 +273,13 @@ Proof.
  - (* rec down *) 
     intros x H.
     rewrite <- Q2R_inv. apply Req_ge. reflexivity.
+    intro Hfls.
+    assert (Q2R x = Q2R 0) as H0. { apply Qeq_eqR. exact Hfls. } 
+    rewrite -> Q2R_0 in H0. apply H. exact H0.
+ - (* rec up *) 
+    intros x H. intro z. unfold Rdist.
+    rewrite <- Q2R_inv. 
+    rewrite -> Rminus_eq_0. rewrite -> Rabs_R0. apply Rabs_pos.
     intro Hfls.
     assert (Q2R x = Q2R 0) as H0. { apply Qeq_eqR. exact Hfls. } 
     rewrite -> Q2R_0 in H0. apply H. exact H0.

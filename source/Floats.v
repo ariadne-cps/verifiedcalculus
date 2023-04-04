@@ -92,6 +92,7 @@ Definition Rapply (op:BinOp) : R -> R -> R :=
   end
 .
 
+Definition Rdist (x y : R) : R := Rabs (Rminus x y).
 
 Class Float (F : Type) :=
 {
@@ -178,8 +179,8 @@ Class Float (F : Type) :=
   flt_op_down : forall (op : BinOp) (x y : F),
     (FinjR (Fapply op down x y)) <= (Rapply op (FinjR x) (FinjR y));
   flt_op_near : forall (op : BinOp) (x y z : F), 
-    Rabs ( (FinjR (Fapply op near x y)) - (Rapply op (FinjR x) (FinjR y)) )
-      <= Rabs ( (FinjR z) - (Rapply op (FinjR x) (FinjR y)) );
+    Rdist (FinjR (Fapply op near x y)) (Rapply op (FinjR x) (FinjR y))
+      <= Rdist (FinjR z) (Rapply op (FinjR x) (FinjR y));
 
 (*
   flt_neg_exact := flt_uop_exact Fneg Ropp;
@@ -204,16 +205,15 @@ Class Float (F : Type) :=
     (FinjR y <> 0%R) -> (FinjR (Fdiv up x y)) >= (Rdiv (FinjR x) (FinjR y));
   flt_div_down : forall (x y : F),
     (FinjR y <> 0%R) -> (FinjR (Fdiv down x y)) <= (Rdiv (FinjR x) (FinjR y));
+  flt_div_near : forall (x y : F),
+    (FinjR y <> 0%R) -> forall (z : F), Rdist (FinjR (Fdiv near x y)) (Rdiv (FinjR x) (FinjR y)) <= Rdist (FinjR z) (Rdiv (FinjR x) (FinjR y));
 
   flt_rec_up : forall (x : F),
     (FinjR x <> 0%R) -> (FinjR (Frec up x)) >= (Rinv (FinjR x));
   flt_rec_down : forall (x : F),
     (FinjR x <> 0%R) -> (FinjR (Frec down x)) <= (Rinv (FinjR x));
-(*
-  flt_div_near := flt_op_near Div;
-  flt_div_up := flt_op_up Div;
-  flt_div_down := flt_op_down Div;
-*)
+  flt_rec_near : forall (x : F),
+    (FinjR x <> 0%R) -> forall (z : F), Rdist (FinjR (Frec near x)) (Rinv (FinjR x)) <= Rdist (FinjR z) (Rinv (FinjR x));
 }.
 
 (* Coercion (forall F : Float F), FinjR : F >-> R. *)
@@ -264,23 +264,23 @@ Proof.
 Qed.
 
 Lemma flt_op_near_up_abs : forall op x y, 
-  Rabs ( (FinjR (Fapply op near x y)) - (Rapply op (FinjR x) (FinjR y)) )
-    <= Rabs ( (FinjR (Fapply op up x y)) - (Rapply op (FinjR x) (FinjR y)) ).
+  Rdist (FinjR (Fapply op near x y)) (Rapply op (FinjR x) (FinjR y))
+    <= Rdist (FinjR (Fapply op up x y)) (Rapply op (FinjR x) (FinjR y)).
 Proof.
  intros op x y.
  apply (flt_op_near op) with (z:=Fapply op up x y).
 Qed.
 
 Lemma flt_op_near_down_abs : forall op x y, 
-  Rabs ( (FinjR (Fapply op near x y)) - (Rapply op (FinjR x) (FinjR y)))
-    <= Rabs ((FinjR (Fapply op down x y)) - (Rapply op (FinjR x) (FinjR y))).
+  Rdist (FinjR (Fapply op near x y)) (Rapply op (FinjR x) (FinjR y))
+    <= Rdist (FinjR (Fapply op down x y)) (Rapply op (FinjR x) (FinjR y)).
 Proof.
  intros op x y.
  apply (flt_op_near op) with (z:=Fapply op down x y).
 Qed.
 
 Lemma flt_op_near_up : forall op x y, 
-  Rabs ( (FinjR (Fapply op near x y)) - (Rapply op (FinjR x) (FinjR y)))
+  Rdist (FinjR (Fapply op near x y)) (Rapply op (FinjR x) (FinjR y))
     <= (FinjR (Fapply op up x y)) - (Rapply op (FinjR x) (FinjR y)).
 Proof.
  intros op x y.
@@ -292,7 +292,7 @@ Proof.
 Qed.
 
 Lemma flt_op_near_down : forall op x y, 
-  Rabs ( (FinjR (Fapply op near x  y)) - (Rapply op (FinjR x) (FinjR y))) 
+  Rdist (FinjR (Fapply op near x  y)) (Rapply op (FinjR x) (FinjR y)) 
     <= (Rapply op (FinjR x) (FinjR y)) - (FinjR (Fapply op down x y)).
 Proof.
  intros op x y.
@@ -305,10 +305,10 @@ Qed.
 
 
 Lemma flt_op_near_up_down : forall op x y, 
-  Rabs ( (FinjR (Fapply op near x y)) - (Rapply op (FinjR x) (FinjR y)) )
+  Rdist (FinjR (Fapply op near x y)) (Rapply op (FinjR x) (FinjR y))
     <= ( (FinjR (Fapply op  up x y)) - (FinjR (Fapply op  down x y)) ) / 2.
 Proof.
-  intros op x y.
+  intros op x y. unfold Rdist.
   apply Rmult_le_reg_l with 2. lra.
   stepr ((FinjR (Fapply op up x y) - (Rapply op (FinjR x) (FinjR y))) + (Rapply op (FinjR x) (FinjR y) - FinjR (Fapply op down x y))) by field.
   - stepl (Rabs ( (FinjR (Fapply op near x y)) - (Rapply op (FinjR x) (FinjR y)) ) + Rabs ((FinjR (Fapply op near x y)) - Rapply op (FinjR x) (FinjR y))) by ring.
@@ -318,7 +318,7 @@ Proof.
 Qed.
 
 Lemma flt_op_near_up_down_sub_up : forall op x y, 
-  Rabs ( (FinjR (Fapply op near x y))- (Rapply op (FinjR x) (FinjR y)) )
+  Rdist (FinjR (Fapply op near x y)) (Rapply op (FinjR x) (FinjR y)) 
     <= (FinjR (Fsub up (Fapply op up x y) (Fapply op down x y))) / 2.
 Proof.
   intros op x y.
@@ -329,12 +329,12 @@ Proof.
 Qed.
 
 Lemma flt_op_near_up_down_sub_hlf_up : forall op x y, 
-    Rabs ( (FinjR  (Fapply op near x y)) - (Rapply op (FinjR x) (FinjR y)) )
+    Rdist (FinjR  (Fapply op near x y)) (Rapply op (FinjR x) (FinjR y))
       <=  FinjR (Fdiv2 up (Fsub up (Fapply op up x y) (Fapply op down x y))).
 Proof.
   intros op x y.
   apply Rle_trans with ((FinjR (Fsub up (Fapply op up x y) (Fapply op down x y)))/2);
-    [apply flt_op_near_up_down_sub_up|].
+    [unfold Rdist; apply flt_op_near_up_down_sub_up|].
   remember (Fsub up (Fapply op up x y) (Fapply op down x y)) as z.
   stepl ((FinjR z)/(FinjR (NinjF 2))).
   - assert (FinjR (NinjF 2%nat) <> 0%R) as H2ne0. {
