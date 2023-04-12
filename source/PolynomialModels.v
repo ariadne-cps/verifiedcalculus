@@ -38,22 +38,18 @@ Qed.
 
 Definition Polynomial := list (nat*F).
 
-Record SparsePolynomial : Type :=
-{ polynom:>list (nat*F) (* Coersion to list (nat*F) *)
-; polynom_sorted: is_sorted_fst polynom
-}.
-
-Definition SPtail sp :=
-    match sp with
-    | {| polynom := nil |} => {| polynom := nil; polynom_sorted := is_sorted_fst_nil |}
-    | {| polynom := (n,a0) :: l; polynom_sorted := H_p |} =>
-          {| polynom := l; polynom_sorted := is_sorted_fst_cons_inv _ _ _ H_p |}
-    end.
+Definition Ptail p : list (nat * F) :=
+  match p with
+  | nil => nil
+  | a0 :: p1 => p1
+  end
+.
 
 
 Record PolynomialModel : Type :=
-{ spolynom : SparsePolynomial
-; error: F
+{ polynom : list (nat * F);
+  polynom_sorted : is_sorted_fst polynom;
+  error: F;
 }.
 
 Fixpoint Pax_eval (p:list (nat*F)) (x:R) : R :=
@@ -62,9 +58,6 @@ Fixpoint Pax_eval (p:list (nat*F)) (x:R) : R :=
     | fn :: p0 =>  (FinjR (snd fn) * (pow x (fst fn))) + Pax_eval p0 x
     end.
 
-Definition SPax_eval (sp:SparsePolynomial) (x:R) : R :=
-  Pax_eval sp.(polynom) x.
- 
 Lemma Pax_eval_eq_1 : forall t p x, 
   Pax_eval (t :: p) x = (FinjR (snd t)) * (pow x (fst t)) + Pax_eval p x.
 Proof.
@@ -77,9 +70,6 @@ Function Pnorm (p: Polynomial) : F :=
   | nil  => Fnull
   | (n0,a0) :: l => Fadd_up (Fabs_exact a0) (Pnorm l)
   end.
-
-Function SPnorm (sp: SparsePolynomial) : F := 
-  Pnorm sp.(polynom).
   
 Lemma Pnorm_nil :
   Pnorm nil = Fnull.
@@ -124,51 +114,48 @@ Qed.
 (* `multiplying' by polynomial norm *)
 Definition Pscale_norm e sp := Fmul_up e (Pnorm sp).
 
-Definition Pdifference (sp:SparsePolynomial) (f:R->R) (x:R) := 
-  f(x)-(Pax_eval sp x).
+Definition Pdifference (p:Polynomial) (f:R->R) (x:R) := 
+  f(x)-(Pax_eval p x).
 
 Definition PMmodels (t:PolynomialModel) (f:R->R) := forall x,
-  -1 <= x <= 1 -> Rabs ((SPax_eval t.(spolynom) x) - f(x)) <= FinjR (t.(error)) .
+  -1 <= x <= 1 -> Rabs ((Pax_eval t.(polynom) x) - f(x)) <= FinjR (t.(error)) .
 
 Lemma PMmodels_extensional: forall t f1 f2, PMmodels t f1 -> (forall x, f1 x = f2 x) -> PMmodels t f2.
 Proof.
  intros t f1 f2 H H_ext x hyp.
  specialize (H _ hyp).
- stepl (Rabs (SPax_eval t.(spolynom) x - f1 x)); trivial.
+ stepl (Rabs (Pax_eval t.(polynom) x - f1 x)); trivial.
  f_equal; rewrite H_ext; reflexivity.
 Qed.
 
 Lemma PMerror_nonneg : forall t f, PMmodels t f -> 0<=FinjR t.(error).
 Proof.
  intros t f hyp;
- apply Rle_trans with (Rabs (SPax_eval t.(spolynom) 0 - f 0));[ apply Rabs_pos| apply hyp; auto with real].
+ apply Rle_trans with (Rabs (Pax_eval t.(polynom) 0 - f 0));[ apply Rabs_pos| apply hyp; auto with real].
 Qed.
 
 Definition PMzero : PolynomialModel :=
-  {| spolynom := {| polynom :=nil
-                  ;  polynom_sorted :=is_sorted_fst_nil|}
-   ; error:=Fnull |}.
+  {| polynom :=nil;  polynom_sorted :=is_sorted_fst_nil; error:=Fnull |}.
 
 Definition PMconstant n a : PolynomialModel :=
-  {| spolynom := {| polynom := (n, a) :: nil
-                  ; polynom_sorted := is_sorted_fst_one n a |}
-  ; error := a |}.
+  {| polynom := (n, a) :: nil; polynom_sorted := is_sorted_fst_one n a; error := a |}.
 
 
 Definition PMtail t : PolynomialModel :=
   match t with
-  | {| spolynom:={| polynom := nil |} |} => PMzero
-  | {| spolynom:={| polynom := (n,a0) :: l; polynom_sorted := H_p |}; error :=e |} =>
-        {| spolynom:= {| polynom := l; polynom_sorted := is_sorted_fst_cons_inv _ _ _ H_p |}; error := e |}
+  | {| polynom := nil |} => PMzero
+  | {| polynom := (n,a0) :: l; polynom_sorted := H_p; error :=e |} =>
+        {| polynom := l; polynom_sorted := is_sorted_fst_cons_inv _ _ _ H_p; error := e |}
   end.
 
 Theorem PMtail_correct:forall t f, PMmodels t f -> forall n a l,
-  polynom t.(spolynom) = (n,a) :: l -> PMmodels (PMtail t) (fun x=>f(x)- (FinjR a)*(pow x n)).
+  t.(polynom) = (n,a) :: l -> PMmodels (PMtail t) (fun x=>f(x)- (FinjR a)*(pow x n)).
 Proof.
- intros [[[|(n0,a0) l0] H_p] e] f H_t n a l hyp; unfold PMmodels in *; unfold SPax_eval in *; simpl in *.
+ intros [[|(n0,a0) l0] H_p e] f H_t n a l hyp.
   discriminate hyp.
 
-  intros x Hx;
+  unfold PMmodels in *; simpl in *.
+  intros x Hx.
   specialize (H_t _ Hx); inversion hyp; subst n0; subst a0; subst l0;
   stepl (Rabs (FinjR a * x ^ n + Pax_eval l x - f x)); trivial; f_equal. ring.
 Qed.

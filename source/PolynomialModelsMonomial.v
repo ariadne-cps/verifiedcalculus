@@ -53,13 +53,9 @@ Proof.
    apply Nat.add_lt_mono_l; exact (is_sorted_fst_cons_lt _ _ _ H_aap).
 Qed.
 
-Definition sp_monomial n p : SparsePolynomial :=
-  match p with
-  | {| polynom := p'; polynom_sorted := H |} => {| polynom := pre_monomial n p'; polynom_sorted := @pre_monomial_sorted n p' H |}
-  end.
-
 Definition PMmonomial_scale (n : nat) (t : PolynomialModel) : PolynomialModel :=
- {| spolynom := sp_monomial n t.(spolynom)
+ {| polynom := pre_monomial n t.(polynom)
+  ; polynom_sorted := @pre_monomial_sorted n t.(polynom) t.(polynom_sorted)
   ; error := t.(error) |}.
 
 Close Scope nat_scope.
@@ -84,7 +80,7 @@ Proof.
  intros n t f H x hyp_x.
  assert (H_err_nonneg:=PMerror_nonneg t f H).
  specialize (H x hyp_x).
- stepl (Rabs ((pow x n)*((SPax_eval t.(spolynom) x)-(f x)))).
+ stepl (Rabs ((pow x n)*((Pax_eval t.(polynom) x)-(f x)))).
   apply Rle_trans with (Rabs ((pow x n) * FinjR (error t))).
    do 2 rewrite Rabs_mult; apply Rmult_le_compat_l;
    [ apply Rabs_pos
@@ -101,12 +97,12 @@ Proof.
     apply pow_Rle_l_1; trivial.
     apply pow_Rle_r_1; trivial.
     lra.
- destruct t as [sp e].
+ destruct t as [p Hs e].
  simpl in *.
- set (p_x:= SPax_eval sp x) in *.
- set (x_n_p_x:= SPax_eval (sp_monomial n sp) x).
+ set (p_x:= Pax_eval p x) in *.
+ set (x_n_p_x:= Pax_eval (pre_monomial n p) x).
  f_equal.
- assert(H_ev:x_n_p_x= (pow x n)*p_x); [subst x_n_p_x; subst p_x; destruct sp as [p H_sorted]; simpl in *; apply ax_eval_pre_monomial|].
+ assert(H_ev:x_n_p_x= (pow x n)*p_x); [subst x_n_p_x; subst p_x; simpl in *; apply ax_eval_pre_monomial|].
  rewrite H_ev; ring.
 Qed.
 

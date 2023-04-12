@@ -61,19 +61,16 @@ Definition pre_error_scale c : list (nat * F) -> F :=
   fold_right (fun nf=> Fadd_up (Fdiv2_up (Fsub_up (Fmul_up c (snd nf)) (Fmul_down c (snd nf))))) Fnull.
 
 Definition error_scale c t : F :=
-  Fadd_up (Fmul_up (Fabs_exact c) t.(error)) (pre_error_scale c t.(spolynom)).
-
-Definition SPscale (c:F) (p:SparsePolynomial) : SparsePolynomial :=
-  match p with
-  | {| polynom:= p'; polynom_sorted:= H |} => {| polynom := pre_scale c p'; polynom_sorted:= @pre_scale_sorted c p' H |}
-  end.
+  Fadd_up (Fmul_up (Fabs_exact c) t.(error)) (pre_error_scale c t.(polynom)).
 
 Definition PMscale (c:F) (t:PolynomialModel) : PolynomialModel :=
-  {| spolynom := SPscale c t.(spolynom); error := error_scale c t |}.
+  {| polynom := pre_scale c t.(polynom); 
+     polynom_sorted:= @pre_scale_sorted c t.(polynom) t.(polynom_sorted); 
+     error := error_scale c t |}.
 
-Lemma pre_error_scale_nonneg : forall c (t: PolynomialModel), 0<= FinjR (pre_error_scale c t.(spolynom)).
+Lemma pre_error_scale_nonneg : forall c (t: PolynomialModel), 0<= FinjR (pre_error_scale c t.(polynom)).
 Proof.
- intros c [[p H] e]; induction p; simpl in *.
+ intros c [p H e]; induction p; simpl in *.
   simpl; rewrite -> flt_null; auto with real.
 
   assert (H_p:is_sorted_fst p); [apply is_sorted_fst_cons_inv with (fst a) (snd a); rewrite <- (surjective_pairing); exact H|].
@@ -93,27 +90,29 @@ Proof.
      - apply IHp; assumption.
 Qed.
 
-Lemma pre_error_scale_property : forall c (sp:SparsePolynomial) x,  -1 <= x <= 1 ->
-   Rabs ((FinjR c)*SPax_eval sp x - SPax_eval (SPscale c sp) x) <=
-        FinjR (pre_error_scale c sp).
+Lemma pre_error_scale_property : forall c (p:Polynomial) x,  -1 <= x <= 1 ->
+   Rabs ((FinjR c)*Pax_eval p x - Pax_eval (pre_scale c p) x) <=
+        FinjR (pre_error_scale c p).
 Proof.
-  intros c [p H].
+  intros c p.
   induction p; intros x Hx; simpl in *.
-    stepl 0; [ rewrite flt_null; lra | symmetry; stepl (Rabs 0); [apply Rabs_R0|f_equal; unfold SPax_eval; simpl; ring]].
+    stepl 0; [ rewrite flt_null; lra | symmetry; stepl (Rabs 0); [apply Rabs_R0|f_equal; unfold Pax_eval; simpl; ring]].
 
+(*
   assert (H_p:is_sorted_fst p); [apply is_sorted_fst_cons_inv with (fst a) (snd a); rewrite <- (surjective_pairing); exact H|].
+*)
   apply Rle_trans with ( (FinjR (Fdiv2_up (Fsub_up (Fmul_up c (snd a)) (Fmul_down c (snd a)))) +
                                 FinjR (pre_error_scale c p))).
    2: apply Rge_le. 2: apply flt_add_up.
 
    stepl (Rabs ( ( (FinjR c * (FinjR (snd a))) - (FinjR (Fmul_near c (snd a))) ) * (pow x (fst a)) +
                  (FinjR c * Pax_eval p x - Pax_eval (pre_scale c p) x) )).
-    2:f_equal; simpl; auto. try ring.
+    2:f_equal; simpl; auto; ring.
     apply Rle_trans with
      (Rabs (FinjR c * FinjR (snd a) - FinjR (Fmul_near c (snd a))) * Rabs (pow x (fst a)) +
       Rabs (FinjR c * Pax_eval p x - Pax_eval (pre_scale c p) x));
      [rewrite <- Rabs_mult; apply Rabs_triang|].
-    apply Rplus_le_compat; [| apply (IHp H_p _ Hx)].
+    apply Rplus_le_compat; [| apply (IHp _ Hx)].
     rewrite Rabs_minus_sym.
      apply Rle_trans with (Rabs (FinjR (Fmul_near c (snd a)) - FinjR c * FinjR (snd a)) ).
      assert (H_xn_l:-1 <= (pow x (fst a)) ).
@@ -125,22 +124,6 @@ Proof.
   unfold Fmul_up, Fmul_down, Fmul_near.
   replace Fmul with (Fapply Mul); [|trivial]. replace Rmult with (Rapply Mul); [|trivial].
   apply flt_op_near_up_down_sub_hlf_up.
-
-  (* Add variables to simplify form of equations *)
-  unfold SPax_eval. simpl.
-  remember (Pax_eval (pre_scale c p) x) as cpx.
-  remember (Pax_eval p x) as Rpx.
-  remember (FinjR c) as Rc.
-  remember (FinjR (snd a)) as Ra.
-  remember (FinjR (Fmul_near c (snd a))) as Rcan.
-  remember (FinjR c * FinjR (snd a)) as Rca.
-  remember (x^(fst a)) as Rpowxa.
-  assert ( (FinjR (Fmul_near c (snd a)) * x ^ fst a ) = Rcan * Rpowxa ) as Hpr. {
-    rewrite -> HeqRcan. rewrite -> HeqRpowxa. reflexivity.
-  }
-  assert ((Rc * Ra - Rcan) * Rpowxa + (Rc*Rpx-cpx) = Rc * (Ra * Rpowxa + Rpx) - (Rcan * Rpowxa + cpx)) as Hd.
-  { ring. }
-  rewrite -> Hd. rewrite <- Hpr. simpl. reflexivity.
 Qed.
 
 
@@ -150,22 +133,22 @@ Proof.
  intros c t f H x hyp_x.
  specialize (H x hyp_x).
  assert (H_sum_err_nonneg:= pre_error_scale_nonneg c t).
- apply Rle_trans with (Rabs (FinjR c) * FinjR (error t) + FinjR (pre_error_scale c t.(spolynom))).
+ apply Rle_trans with (Rabs (FinjR c) * FinjR (error t) + FinjR (pre_error_scale c t.(polynom))).
 
-  2:apply Rle_trans with (Rabs (FinjR c) * FinjR (error t) + FinjR (pre_error_scale c t.(spolynom)));
+  2:apply Rle_trans with (Rabs (FinjR c) * FinjR (error t) + FinjR (pre_error_scale c t.(polynom)));
      [ apply Rplus_le_compat_l
-     ; generalize (FinjR (pre_error_scale c (spolynom t))) H_sum_err_nonneg; intros r H_r; lra
+     ; generalize (FinjR (pre_error_scale c (polynom t))) H_sum_err_nonneg; intros r H_r; lra
      | rewrite <- flt_abs_exact;
-       apply Rle_trans with (FinjR (Fmul_up (Fabs c) (error t)) + FinjR (pre_error_scale c (spolynom t)));
+       apply Rle_trans with (FinjR (Fmul_up (Fabs c) (error t)) + FinjR (pre_error_scale c (polynom t)));
        [ apply Rplus_le_compat_r; apply Rge_le; apply flt_mul_up
        | apply Rge_le; apply flt_add_up
        ]
       ].
 
-  destruct t as [sp e].
+  destruct t as [p Hs e].
   simpl in *.
-  set (p_x:= SPax_eval sp x) in *.
-  set (cp_x:= SPax_eval (SPscale c sp) x).
+  set (p_x:= Pax_eval p x) in *.
+  set (cp_x:= Pax_eval (pre_scale c p) x).
   rewrite Rabs_minus_sym.
   stepl ( Rabs ( (FinjR c) * f(x)  - (FinjR c) * p_x + ( (FinjR c) * p_x - cp_x) )); [|f_equal; ring].
   apply Rle_trans with ( Rabs ( (FinjR c) * f(x)  - (FinjR c) * p_x ) + Rabs ( (FinjR c) * p_x - cp_x));
