@@ -611,6 +611,14 @@ Proof.
   auto.
 Qed.
 
+Lemma Rabs_dist_triang : forall x y z:R, Rabs (x-z) <= Rabs (x-y) + Rabs (y-z).
+Proof.
+  intros. 
+  replace (x-z) with ((x-y)+(y-z)) by ring.
+  apply Rabs_triang.
+Qed.
+
+
 
 
 Lemma Rabs_ivl : forall (a b : R), (Rabs a <= b) -> -b <= a <= b.
