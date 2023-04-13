@@ -49,9 +49,9 @@ Proof.
   intros H_a; constructor 2.
   (* a :: p *)
   intros H_aap.
-  assert (H_ap:is_sorted_fst (a1 :: p)); [apply is_sorted_fst_cons_inv with (fst a0) (snd a0); rewrite <- (surjective_pairing); exact H_aap|].
+  assert (H_ap:is_sorted_fst (a1 :: p)); [apply is_sorted_fst_cons_inv with (fst a0, snd a0); rewrite <- (surjective_pairing); exact H_aap|].
  rewrite pre_scale_eq_cons.
-  apply (@is_sorted_fst_cons F (fst a0) (Fmul_near c (snd a0)) (pre_scale c (a1 :: p))
+  apply (@is_sorted_fst_cons F (fst a0,Fmul_near c (snd a0)) (pre_scale c (a1 :: p))
                          (fst a1, Fmul_near c (snd a1)) ); trivial.
    inversion H_aap; injection H1; intros; subst a1; trivial.
    apply IHp; assumption.
@@ -73,7 +73,7 @@ Proof.
  intros c [p H e]; induction p; simpl in *.
   simpl; rewrite -> flt_null; auto with real.
 
-  assert (H_p:is_sorted_fst p); [apply is_sorted_fst_cons_inv with (fst a) (snd a); rewrite <- (surjective_pairing); exact H|].
+  assert (H_p:is_sorted_fst p); [apply is_sorted_fst_cons_inv with (fst a, snd a); rewrite <- (surjective_pairing); exact H|].
   apply Rle_trans with (FinjR (Fdiv2_up (Fsub_up (Fmul_up c (snd a)) (Fmul_down c (snd a)))) +
                         FinjR (pre_error_scale c p)); [|apply Rge_le; apply flt_add_up].
    apply Rplus_le_le_0_compat.

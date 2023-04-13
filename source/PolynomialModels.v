@@ -21,19 +21,19 @@ Context `{F : Type} `{FltF : Float F}.
 Open Scope R_scope.
 
 
-Inductive is_sorted_fst {A:Type} : list (nat*A) -> Prop :=
+Inductive is_sorted_fst {C:Type} : list (nat*C) -> Prop :=
    | is_sorted_fst_nil : is_sorted_fst nil
-   | is_sorted_fst_one : forall m a, is_sorted_fst (cons (m,a) nil)
-   | is_sorted_fst_cons : forall m (a:A) xs a0, head xs = Some a0 -> (m<fst a0)%nat -> is_sorted_fst xs -> is_sorted_fst (cons (m,a) xs).
+   | is_sorted_fst_one : forall x, is_sorted_fst (cons x nil)
+   | is_sorted_fst_cons : forall x0 xs x1, head xs = Some x1 -> (fst x0<fst x1)%nat -> is_sorted_fst xs -> is_sorted_fst (cons x0 xs).
 
-Lemma is_sorted_fst_cons_inv : forall {A:Type} m (a:A) xs, is_sorted_fst (cons (m,a) xs) -> is_sorted_fst xs.
+Lemma is_sorted_fst_cons_inv : forall {C:Type} (x:nat*C) xs, is_sorted_fst (cons x xs) -> is_sorted_fst xs.
 Proof.
- intros A m a xs H_ma; inversion H_ma; trivial; apply is_sorted_fst_nil.
+ intros C x xs Hx; inversion Hx; trivial; apply is_sorted_fst_nil.
 Qed.
 
-Lemma is_sorted_fst_cons_lt: forall a0 a1 (p2: list (nat*F)), is_sorted_fst (a0 :: a1 :: p2) -> (fst a0 < fst a1)%nat.
+Lemma is_sorted_fst_cons_lt: forall {C:Type} x0 x1 (xs2: list (nat*C)), is_sorted_fst (x0 :: x1 :: xs2) -> (fst x0 < fst x1)%nat.
 Proof.
- intros a0 a1 p2 H_aap; inversion H_aap; injection H1; intros H_; subst a1; assumption.
+ intros C x0 x1 xs2 Hxs. inversion Hxs. injection H1; intros H_; subst x1; assumption.
 Qed.
 
 Definition Polynomial := list (nat*F).
@@ -44,7 +44,6 @@ Definition Ptail p : list (nat * F) :=
   | a0 :: p1 => p1
   end
 .
-
 
 Record PolynomialModel : Type :=
 { polynom : list (nat * F);
@@ -138,14 +137,14 @@ Definition PMzero : PolynomialModel :=
   {| polynom :=nil;  polynom_sorted :=is_sorted_fst_nil; error:=Fnull |}.
 
 Definition PMconstant n a : PolynomialModel :=
-  {| polynom := (n, a) :: nil; polynom_sorted := is_sorted_fst_one n a; error := a |}.
+  {| polynom := (n, a) :: nil; polynom_sorted := is_sorted_fst_one (n,a); error := a |}.
 
 
 Definition PMtail t : PolynomialModel :=
   match t with
   | {| polynom := nil |} => PMzero
   | {| polynom := (n,a0) :: l; polynom_sorted := H_p; error :=e |} =>
-        {| polynom := l; polynom_sorted := is_sorted_fst_cons_inv _ _ _ H_p; error := e |}
+        {| polynom := l; polynom_sorted := is_sorted_fst_cons_inv _ _ H_p; error := e |}
   end.
 
 Theorem PMtail_correct:forall t f, PMmodels t f -> forall n a l,

@@ -30,7 +30,7 @@ Definition SPtail sp :=
   match sp with
   | {| polynom' := nil |} => {| polynom' := nil; polynom_sorted' := is_sorted_fst_nil |}
   | {| polynom' := (n,a0) :: l; polynom_sorted' := H_p |} =>
-        {| polynom' := l; polynom_sorted' := is_sorted_fst_cons_inv _ _ _ H_p |}
+        {| polynom' := l; polynom_sorted' := is_sorted_fst_cons_inv _ _ H_p |}
   end.
 
 Function PMmultiply_polynomial (sp1 sp2 : SortedPolynomial) 
@@ -54,7 +54,7 @@ Qed.
 Lemma PMmultiply_polynomial_cons : forall n0 a0 l H_p1 sp2,
   PMmultiply_polynomial {| polynom' := (n0,a0) :: l; polynom_sorted' := H_p1 |} sp2 =
     PMadd (PMscale a0 (PMmonomial_scale n0 {| polynom:=sp2.(polynom'); polynom_sorted:=sp2.(polynom_sorted'); error:=Fnull |}))
-          (PMmultiply_polynomial {| polynom' := l; polynom_sorted' := is_sorted_fst_cons_inv _ _ _ H_p1 |} sp2).
+          (PMmultiply_polynomial {| polynom' := l; polynom_sorted' := is_sorted_fst_cons_inv _ _ H_p1 |} sp2).
 Proof.
  intros n0 a0 l H_p1 sp2; rewrite PMmultiply_polynomial_equation; trivial.
 Qed.
@@ -74,7 +74,7 @@ Proof.
 
   rewrite PMmultiply_polynomial_cons.
   simpl.
-  set (sp1:={| polynom' := p1; polynom_sorted' := is_sorted_fst_cons_inv n0 a0 p1 H_p1 |}).
+  set (sp1:={| polynom' := p1; polynom_sorted' := is_sorted_fst_cons_inv (n0,a0) p1 H_p1 |}).
   apply PMmodels_extensional with (f1:=fun x=> ((FinjR a0)*((pow x n0)*(Pax_eval sp2.(polynom') x))) + ((Pax_eval sp1.(polynom') x))*(Pax_eval sp2.(polynom') x)) .
   2: intros; subst sp1; simpl; ring.
   apply PMadd_correct.
