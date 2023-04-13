@@ -136,8 +136,8 @@ Qed.
 Definition PMzero : PolynomialModel :=
   {| polynom :=nil;  polynom_sorted :=is_sorted_fst_nil; error:=Fnull |}.
 
-Definition PMconstant n a : PolynomialModel :=
-  {| polynom := (n, a) :: nil; polynom_sorted := is_sorted_fst_one (n,a); error := a |}.
+Definition PMconstant a : PolynomialModel :=
+  {| polynom := (0%nat, a) :: nil; polynom_sorted := is_sorted_fst_one (0%nat,a); error := Fnull |}.
 
 
 Definition PMtail t : PolynomialModel :=
