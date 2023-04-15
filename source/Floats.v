@@ -249,6 +249,11 @@ Proof.
   unfold Fnull. apply flt_ninjr.
 Qed.
 
+Lemma flt_unit : FinjR (Funit) = 1%R.
+Proof.
+  unfold Funit. apply flt_ninjr.
+Qed.
+
 Lemma flt_add_up_le : forall (x y:F),
   (FinjR x) + (FinjR y) <= FinjR (Fadd up x y).
 Proof.
@@ -261,6 +266,25 @@ Lemma flt_mul_up_le : forall (x y:F),
 Proof.
   intros x y.
   apply Rge_le; apply flt_mul_up.
+Qed.
+
+Lemma flt_pow_up : forall (x:F) (n:nat),
+  (FinjR x >= 0) -> FinjR (Fpow_up x n) >= (FinjR x)^n.
+Proof.
+  intros x n Hp.
+  induction n.
+  - simpl. apply Req_ge. apply flt_ninjr.
+  - simpl.
+    apply Rge_trans with (FinjR x * FinjR (Fpow_up x n)).
+    -- apply flt_mul_up. 
+    -- apply Rmult_ge_compat_l.  exact Hp. exact IHn.
+Qed.
+
+Lemma flt_pow_up_le : forall (x:F) (n:nat),
+  (0 <= FinjR x) -> (FinjR x)^n <= FinjR (Fpow_up x n).
+Proof.
+  intros x n Hp.
+  apply Rge_le; apply flt_pow_up; apply Rle_ge; exact Hp.
 Qed.
 
 Lemma flt_op_near_up_abs : forall op x y, 

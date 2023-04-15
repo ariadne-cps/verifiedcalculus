@@ -659,6 +659,9 @@ Proof.
   - apply Rtotal_order.
 Qed.
 
+Lemma Rpow_incr : forall (x y : R) (n : nat), 0<=x<=y -> x^n <= y^n.
+Proof. apply pow_incr. Qed.
+
 Lemma pow_Rle_1  : forall (x : R) (n : nat), -1 <= x <= 1 -> -1 <= pow x n <= 1.
 Proof.
   intros.

@@ -82,9 +82,6 @@ Proof.
   intros n0 a0 l; rewrite Pnorm_equation; trivial.
 Qed.
 
-Lemma Rpow_incr : forall (x y : R) (n : nat), 0<=x<=y -> x^n <= y^n.
-Proof. apply pow_incr. Qed.
-
 Lemma Pnorm_property : forall p x,
   -1 <= x <= 1 -> Rabs (Pax_eval p x) <= FinjR (Pnorm p).
 Proof.
