@@ -2,6 +2,7 @@
 R_addenda.v
 Floats.v
 Bounds.v
+Sum.v
 PolynomialModels.v
 PolynomialModelsSweep.v
 PolynomialModelsSum.v
