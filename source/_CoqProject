@@ -5,6 +5,7 @@ Bounds.v
 PolynomialModels.v
 PolynomialModelsSweep.v
 PolynomialModelsSum.v
+PolynomialModelsDifference.v
 PolynomialModelsScalar.v
 PolynomialModelsMonomial.v
 PolynomialModelsProduct.v
