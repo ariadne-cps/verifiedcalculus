@@ -10,3 +10,4 @@ PolynomialModelsDifference.v
 PolynomialModelsScalar.v
 PolynomialModelsMonomial.v
 PolynomialModelsProduct.v
+PolynomialModelsQuotient.v
