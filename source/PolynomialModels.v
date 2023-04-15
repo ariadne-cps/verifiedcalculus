@@ -110,6 +110,9 @@ Proof.
     auto.
 Qed.
 
+Function PMnorm (t: PolynomialModel) : F :=
+  Fadd up (Pnorm t.(polynom)) t.(error).
+  
 (* `multiplying' by polynomial norm *)
 Definition Pscale_norm e sp := Fmul_up e (Pnorm sp).
 
@@ -119,12 +122,12 @@ Definition Pdifference (p:Polynomial) (f:R->R) (x:R) :=
 Definition PMmodels (t:PolynomialModel) (f:R->R) := forall x,
   -1 <= x <= 1 -> Rabs ((Pax_eval t.(polynom) x) - f(x)) <= FinjR (t.(error)) .
 
-Lemma PMmodels_extensional: forall t f1 f2, PMmodels t f1 -> (forall x, f1 x = f2 x) -> PMmodels t f2.
+Lemma PMmodels_extensional: forall t f1 f2, PMmodels t f1 -> (forall x, -1<=x<=1 -> f1 x = f2 x) -> PMmodels t f2.
 Proof.
- intros t f1 f2 H H_ext x hyp.
- specialize (H _ hyp).
+ intros t f1 f2 H H_ext x Hx.
+ specialize (H _ Hx).
  stepl (Rabs (Pax_eval t.(polynom) x - f1 x)); trivial.
- f_equal; rewrite H_ext; reflexivity.
+ f_equal. rewrite H_ext. reflexivity. exact Hx.
 Qed.
 
 Lemma PMerror_nonneg : forall t f, PMmodels t f -> 0<=FinjR t.(error).
@@ -139,6 +142,45 @@ Definition PMzero : PolynomialModel :=
 Definition PMconstant a : PolynomialModel :=
   {| polynom := (0%nat, a) :: nil; polynom_sorted := is_sorted_fst_one (0%nat,a); error := Fnull |}.
 
+Definition PMerror_ball e : PolynomialModel :=
+  {| polynom := nil; polynom_sorted := is_sorted_fst_nil; error := e |}.
+
+Lemma PMconstant_correct : forall a, 
+  PMmodels (PMconstant a) (fun _ => FinjR a).
+Proof.
+  intros a.
+  unfold PMmodels, PMconstant.
+  simpl.
+  intros x Hx.
+  replace (FinjR Fnull) with (0%R) by (unfold Fnull; rewrite -> flt_ninjr; reflexivity).
+  rewrite -> Rmult_1_r. rewrite -> Rplus_0_r. 
+  unfold Rminus. rewrite -> Rplus_opp_r. rewrite -> Rabs_R0. apply Req_le. exact eq_refl.
+Qed.  
+ 
+    
+Lemma PMnorm_correct : forall t f, 
+  PMmodels t f -> forall x, -1<=x<=1 -> Rabs (f x) <= FinjR (PMnorm t).
+Proof.
+  intros t f H x Hx.
+  destruct t as [p Hs e].
+  unfold PMmodels in H.
+  unfold PMnorm.
+  simpl in *.
+  apply Rle_trans with (FinjR (Pnorm p) + FinjR e).
+  apply Rle_trans with (Rabs (Pax_eval p x) + FinjR e).
+  - specialize (H x Hx).
+    set (px := Pax_eval p x).
+    replace (f x) with (px + (f x - px)).
+    apply Rle_trans with (Rabs px + Rabs (f x - px)).
+    apply Rabs_triang.
+    apply Rplus_le_compat_l.
+    rewrite -> Rabs_minus_sym.
+    exact H.
+    field.
+  - apply Rplus_le_compat_r.
+    apply Pnorm_property. exact Hx.
+  - apply flt_add_up_le.  
+Qed.
 
 Definition PMtail t : PolynomialModel :=
   match t with

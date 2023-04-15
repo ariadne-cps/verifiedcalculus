@@ -154,7 +154,7 @@ Proof.
                 ( (Pdifference t1.(polynom) f1 x)*(Pax_eval t2.(polynom) x) +
                  (Pdifference t2.(polynom) f2 x)*(Pax_eval t1.(polynom) x) +
                    (Pdifference t1.(polynom) f1 x)*(Pdifference t2.(polynom) f2 x) ) ).
- 2:intros x; unfold Pdifference; ring.
+ 2:intros x Hx; unfold Pdifference; ring.
  unfold PMmultiply.
  apply PMadd_correct.
   apply PMmultiply_polynomial_correct.
