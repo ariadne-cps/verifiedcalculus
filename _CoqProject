@@ -6,6 +6,7 @@ source/Floats.v
 source/DyadicFloat.v
 source/Bounds.v
 source/Ball.v
+source/Sorting.v
 source/PolynomialModels.v
 source/PolynomialModelSweep.v
 source/PolynomialModelAdd.v
