@@ -31,30 +31,30 @@ Fixpoint Pscal c p : list (nat* F) :=
 
 Lemma Pscal_eq_nil : forall c, Pscal c nil = nil.
 Proof.
- intros; trivial.
+  intros; trivial.
 Qed.
 
 Lemma Pscal_eq_cons : forall c fn p, Pscal c (fn :: p) = (fst fn , Fmul_near c (snd fn)) :: Pscal c p.
 Proof.
- intros; trivial.
+  intros; trivial.
 Qed.
 
 Lemma Pscal_sorted : forall c p, is_sorted_fst p -> is_sorted_fst (Pscal c p).
 Proof.
- intros c;
- induction p as [|a0 [|a1 p]].
-  (* nil *)
-  intros H; trivial.
-  (* a :: nil *)
-  intros H_a; constructor 2.
-  (* a :: p *)
-  intros H_aap.
-  assert (H_ap:is_sorted_fst (a1 :: p)); [apply is_sorted_fst_cons_inv with (fst a0, snd a0); rewrite <- (surjective_pairing); exact H_aap|].
- rewrite Pscal_eq_cons.
-  apply (@is_sorted_fst_cons F (fst a0,Fmul_near c (snd a0)) (Pscal c (a1 :: p))
+  intros c;
+  induction p as [|a0 [|a1 p]].
+    (* nil *)
+    intros H; trivial.
+    (* a :: nil *)
+    intros H_a; constructor 2.
+    (* a :: p *)
+    intros H_aap.
+    assert (H_ap:is_sorted_fst (a1 :: p)); [apply is_sorted_fst_cons_inv with (fst a0, snd a0); rewrite <- (surjective_pairing); exact H_aap|].
+  rewrite Pscal_eq_cons.
+    apply (@is_sorted_fst_cons F (fst a0,Fmul_near c (snd a0)) (Pscal c (a1 :: p))
                          (fst a1, Fmul_near c (snd a1)) ); trivial.
-   inversion H_aap; injection H1; intros; subst a1; trivial.
-   apply IHp; assumption.
+      inversion H_aap; injection H1; intros; subst a1; trivial.
+      apply IHp; assumption.
 Qed.
 
 Definition Pscal_error c : list (nat * F) -> F :=
@@ -65,15 +65,13 @@ Definition PMscal_error c t : F :=
 
 Definition PMscal (c:F) (t:PolynomialModel) : PolynomialModel :=
   {| polynomial := Pscal c t.(polynomial); 
-     sorted:= @Pscal_sorted c t.(polynomial) t.(sorted); 
      error := PMscal_error c t |}.
 
 Lemma Pscal_error_nonneg : forall c (t: PolynomialModel), 0<= FinjR (Pscal_error c t.(polynomial)).
 Proof.
- intros c [p H e]; induction p; simpl in *.
+ intros c [p e]; induction p; simpl in *.
   simpl; rewrite -> flt_null; auto with real.
 
-  assert (H_p:is_sorted_fst p); [apply is_sorted_fst_cons_inv with (fst a, snd a); rewrite <- (surjective_pairing); exact H|].
   apply Rle_trans with (FinjR (Fdiv2_up (Fsub_up (Fmul_up c (snd a)) (Fmul_down c (snd a)))) +
                         FinjR (Pscal_error c p)); [|apply Rge_le; apply flt_add_up].
    apply Rplus_le_le_0_compat.
@@ -145,7 +143,7 @@ Proof.
        ]
       ].
 
-  destruct t as [p Hs e].
+  destruct t as [p e].
   simpl in *.
   set (p_x:= Pax_eval p x) in *.
   set (cp_x:= Pax_eval (Pscal c p) x).

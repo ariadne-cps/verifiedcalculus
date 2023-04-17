@@ -261,8 +261,8 @@ Qed.
 
 Definition PMsweep (r : (nat * F) -> bool) (t : PolynomialModel) : PolynomialModel :=
   match t with
-  | {| polynomial:=p; sorted:= H_p; error :=e |} =>
-        {| polynomial:=fst (Psweep r p); sorted := Psweep_sorted r p H_p; error := Fadd up e (snd (Psweep r p)) |}
+  | {| polynomial:=p; error :=e |} =>
+        {| polynomial:=fst (Psweep r p); error := Fadd up e (snd (Psweep r p)) |}
   end.  
 
 Definition Pmodels p f e := forall x, -1<=x<=1 -> Rabs (Pax_eval p x - f x) <= e.
@@ -339,7 +339,7 @@ Proof.
   intros r t f.
   intro H.
   intros x Hx.
-  destruct t as [p Hp e].
+  destruct t as [p e].
   unfold PMmodels in H.
   simpl in H. simpl.
   apply Rle_trans with ((Psweep_ax_error r p) + (FinjR e)).
@@ -353,9 +353,7 @@ Proof.
     -- intro e. simpl. rewrite -> Rplus_comm. 
        replace 0 with (FinjR (NinjF 0%nat)) by (apply flt_ninjr).
        apply flt_add_up_le.
-    -- assert (is_sorted_fst p1) as Hsrtp1. { apply (is_sorted_fst_cons_inv a0). exact Hp. }
-       specialize (IHp1 Hsrtp1).
-       intro e.
+    -- intro e.
        remember (r a0) as ra0.
        destruct ra0.
        --- rewrite -> Psweep_ax_error_true by (exact Heqra0).

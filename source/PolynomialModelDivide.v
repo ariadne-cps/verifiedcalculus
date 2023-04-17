@@ -31,7 +31,7 @@ Proof.
   unfold PMmodels.
   intros t f f' d.
   intros Hf He.
-  destruct t as [p Hs e].
+  destruct t as [p e].
   intros x Hx.
   specialize (Hf x Hx).
   specialize (He x Hx).

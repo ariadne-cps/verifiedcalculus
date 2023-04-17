@@ -22,74 +22,62 @@ Context `{F : Type} `{FltF : Float F}.
 
 Open Scope R_scope.
 
-Record SortedPolynomial : Type :=
-{ polynomial' : list (nat * F);
-  sorted' : is_sorted_fst polynomial';
-}.
 
-Definition SPtail sp :=
-  match sp with
-  | {| polynomial' := nil |} => {| polynomial' := nil; sorted' := is_sorted_fst_nil |}
-  | {| polynomial' := (n,a0) :: l; sorted' := H_p |} =>
-        {| polynomial' := l; sorted' := is_sorted_fst_cons_inv _ _ H_p |}
-  end.
-
-Function Pmul (sp1 sp2 : SortedPolynomial) 
-    {measure (fun sp => length sp.(@polynomial')) sp1} : PolynomialModel :=
-  match sp1 with
-  | {| polynomial' := nil |} => PMzero
-  | {| polynomial' := (n0,a0) :: l |} =>
-        PMadd (PMscal a0 (PMmonomial_scale n0 {| polynomial:=sp2.(polynomial'); sorted:=sp2.(sorted'); error:=Fnull |}))
-                          (Pmul (SPtail sp1) sp2)
+Function Pmul (p1 p2 : Polynomial) 
+    {measure (fun p => length p) p1} : PolynomialModel :=
+  match p1 with
+  | nil => PMzero
+  | (n0,c0) :: p1' =>
+        PMadd (PMscal c0 (PMmonomial_scale n0 {| polynomial:=p2; error:=Fnull |}))
+                          (Pmul (tail p1) p2)
   end.
 Proof.
  intros; simpl; lia.
 Qed.
 
-Lemma Pmul_nil : forall H_p1 sp2,
-  Pmul {| polynomial' := nil; sorted' := H_p1 |} sp2 = PMzero.
+Lemma Pmul_nil : forall p2,
+  Pmul nil p2 = PMzero.
 Proof.
- intros H_p1 sp2; rewrite Pmul_equation; trivial.
+ intros p2; rewrite Pmul_equation; trivial.
 Qed.
 
-Lemma Pmul_cons : forall n0 a0 l H_p1 sp2,
-  Pmul {| polynomial' := (n0,a0) :: l; sorted' := H_p1 |} sp2 =
-    PMadd (PMscal a0 (PMmonomial_scale n0 {| polynomial:=sp2.(polynomial'); sorted:=sp2.(sorted'); error:=Fnull |}))
-          (Pmul {| polynomial' := l; sorted' := is_sorted_fst_cons_inv _ _ H_p1 |} sp2).
+Lemma Pmul_cons : forall n0 c0 p1 p2,
+  Pmul ( (n0,c0) :: p1) p2 =
+    PMadd (PMscal c0 (PMmonomial_scale n0 {| polynomial:=p2; error:=Fnull |}))
+          (Pmul p1 p2).
 Proof.
- intros n0 a0 l H_p1 sp2; rewrite Pmul_equation; trivial.
+ intros n0 a0 p1 p2; rewrite Pmul_equation; trivial.
 Qed.
 
 
-Theorem Pmul_correct : forall sp1 sp2,
- PMmodels (Pmul sp1 sp2) (fun x=> (Pax_eval sp1.(polynomial') x)*(Pax_eval sp2.(polynomial') x)).
+Theorem Pmul_correct : forall p1 p2,
+  PMmodels (Pmul p1 p2) (fun x=> (Pax_eval p1 x)*(Pax_eval p2 x)).
 Proof.
- intros [p1 H_p1] sp2.
- induction p1 as [|(n0,a0) p1].
-  simpl in *.
-  rewrite Pmul_nil.
-  apply PMmodels_extensional with (f1:=fun x=> 0).
-  2: intros; simpl; ring.
-  intros x _; simpl.
-  stepl (Rabs 0); [|f_equal; simpl; ring]; rewrite flt_null; rewrite Rabs_R0; auto with real.
+  intros p1 p2.
+  induction p1 as [|(n0,c0) p1].
+    simpl in *.
+    rewrite Pmul_nil.
+    apply PMmodels_extensional with (f1:=fun x=> 0).
+    2: intros; simpl; ring.
+    intros x _; simpl.
+    stepl (Rabs 0); [|f_equal; simpl; ring]; rewrite flt_null; rewrite Rabs_R0; auto with real.
 
-  rewrite Pmul_cons.
-  simpl.
-  set (sp1:={| polynomial' := p1; sorted' := is_sorted_fst_cons_inv (n0,a0) p1 H_p1 |}).
-  apply PMmodels_extensional with (f1:=fun x=> ((FinjR a0)*((pow x n0)*(Pax_eval sp2.(polynomial') x))) + ((Pax_eval sp1.(polynomial') x))*(Pax_eval sp2.(polynomial') x)) .
-  2: intros; subst sp1; simpl; ring.
-  apply PMadd_correct.
-   apply PMscal_correct; apply PMmonomial_scale_correct.
-   intros x _; simpl; stepl (Rabs 0); [|f_equal; ring]; rewrite flt_null; rewrite Rabs_R0; auto with real.
+    rewrite Pmul_cons.
+    simpl.
+    apply PMmodels_extensional with (f1:=fun x=> ((FinjR c0)*((pow x n0)*(Pax_eval p2 x))) + ((Pax_eval p1 x))*(Pax_eval p2 x)) .
+    2: intros; simpl; ring.
+    apply PMadd_correct.
+      apply PMscal_correct; apply PMmonomial_scale_correct.
+      intros x _; simpl; stepl (Rabs 0); [|f_equal; ring]; rewrite flt_null; rewrite Rabs_R0; auto with real.
 
-  apply IHp1.
+    apply IHp1.
 Qed.
 
 
 Theorem Pscale_norm_error : forall t1 t2 f1 f2,
   PMmodels t1 f1 -> PMmodels t2 f2 ->
-    PMmodels {| polynomial := nil; sorted := is_sorted_fst_nil
-           ; error := (Fadd_up (Pscale_norm t1.(error) t2.(polynomial))
+    PMmodels {| polynomial := nil; 
+                error := (Fadd_up (Pscale_norm t1.(error) t2.(polynomial))
                               (Fadd_up (Pscale_norm t2.(error) t1.(polynomial))
                                       (Fmul_up t1.(error) t2.(error))))
            |}
@@ -138,9 +126,8 @@ Qed.
 
 
 Definition PMmul (t1 t2 : PolynomialModel) : PolynomialModel :=
-    PMadd (Pmul {| polynomial':=t1.(polynomial); sorted':=t1.(sorted) |} 
-                                 {| polynomial':=t2.(polynomial); sorted':=t2.(sorted) |} )
-               {| polynomial := nil; sorted := is_sorted_fst_nil 
+    PMadd (Pmul t1.(polynomial) t2.(polynomial))
+               {| polynomial := nil
                 ; error:=  (Fadd_up (Pscale_norm t1.(error) t2.(polynomial))
                                    (Fadd_up (Pscale_norm t2.(error) t1.(polynomial))
                                            (Fmul_up t1.(error) t2.(error)))) |}.

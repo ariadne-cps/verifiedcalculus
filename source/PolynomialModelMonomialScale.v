@@ -55,7 +55,6 @@ Qed.
 
 Definition PMmonomial_scale (n : nat) (t : PolynomialModel) : PolynomialModel :=
  {| polynomial := Pmonomial_scale n t.(polynomial)
-  ; sorted := @Pmonomial_scale_sorted n t.(polynomial) t.(sorted)
   ; error := t.(error) |}.
 
 Close Scope nat_scope.
@@ -77,33 +76,33 @@ Qed.
 Theorem PMmonomial_scale_correct : forall n t f, PMmodels t f ->
      PMmodels (PMmonomial_scale n t) (fun x => (pow x n)* f(x)).
 Proof.
- intros n t f H x hyp_x.
- assert (H_err_nonneg:=PMerror_nonneg t f H).
- specialize (H x hyp_x).
- stepl (Rabs ((pow x n)*((Pax_eval t.(polynomial) x)-(f x)))).
-  apply Rle_trans with (Rabs ((pow x n) * FinjR (error t))).
-   do 2 rewrite Rabs_mult; apply Rmult_le_compat_l;
-   [ apply Rabs_pos
-   | apply Rle_trans with (FinjR (error t)); trivial; apply Rle_abs].
+  intros n t f H x hyp_x.
+  assert (H_err_nonneg:=PMerror_nonneg t f H).
+  specialize (H x hyp_x).
+  stepl (Rabs ((pow x n)*((Pax_eval t.(polynomial) x)-(f x)))).
+    apply Rle_trans with (Rabs ((pow x n) * FinjR (error t))).
+      do 2 rewrite Rabs_mult; apply Rmult_le_compat_l;
+      [ apply Rabs_pos
+      | apply Rle_trans with (FinjR (error t)); trivial; apply Rle_abs].
 
-   rewrite Rabs_mult.
-   rewrite (Rabs_pos_eq (FinjR (error t)) H_err_nonneg).
-   stepr (1* (FinjR (error t))) by (simpl; ring).
-   apply Rmult_le_compat_r; trivial.
-   destruct hyp_x as [H1 H2].
+      rewrite Rabs_mult.
+      rewrite (Rabs_pos_eq (FinjR (error t)) H_err_nonneg).
+      stepr (1* (FinjR (error t))) by (simpl; ring).
+      apply Rmult_le_compat_r; trivial.
+      destruct hyp_x as [H1 H2].
 
-   apply Rabs_Rle_1.
-   split.
-    apply pow_Rle_l_1; trivial.
-    apply pow_Rle_r_1; trivial.
-    lra.
- destruct t as [p Hs e].
- simpl in *.
- set (p_x:= Pax_eval p x) in *.
- set (x_n_p_x:= Pax_eval (Pmonomial_scale n p) x).
- f_equal.
- assert(H_ev:x_n_p_x= (pow x n)*p_x); [subst x_n_p_x; subst p_x; simpl in *; apply Pmonomial_scale_ax_eval|].
- rewrite H_ev; ring.
+      apply Rabs_Rle_1.
+      split.
+        apply pow_Rle_l_1; trivial.
+        apply pow_Rle_r_1; trivial.
+        lra.
+  destruct t as [p e].
+  simpl in *.
+  set (p_x:= Pax_eval p x) in *.
+  set (x_n_p_x:= Pax_eval (Pmonomial_scale n p) x).
+  f_equal.
+  assert(H_ev:x_n_p_x= (pow x n)*p_x); [subst x_n_p_x; subst p_x; simpl in *; apply Pmonomial_scale_ax_eval|].
+  rewrite H_ev; ring.
 Qed.
 
 Close Scope R_scope.

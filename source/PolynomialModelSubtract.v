@@ -61,14 +61,13 @@ Qed.
  
 Definition PMneg (t : PolynomialModel) : PolynomialModel :=
   {| polynomial := Pnegate t.(polynomial);
-     sorted := is_sorted_polynomial_negate t.(polynomial) t.(sorted);
      error := t.(error) |}.
      
 Theorem PMneg_correct : forall t f,
   PMmodels t f -> PMmodels (PMneg t) (fun x => - f x).
 Proof.
   intros t.
-  destruct t as [p Hs e].
+  destruct t as [p e].
   induction p as [|a0 p1].
   - unfold PMneg, PMmodels. simpl.
     intros f H x Hx.
@@ -76,9 +75,7 @@ Proof.
     rewrite -> Rminus_0_l in *.
     rewrite -> Rabs_Ropp.
     exact H.
-  - assert (is_sorted_fst p1) as Hs1. { apply (is_sorted_fst_cons_inv a0). exact Hs. }
-    specialize (IHp1 Hs1).
-    destruct a0 as [m0 c0].
+  - destruct a0 as [m0 c0].
     intros f H x Hx.
     set (f1 := fun x => f x - (FinjR c0) * x^m0).
     assert (f x = (FinjR c0) * x^m0 + f1 x) as Hf1 by (unfold f1; field).

@@ -47,7 +47,6 @@ Definition Ptail p : list (nat * F) :=
 
 Record PolynomialModel : Type :=
 { polynomial : list (nat * F);
-  sorted : is_sorted_fst polynomial;
   error: F;
 }.
 
@@ -134,13 +133,13 @@ Proof.
 Qed.
 
 Definition PMzero : PolynomialModel :=
-  {| polynomial :=nil;  sorted :=is_sorted_fst_nil; error:=Fnull |}.
+  {| polynomial :=nil;  error:=Fnull |}.
 
 Definition PMconstant a : PolynomialModel :=
-  {| polynomial := (0%nat, a) :: nil; sorted := is_sorted_fst_one (0%nat,a); error := Fnull |}.
+  {| polynomial := (0%nat, a) :: nil; error := Fnull |}.
 
 Definition PMerror_ball e : PolynomialModel :=
-  {| polynomial := nil; sorted := is_sorted_fst_nil; error := e |}.
+  {| polynomial := nil; error := e |}.
 
 Lemma PMconstant_correct : forall a, 
   PMmodels (PMconstant a) (fun _ => FinjR a).
@@ -159,7 +158,7 @@ Lemma PMnorm_correct : forall t f,
   PMmodels t f -> forall x, -1<=x<=1 -> Rabs (f x) <= FinjR (PMnorm t).
 Proof.
   intros t f H x Hx.
-  destruct t as [p Hs e].
+  destruct t as [p e].
   unfold PMmodels in H.
   unfold PMnorm.
   simpl in *.
@@ -182,14 +181,14 @@ Qed.
 Definition PMtail t : PolynomialModel :=
   match t with
   | {| polynomial := nil |} => PMzero
-  | {| polynomial := (n,a0) :: l; sorted := H_p; error :=e |} =>
-        {| polynomial := l; sorted := is_sorted_fst_cons_inv _ _ H_p; error := e |}
+  | {| polynomial := a0 :: p1; error :=e |} =>
+        {| polynomial := p1; error := e |}
   end.
 
 Theorem PMtail_correct:forall t f, PMmodels t f -> forall n a l,
   t.(polynomial) = (n,a) :: l -> PMmodels (PMtail t) (fun x=>f(x)- (FinjR a)*(pow x n)).
 Proof.
- intros [[|(n0,a0) l0] H_p e] f H_t n a l hyp.
+  intros [[|(n0,a0) l0] e] f H_t n a l hyp.
   discriminate hyp.
 
   unfold PMmodels in *; simpl in *.
