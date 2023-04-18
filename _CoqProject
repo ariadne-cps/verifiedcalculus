@@ -1,0 +1,13 @@
+-R source VerifiedCalculus
+source/R_addenda.v
+source/Floats.v
+source/Bounds.v
+source/Sum.v
+source/PolynomialModels.v
+source/PolynomialModelsSweep.v
+source/PolynomialModelsSum.v
+source/PolynomialModelsDifference.v
+source/PolynomialModelsScalar.v
+source/PolynomialModelsMonomial.v
+source/PolynomialModelsProduct.v
+source/PolynomialModelsQuotient.v
