@@ -8,9 +8,9 @@
 
 
 Require Export PolynomialModels.
-Require Export PolynomialModelsSum.
+Require Export PolynomialModelAdd.
 
-Section Polynomial_Models_Difference.
+Section Polynomial_Model_Subtract.
 
 Open Scope R_scope.
 
@@ -114,4 +114,4 @@ Qed.
 
 Close Scope R_scope.
 
-End Polynomial_Models_Difference.
+End Polynomial_Model_Subtract.

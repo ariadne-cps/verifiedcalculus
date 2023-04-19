@@ -14,7 +14,7 @@ Require Import Lia.
 Require Import Ring.
 
 
-Section Polynomial_Models_Sum.
+Section Polynomial_Model_Add.
 
 Context `{F : Type} `{FltF : Float F}.
 
@@ -445,4 +445,4 @@ Qed.
 
 Close Scope R_scope.
 
-End Polynomial_Models_Sum.
+End Polynomial_Model_Add.

@@ -4,10 +4,10 @@ source/Floats.v
 source/Bounds.v
 source/Sum.v
 source/PolynomialModels.v
-source/PolynomialModelsSweep.v
-source/PolynomialModelsSum.v
-source/PolynomialModelsDifference.v
-source/PolynomialModelsScalar.v
-source/PolynomialModelsMonomial.v
-source/PolynomialModelsProduct.v
-source/PolynomialModelsQuotient.v
+source/PolynomialModelSweep.v
+source/PolynomialModelAdd.v
+source/PolynomialModelSubtract.v
+source/PolynomialModelScale.v
+source/PolynomialModelMonomialScale.v
+source/PolynomialModelMultiply.v
+source/PolynomialModelDivide.v

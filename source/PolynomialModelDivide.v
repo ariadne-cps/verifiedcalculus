@@ -9,16 +9,16 @@
 Require Import Sum.
 
 Require Export PolynomialModels.
-Require Export PolynomialModelsSum.
-Require Export PolynomialModelsDifference.
-Require Export PolynomialModelsScalar.
-Require Export PolynomialModelsMonomial.
-Require Export PolynomialModelsProduct.
+Require Export PolynomialModelAdd.
+Require Export PolynomialModelSubtract.
+Require Export PolynomialModelScale.
+Require Export PolynomialModelMonomialScale.
+Require Export PolynomialModelMultiply.
 
 Require Import Recdef.
 Require Import Lia.
 
-Section Polynomial_Models_Quotient.
+Section Polynomial_Model_Divide.
 
 Open Scope R_scope.
 
@@ -214,4 +214,4 @@ Qed.
 
 Close Scope R_scope.
 
-End Polynomial_Models_Quotient.
+End Polynomial_Model_Divide.

@@ -15,7 +15,7 @@ Require Import Recdef.
 Require Import Lia.
 
 
-Section Polynomial_Models.
+Section Polynomial_Model_Sweep.
 
 Context `{F : Type} `{FltF : Float F}.
 
@@ -374,4 +374,4 @@ Qed.
 
 Close Scope R_scope.
 
-End Polynomial_Models.
+End Polynomial_Model_Sweep.

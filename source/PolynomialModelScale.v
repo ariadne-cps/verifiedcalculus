@@ -15,7 +15,7 @@ Require Import Lra.
 
 
 
-Section Polynomial_Models_Scalar.
+Section Polynomial_Model_Scale.
 
 Context `{F : Type} `{FltF : Float F}.
 
@@ -163,4 +163,4 @@ Qed.
 
 Close Scope R_scope.
 
-End Polynomial_Models_Scalar.
+End Polynomial_Model_Scale.

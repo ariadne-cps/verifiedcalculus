@@ -8,14 +8,15 @@
 (************************************************************************)
 
 
-Require Export PolynomialModelsMonomial.
-Require Export PolynomialModelsScalar.
-Require Export PolynomialModelsSum.
+Require Export PolynomialModels.
+Require Export PolynomialModelAdd.
+Require Export PolynomialModelScale.
+Require Export PolynomialModelMonomialScale.
 Require Import Recdef.
 Require Import Lia.
 
 
-Section Polynomial_Models_Product.
+Section Polynomial_Model_Multiply.
 
 Context `{F : Type} `{FltF : Float F}.
 
@@ -163,4 +164,4 @@ Qed.
 
 Close Scope R_scope.
 
-End Polynomial_Models_Product.
+End Polynomial_Model_Multiply.
