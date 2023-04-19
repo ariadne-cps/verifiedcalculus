@@ -181,6 +181,9 @@ Qed.
 
 
 
+
+
+#[export]
 #[refine]
 Instance Rational_Float : Float Q :=
 {
@@ -242,3 +245,5 @@ Proof.
     -- intro z; unfold Rdist; rewrite -> Rminus_eq_0; rewrite -> Rabs_R0; apply Rabs_pos.
     -- apply Req_ge; reflexivity.
 Qed.
+
+Close Scope Q_scope.
