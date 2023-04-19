@@ -40,22 +40,18 @@ Proof.
   unfold PMerror_ball, PMadd.
   simpl.
   unfold PMadd_error. simpl.
-  unfold Padd_error.
-  rewrite -> (Padd_error_sum_eq_nil_r p).
-  unfold Padd_polynomial.
-  rewrite -> (Padd_eq_nil_r p).
+  rewrite -> (Padd_approx_eq_nil_r p).
+  rewrite -> (Padd_error_eq_nil_r p).
   simpl.
   apply Rle_trans with (Rabs (Pax_eval p x - f x) + Rabs (f x - f' x)).
   - apply Rabs_dist_triang.
-  - apply Rle_trans with (FinjR e + FinjR (Fadd up d Fnull)).
-    -- apply Rplus_le_compat. exact Hf.
-       apply Rle_trans with (FinjR d).
-       --- unfold Rdist in He. exact He.
-       --- replace (FinjR d) with (FinjR d + FinjR Fnull).
-           apply flt_add_up_le.
-           rewrite -> flt_null.
-           apply Rplus_0_r.
-    -- apply flt_add_up_le.
+  - apply Rle_trans with (FinjR e + FinjR d).
+    -- apply Rplus_le_compat. exact Hf. exact He.
+    -- stepl ((FinjR e + FinjR d) + 0%R) by ring.
+       rewrite <- flt_null.
+       apply Rle_trans with (FinjR (Fadd up e d) + FinjR Fnull).
+       --- apply Rplus_le_compat_r. apply flt_add_up_le. 
+       --- apply flt_add_up_le.
 Qed.
 
 
