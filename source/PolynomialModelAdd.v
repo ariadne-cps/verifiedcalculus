@@ -72,12 +72,12 @@ Qed.
 
 Hint Resolve Padd_eq_nil_nil Padd_eq_nil_cons Padd_eq_cons_nil Padd_eq_cons_cons.
 
-Lemma Padd_eq_1: forall p, Padd (p,nil) = p.
+Lemma Padd_eq_nil_r: forall p, Padd (p,nil) = p.
 Proof.
  intros [|fn p']; auto.
 Qed.
 
-Lemma Padd_eq_2: forall p, Padd (nil,p) = p.
+Lemma Padd_eq_nil_l: forall p, Padd (nil,p) = p.
 Proof.
  intros [|fn p']; auto.
 Qed.
@@ -88,19 +88,19 @@ Ltac local_tactic_prove_Padd_equation :=
  trivial; contradict H; lia.
 
 
-Lemma Padd_eq_3: forall fn1 p1 fn2 p2, (fst fn1 < fst fn2) %nat ->
+Lemma Padd_eq_lt: forall fn1 p1 fn2 p2, (fst fn1 < fst fn2) %nat ->
  Padd (fn1 :: p1, fn2 :: p2) = (fst fn1 , snd fn1) :: Padd (p1,(fn2 :: p2)).
 Proof.
  local_tactic_prove_Padd_equation.
 Qed.
 
-Lemma Padd_eq_4: forall fn1 p1 fn2 p2, (fst fn1 = fst fn2) %nat ->
+Lemma Padd_eq_eq: forall fn1 p1 fn2 p2, (fst fn1 = fst fn2) %nat ->
  Padd (fn1 :: p1, fn2 :: p2) = (fst fn1, Fadd_near (snd fn1) (snd fn2)) :: Padd (p1,p2).
 Proof.
  local_tactic_prove_Padd_equation.
 Qed.
 
-Lemma Padd_eq_5: forall fn1 p1 fn2 p2, (fst fn2 < fst fn1) %nat ->
+Lemma Padd_eq_gt: forall fn1 p1 fn2 p2, (fst fn2 < fst fn1) %nat ->
  Padd (fn1 :: p1, fn2 :: p2) = (fst fn2 , snd fn2) :: Padd ((fn1 :: p1),p2).
 Proof.
  local_tactic_prove_Padd_equation.
@@ -158,7 +158,7 @@ Proof.
       rewrite pre_sum_eq_cons_cons.
       destruct (lt_eq_lt_dec (fst a1) (fst a2)) as [[Hlt | Heq] | Hgt].
         (* 1: m1 <m2 *)
-        - rewrite (Pax_eval_eq_1). set (sp2:=a2::p2). simpl.
+        - rewrite (Pax_eval_eq_nil_r). set (sp2:=a2::p2). simpl.
           stepl (Rabs (Pax_eval p1 x + Pax_eval sp2 x - Pax_eval (pre_sum_polynom p1 sp2) x)).
           apply (IHp1 sp2). exact Hx.
           f_equal. unfold pre_sum_polynom. simpl. ring.
@@ -202,7 +202,7 @@ Proof.
            apply (flt_op_near_up_down_sub_hlf_up Add c1 c2).
          
         (* 3 *)
-        - rewrite (Pax_eval_eq_1). set (sp1:=a1::p1). simpl.
+        - rewrite (Pax_eval_eq_nil_r). set (sp1:=a1::p1). simpl.
           stepl (Rabs (Pax_eval sp1 x + Pax_eval p2 x - Pax_eval (pre_sum_polynom sp1 p2) x)).
             apply IHp2. exact Hx.
             f_equal. unfold pre_sum_polynom. simpl. ring.
@@ -212,11 +212,11 @@ Qed.
 Lemma Padd_sorted: forall p1 p2, is_sorted_fst p1 -> is_sorted_fst p2 -> is_sorted_fst (Padd (p1,p2)).
   induction p1 as [|a1 p].
   (* nil , _ *)
-  intros p2 H_ap1 H_ap2; rewrite Padd_eq_2; assumption.
+  intros p2 H_ap1 H_ap2; rewrite Padd_eq_nil_l; assumption.
   (* a1 :: p , _ *)
   induction p2 as [|b1 q]; intros H_ap H_bq.
    (* a1 :: p , nil *)
-   rewrite Padd_eq_1; assumption.
+   rewrite Padd_eq_nil_r; assumption.
    (* a1 :: p , b1 : q *)
    assert (H_p:is_sorted_fst p); [apply is_sorted_fst_cons_inv with a1; exact H_ap|].
    assert (H_q:is_sorted_fst q); [apply is_sorted_fst_cons_inv with b1; exact H_bq|].
@@ -226,7 +226,7 @@ Lemma Padd_sorted: forall p1 p2, is_sorted_fst p1 -> is_sorted_fst p2 -> is_sort
     assert (hyp:is_sorted_fst (Padd (p, b1 :: q))); [apply IHp; assumption|].
     destruct p as  [|a2 p'].
      (* a1 :: nil , b1 :: q *)
-     rewrite Padd_eq_2; apply (is_sorted_fst_cons (fst a1,snd a1) (b1 :: q) b1); trivial.
+     rewrite Padd_eq_nil_l; apply (is_sorted_fst_cons (fst a1,snd a1) (b1 :: q) b1); trivial.
      (* a1 :: a2 :: p1' , b1 :: q *)
      assert (H_a12: (fst a1<fst a2)%nat); [inversion H_ap; injection H1; intros H_tmp; subst a2; assumption|].
      revert hyp.
@@ -249,10 +249,10 @@ Lemma Padd_sorted: forall p1 p2, is_sorted_fst p1 -> is_sorted_fst p2 -> is_sort
      (* a1 :: nil , b1 :: b2 :: q' *)
      assert (H_b12: (fst b1<fst b2)%nat); [inversion H_bq; injection H1; intros H_tmp; subst b2; assumption|].
      assert (H_a1_b2: (fst a1<fst b2)%nat); [rewrite Heq; assumption|].
-     rewrite Padd_eq_2; apply (is_sorted_fst_cons (fst a1, Fadd_near (snd a1) (snd b1)) (b2 :: q') b2); trivial.
+     rewrite Padd_eq_nil_l; apply (is_sorted_fst_cons (fst a1, Fadd_near (snd a1) (snd b1)) (b2 :: q') b2); trivial.
      (* a1 :: a2 :: p' , b1 :: nil *)
      assert (H_a12: (fst a1<fst a2)%nat); [inversion H_ap; injection H1; intros H_tmp; subst a2; assumption|].
-     rewrite Padd_eq_1; apply (is_sorted_fst_cons (fst a1,Fadd_near (snd a1) (snd b1)) (a2 :: p') a2); trivial.
+     rewrite Padd_eq_nil_r; apply (is_sorted_fst_cons (fst a1,Fadd_near (snd a1) (snd b1)) (a2 :: p') a2); trivial.
      (* a1 :: a2 :: p' , b1 :: b2 :: q' *)
      assert (H_a12: (fst a1<fst a2)%nat); [inversion H_ap; injection H1; intros H_tmp; subst a2; assumption|].
      assert (H_b12: (fst b1<fst b2)%nat); [inversion H_bq; injection H1; intros H_tmp; subst b2; assumption|].
@@ -273,7 +273,7 @@ Lemma Padd_sorted: forall p1 p2, is_sorted_fst p1 -> is_sorted_fst p2 -> is_sort
     assert (hyp:is_sorted_fst (Padd (a1 :: p, q))); [apply IHq; assumption|].
     destruct q as  [|b2 q'].
      (* a1 :: p , b1 :: nil *)
-     rewrite Padd_eq_1; apply (is_sorted_fst_cons (fst b1,snd b1) (a1 :: p) a1); trivial.
+     rewrite Padd_eq_nil_r; apply (is_sorted_fst_cons (fst b1,snd b1) (a1 :: p) a1); trivial.
      (* a1 :: p , b1 :: b2 :: q' *)
      assert (H_b12: (fst b1<fst b2)%nat); [inversion H_bq; injection H1; intros H_tmp; subst b2; assumption|].
      revert hyp.
@@ -338,12 +338,12 @@ Qed.
 
 Hint Resolve Padd_error_sum_eq_nil_nil Padd_error_sum_eq_nil_cons Padd_error_sum_eq_cons_nil Padd_error_sum_eq_cons_cons.
 
-Lemma Padd_error_sum_eq_1 : forall  p, Padd_error_sum  (p,nil) = nil.
+Lemma Padd_error_sum_eq_nil_r : forall  p, Padd_error_sum  (p,nil) = nil.
 Proof.
  intros  [|fn p']; auto.
 Qed.
 
-Lemma Padd_error_sum_eq_2 : forall  p, Padd_error_sum  (nil,p) = nil.
+Lemma Padd_error_sum_eq_nil_l : forall  p, Padd_error_sum  (nil,p) = nil.
 Proof.
  intros  [|fn p']; auto.
 Qed.
@@ -353,19 +353,19 @@ Ltac local_tactic_prove_Padd_error_sum_equation :=
  destruct (lt_eq_lt_dec (fst fn1) (fst fn2)) as [[H_ | H_f] | H_f]; trivial; contradict H; lia.
 
 
-Lemma Padd_error_sum_eq_3 : forall  fn1 p1 fn2 p2, (fst fn1 < fst fn2) %nat ->
+Lemma Padd_error_sum_eq_lt : forall  fn1 p1 fn2 p2, (fst fn1 < fst fn2) %nat ->
  Padd_error_sum  (fn1 :: p1, fn2 :: p2) = Padd_error_sum  (p1,(fn2 :: p2)).
 Proof.
  local_tactic_prove_Padd_error_sum_equation.
 Qed.
 
-Lemma Padd_error_sum_eq_4 : forall  fn1 p1 fn2 p2, (fst fn1 = fst fn2) %nat ->
+Lemma Padd_error_sum_eq_eq : forall  fn1 p1 fn2 p2, (fst fn1 = fst fn2) %nat ->
  Padd_error_sum  (fn1 :: p1, fn2 :: p2) = (fst fn1, Fdiv2_up (Fsub_up (Fadd_up (snd fn1) (snd fn2)) (Fadd_down (snd fn1) (snd fn2)))) :: Padd_error_sum  (p1,p2).
 Proof.
  local_tactic_prove_Padd_error_sum_equation.
 Qed.
 
-Lemma Padd_error_sum_eq_5 : forall  fn1 p1 fn2 p2, (fst fn2 < fst fn1) %nat ->
+Lemma Padd_error_sum_eq_gt : forall  fn1 p1 fn2 p2, (fst fn2 < fst fn1) %nat ->
  Padd_error_sum  (fn1 :: p1, fn2 :: p2) = Padd_error_sum  ((fn1 :: p1),p2).
 Proof.
  local_tactic_prove_Padd_error_sum_equation.
@@ -390,12 +390,12 @@ Proof.
  intros [p1 e1].
  induction p1; intros [p2 e2].
   (* nil, _ *)
-  simpl; unfold Padd_error; rewrite Padd_error_sum_eq_2; simpl; rewrite flt_null; auto with real.
+  simpl; unfold Padd_error; rewrite Padd_error_sum_eq_nil_l; simpl; rewrite flt_null; auto with real.
 
   (* a :: p1, _  *)
   induction p2.
    (* a::p1, nil *)
-   simpl; unfold Padd_error; rewrite Padd_error_sum_eq_1; simpl; rewrite flt_null; auto with real.
+   simpl; unfold Padd_error; rewrite Padd_error_sum_eq_nil_r; simpl; rewrite flt_null; auto with real.
    (* a::p1, a0::p2 *)
    simpl in *.
    unfold Padd_error.
@@ -429,12 +429,12 @@ Proof.
 *)
   induction p1; intros p2.
     intros  x _; simpl; unfold Padd_polynomial, Padd_error in *.
-    rewrite Padd_eq_2, Padd_error_sum_eq_2; simpl.
+    rewrite Padd_eq_nil_l, Padd_error_sum_eq_nil_l; simpl.
     stepl 0; [ rewrite flt_null; lra | symmetry; stepl (Rabs 0); [apply Rabs_R0|f_equal; ring]].
 
     induction p2.
       intros x _; simpl; unfold Padd_polynomial, Padd_error in *.
-      rewrite Padd_eq_1, Padd_error_sum_eq_1; simpl.
+      rewrite Padd_eq_nil_r, Padd_error_sum_eq_nil_r; simpl.
       stepl 0; [ rewrite flt_null; lra | symmetry; stepl (Rabs 0); [apply Rabs_R0|f_equal; ring]].
 
       intros x Hx.
@@ -443,7 +443,7 @@ Proof.
       rewrite Padd_eq_cons_cons, Padd_error_sum_eq_cons_cons.
       destruct (lt_eq_lt_dec (fst a) (fst a0)) as [[Hlt | Hlt] | Hlt].
         (* 1 *)
-        rewrite (Pax_eval_eq_1).
+        rewrite (Pax_eval_eq).
         set (p02:=(a0 :: p2)).
         replace (Pax_eval ((fst a, snd a) :: Padd (p1, a0 :: p2)) x) with
                 (FinjR (snd a) *(pow x (fst a)) + (Pax_eval (Padd_polynomial p1 (a0::p2)) x)); [|trivial].
@@ -494,7 +494,7 @@ Proof.
          apply flt_op_near_up_down_sub_hlf_up.
          
         (* 3 *)
-        rewrite (Pax_eval_eq_1).
+        rewrite (Pax_eval_eq).
         set (sp1:=(a :: p1)).
         set (sp2:=p2).
         replace (Pax_eval ((fst a0, snd a0) :: Padd (a :: p1, p2)) x) with

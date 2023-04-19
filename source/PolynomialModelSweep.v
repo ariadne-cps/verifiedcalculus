@@ -292,7 +292,7 @@ Proof.
        specialize (IHp1 e f1). 
        assert (Pax_eval (a0::p1) x - f x = Pax_eval p1 x - f1 x) as Hf1. {
          rewrite -> Heqf1. simpl. ring. }
-       rewrite <- Pax_eval_eq_1. rewrite -> Hf1.
+       rewrite <- Pax_eval_eq. rewrite -> Hf1.
        intros Hp1x.
        apply IHp1 in Hp1x as IHp1x.
        assert (Rabs (Pax_eval (fst (Psweep r p1)) x - f x) <=

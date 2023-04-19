@@ -56,7 +56,7 @@ Fixpoint Pax_eval (p:list (nat*F)) (x:R) : R :=
     | fn :: p0 =>  (FinjR (snd fn) * (pow x (fst fn))) + Pax_eval p0 x
     end.
 
-Lemma Pax_eval_eq_1 : forall t p x, 
+Lemma Pax_eval_eq : forall t p x, 
   Pax_eval (t :: p) x = (FinjR (snd t)) * (pow x (fst t)) + Pax_eval p x.
 Proof.
  intros; trivial.

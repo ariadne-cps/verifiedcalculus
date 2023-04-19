@@ -24,6 +24,7 @@ Open Scope R_scope.
 
 Context `{F : Type} `{FltF : Float F}.
 
+
 Lemma PMmodels_approximation : forall t f f' d,
   PMmodels t f -> (forall x, -1<=x<=1 -> Rdist (f x) (f' x) <= FinjR d) ->
     PMmodels (PMadd t (PMerror_ball d)) f'.
@@ -40,9 +41,9 @@ Proof.
   simpl.
   unfold PMadd_error. simpl.
   unfold Padd_error.
-  rewrite -> (Padd_error_sum_eq_1 p).
+  rewrite -> (Padd_error_sum_eq_nil_r p).
   unfold Padd_polynomial.
-  rewrite -> (Padd_eq_1 p).
+  rewrite -> (Padd_eq_nil_r p).
   simpl.
   apply Rle_trans with (Rabs (Pax_eval p x - f x) + Rabs (f x - f' x)).
   - apply Rabs_dist_triang.
