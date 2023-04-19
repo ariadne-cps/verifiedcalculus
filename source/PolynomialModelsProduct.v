@@ -33,52 +33,52 @@ Definition SPtail sp :=
         {| polynomial' := l; sorted' := is_sorted_fst_cons_inv _ _ H_p |}
   end.
 
-Function PMmultiply_polynomial (sp1 sp2 : SortedPolynomial) 
+Function Pmul (sp1 sp2 : SortedPolynomial) 
     {measure (fun sp => length sp.(@polynomial')) sp1} : PolynomialModel :=
   match sp1 with
   | {| polynomial' := nil |} => PMzero
   | {| polynomial' := (n0,a0) :: l |} =>
-        PMadd (PMscale a0 (PMmonomial_scale n0 {| polynomial:=sp2.(polynomial'); sorted:=sp2.(sorted'); error:=Fnull |}))
-                          (PMmultiply_polynomial (SPtail sp1) sp2)
+        PMadd (PMscal a0 (PMmonomial_scale n0 {| polynomial:=sp2.(polynomial'); sorted:=sp2.(sorted'); error:=Fnull |}))
+                          (Pmul (SPtail sp1) sp2)
   end.
 Proof.
  intros; simpl; lia.
 Qed.
 
-Lemma PMmultiply_polynomial_nil : forall H_p1 sp2,
-  PMmultiply_polynomial {| polynomial' := nil; sorted' := H_p1 |} sp2 = PMzero.
+Lemma Pmul_nil : forall H_p1 sp2,
+  Pmul {| polynomial' := nil; sorted' := H_p1 |} sp2 = PMzero.
 Proof.
- intros H_p1 sp2; rewrite PMmultiply_polynomial_equation; trivial.
+ intros H_p1 sp2; rewrite Pmul_equation; trivial.
 Qed.
 
-Lemma PMmultiply_polynomial_cons : forall n0 a0 l H_p1 sp2,
-  PMmultiply_polynomial {| polynomial' := (n0,a0) :: l; sorted' := H_p1 |} sp2 =
-    PMadd (PMscale a0 (PMmonomial_scale n0 {| polynomial:=sp2.(polynomial'); sorted:=sp2.(sorted'); error:=Fnull |}))
-          (PMmultiply_polynomial {| polynomial' := l; sorted' := is_sorted_fst_cons_inv _ _ H_p1 |} sp2).
+Lemma Pmul_cons : forall n0 a0 l H_p1 sp2,
+  Pmul {| polynomial' := (n0,a0) :: l; sorted' := H_p1 |} sp2 =
+    PMadd (PMscal a0 (PMmonomial_scale n0 {| polynomial:=sp2.(polynomial'); sorted:=sp2.(sorted'); error:=Fnull |}))
+          (Pmul {| polynomial' := l; sorted' := is_sorted_fst_cons_inv _ _ H_p1 |} sp2).
 Proof.
- intros n0 a0 l H_p1 sp2; rewrite PMmultiply_polynomial_equation; trivial.
+ intros n0 a0 l H_p1 sp2; rewrite Pmul_equation; trivial.
 Qed.
 
 
-Theorem PMmultiply_polynomial_correct : forall sp1 sp2,
- PMmodels (PMmultiply_polynomial sp1 sp2) (fun x=> (Pax_eval sp1.(polynomial') x)*(Pax_eval sp2.(polynomial') x)).
+Theorem Pmul_correct : forall sp1 sp2,
+ PMmodels (Pmul sp1 sp2) (fun x=> (Pax_eval sp1.(polynomial') x)*(Pax_eval sp2.(polynomial') x)).
 Proof.
  intros [p1 H_p1] sp2.
  induction p1 as [|(n0,a0) p1].
   simpl in *.
-  rewrite PMmultiply_polynomial_nil.
+  rewrite Pmul_nil.
   apply PMmodels_extensional with (f1:=fun x=> 0).
   2: intros; simpl; ring.
   intros x _; simpl.
   stepl (Rabs 0); [|f_equal; simpl; ring]; rewrite flt_null; rewrite Rabs_R0; auto with real.
 
-  rewrite PMmultiply_polynomial_cons.
+  rewrite Pmul_cons.
   simpl.
   set (sp1:={| polynomial' := p1; sorted' := is_sorted_fst_cons_inv (n0,a0) p1 H_p1 |}).
   apply PMmodels_extensional with (f1:=fun x=> ((FinjR a0)*((pow x n0)*(Pax_eval sp2.(polynomial') x))) + ((Pax_eval sp1.(polynomial') x))*(Pax_eval sp2.(polynomial') x)) .
   2: intros; subst sp1; simpl; ring.
   apply PMadd_correct.
-   apply PMscale_correct; apply PMmonomial_scale_correct.
+   apply PMscal_correct; apply PMmonomial_scale_correct.
    intros x _; simpl; stepl (Rabs 0); [|f_equal; ring]; rewrite flt_null; rewrite Rabs_R0; auto with real.
 
   apply IHp1.
@@ -136,16 +136,16 @@ Proof.
 Qed.
 
 
-Definition PMmultiply (t1 t2 : PolynomialModel) : PolynomialModel :=
-    PMadd (PMmultiply_polynomial {| polynomial':=t1.(polynomial); sorted':=t1.(sorted) |} 
+Definition PMmul (t1 t2 : PolynomialModel) : PolynomialModel :=
+    PMadd (Pmul {| polynomial':=t1.(polynomial); sorted':=t1.(sorted) |} 
                                  {| polynomial':=t2.(polynomial); sorted':=t2.(sorted) |} )
                {| polynomial := nil; sorted := is_sorted_fst_nil 
                 ; error:=  (Fadd_up (Pscale_norm t1.(error) t2.(polynomial))
                                    (Fadd_up (Pscale_norm t2.(error) t1.(polynomial))
                                            (Fmul_up t1.(error) t2.(error)))) |}.
 
-Theorem PMmultiply_correct : forall (t1 t2 : PolynomialModel) (f1 f2 : R->R),
-  PMmodels t1 f1 -> PMmodels t2 f2 -> PMmodels (PMmultiply t1 t2) (fun x=> f1(x)*f2(x)).
+Theorem PMmul_correct : forall (t1 t2 : PolynomialModel) (f1 f2 : R->R),
+  PMmodels t1 f1 -> PMmodels t2 f2 -> PMmodels (PMmul t1 t2) (fun x=> f1(x)*f2(x)).
 Proof.
  intros t1 t2 f1 f2 H1 H2.
 
@@ -155,9 +155,9 @@ Proof.
                  (Pdifference t2.(polynomial) f2 x)*(Pax_eval t1.(polynomial) x) +
                    (Pdifference t1.(polynomial) f1 x)*(Pdifference t2.(polynomial) f2 x) ) ).
  2:intros x Hx; unfold Pdifference; ring.
- unfold PMmultiply.
+ unfold PMmul.
  apply PMadd_correct.
-  apply PMmultiply_polynomial_correct.
+  apply Pmul_correct.
   apply (@Pscale_norm_error t1 t2 f1 f2 H1 H2).
 Qed.
 

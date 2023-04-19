@@ -59,18 +59,18 @@ Proof.
 Qed.
   
  
-Definition PMnegate (t : PolynomialModel) : PolynomialModel :=
+Definition PMneg (t : PolynomialModel) : PolynomialModel :=
   {| polynomial := Pnegate t.(polynomial);
      sorted := is_sorted_polynomial_negate t.(polynomial) t.(sorted);
      error := t.(error) |}.
      
-Theorem PMnegate_correct : forall t f,
-  PMmodels t f -> PMmodels (PMnegate t) (fun x => - f x).
+Theorem PMneg_correct : forall t f,
+  PMmodels t f -> PMmodels (PMneg t) (fun x => - f x).
 Proof.
   intros t.
   destruct t as [p Hs e].
   induction p as [|a0 p1].
-  - unfold PMnegate, PMmodels. simpl.
+  - unfold PMneg, PMmodels. simpl.
     intros f H x Hx.
     specialize (H x Hx).
     rewrite -> Rminus_0_l in *.
@@ -83,7 +83,7 @@ Proof.
     set (f1 := fun x => f x - (FinjR c0) * x^m0).
     assert (f x = (FinjR c0) * x^m0 + f1 x) as Hf1 by (unfold f1; field).
     specialize (IHp1 f1).
-    unfold PMnegate, PMmodels in *.
+    unfold PMneg, PMmodels in *.
     simpl in *.
     replace (FinjR (Fneg c0) * x ^ m0 + 
               Pax_eval (Pnegate p1) x - - f x)
@@ -98,16 +98,16 @@ Qed.
     
 
  
-Definition PMdifference t1 t2 := PMadd t1 (PMnegate t2).
+Definition PMsub t1 t2 := PMadd t1 (PMneg t2).
 
-Theorem PMdifference_correct : forall t1 t2 f1 f2, 
-  PMmodels t1 f1 -> PMmodels t2 f2 -> PMmodels (PMdifference t1 t2) (fun x => f1 x - f2 x).
+Theorem PMsub_correct : forall t1 t2 f1 f2, 
+  PMmodels t1 f1 -> PMmodels t2 f2 -> PMmodels (PMsub t1 t2) (fun x => f1 x - f2 x).
 Proof.
   intros t1 t2 f1 f2 H1 H2.
-  unfold PMdifference, Rminus.
+  unfold PMsub, Rminus.
   apply PMadd_correct. exact H1.
   set ( f2s := fun x => - f2 x ).
-  apply PMnegate_correct. exact H2.
+  apply PMneg_correct. exact H2.
 Qed.
 
 

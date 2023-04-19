@@ -19,23 +19,23 @@ Context `{F : Type} `{FltF : Float F}.
 Open Scope nat_scope.
 
 (* Multiply p by x^n *)
-Fixpoint pre_monomial (n : nat) (p : list (nat*F)) : list (nat*F) :=
+Fixpoint Pmonomial_scale (n : nat) (p : list (nat*F)) : list (nat*F) :=
     match p with
     | nil => nil
-    | fn :: p' => ( n+(fst fn) , snd fn) :: pre_monomial n p'
+    | fn :: p' => ( n+(fst fn) , snd fn) :: Pmonomial_scale n p'
     end.
 
-Lemma pre_monomial_eq_nil : forall n, pre_monomial n nil = nil.
+Lemma Pmonomial_scale_eq_nil : forall n, Pmonomial_scale n nil = nil.
 Proof.
  intros; trivial.
 Qed.
 
-Lemma pre_monomial_eq_cons : forall n fn p, pre_monomial n (fn :: p) = (n+(fst fn) , snd fn) :: pre_monomial n p.
+Lemma Pmonomial_scale_eq_cons : forall n fn p, Pmonomial_scale n (fn :: p) = (n+(fst fn) , snd fn) :: Pmonomial_scale n p.
 Proof.
  intros; trivial.
 Qed.
 
-Lemma pre_monomial_sorted : forall n p, is_sorted_fst p -> is_sorted_fst (pre_monomial n p).
+Lemma Pmonomial_scale_sorted : forall n p, is_sorted_fst p -> is_sorted_fst (Pmonomial_scale n p).
 Proof.
  intros n;
  induction p as [|a0 [|a1 p]].
@@ -46,16 +46,16 @@ Proof.
   (* a :: p *)
   intros H_aap.
   assert (H_ap:is_sorted_fst (a1 :: p)); [apply is_sorted_fst_cons_inv with (fst a0,snd a0); rewrite <- (surjective_pairing); exact H_aap|].
-  rewrite pre_monomial_eq_cons.
-  apply (is_sorted_fst_cons (n+(fst a0),snd a0) (pre_monomial n (a1 :: p))
+  rewrite Pmonomial_scale_eq_cons.
+  apply (is_sorted_fst_cons (n+(fst a0),snd a0) (Pmonomial_scale n (a1 :: p))
                          (n+(fst a1),snd a1) ); trivial.
    2: inversion H_aap; injection H1; intros; subst a1; trivial; apply IHp; assumption.
    apply Nat.add_lt_mono_l; exact (is_sorted_fst_cons_lt _ _ _ H_aap).
 Qed.
 
 Definition PMmonomial_scale (n : nat) (t : PolynomialModel) : PolynomialModel :=
- {| polynomial := pre_monomial n t.(polynomial)
-  ; sorted := @pre_monomial_sorted n t.(polynomial) t.(sorted)
+ {| polynomial := Pmonomial_scale n t.(polynomial)
+  ; sorted := @Pmonomial_scale_sorted n t.(polynomial) t.(sorted)
   ; error := t.(error) |}.
 
 Close Scope nat_scope.
@@ -63,8 +63,8 @@ Close Scope nat_scope.
 
 Open Scope R_scope.
 
-Lemma ax_eval_pre_monomial : forall (n : nat) (p : list (nat * F)) (x : R),
-               Pax_eval (pre_monomial n p) x = x ^ n * Pax_eval p x.
+Lemma Pmonomial_scale_ax_eval : forall (n : nat) (p : list (nat * F)) (x : R),
+               Pax_eval (Pmonomial_scale n p) x = x ^ n * Pax_eval p x.
 Proof.
  induction p; intros x; simpl.
   auto.
@@ -100,9 +100,9 @@ Proof.
  destruct t as [p Hs e].
  simpl in *.
  set (p_x:= Pax_eval p x) in *.
- set (x_n_p_x:= Pax_eval (pre_monomial n p) x).
+ set (x_n_p_x:= Pax_eval (Pmonomial_scale n p) x).
  f_equal.
- assert(H_ev:x_n_p_x= (pow x n)*p_x); [subst x_n_p_x; subst p_x; simpl in *; apply ax_eval_pre_monomial|].
+ assert(H_ev:x_n_p_x= (pow x n)*p_x); [subst x_n_p_x; subst p_x; simpl in *; apply Pmonomial_scale_ax_eval|].
  rewrite H_ev; ring.
 Qed.
 

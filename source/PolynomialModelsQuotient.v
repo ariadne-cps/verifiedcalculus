@@ -38,11 +38,11 @@ Proof.
   simpl in *.
   unfold PMerror_ball, PMadd.
   simpl.
-  unfold error_add. simpl.
-  unfold pre_merge_add_error.
-  rewrite -> (pre_merge_error_eq_1 p).
-  unfold pre_merge_add_polynomial.
-  rewrite -> (pre_merge_eq_1 p).
+  unfold PMadd_error. simpl.
+  unfold Padd_error.
+  rewrite -> (Padd_error_sum_eq_1 p).
+  unfold Padd_polynomial.
+  rewrite -> (Padd_eq_1 p).
   simpl.
   apply Rle_trans with (Rabs (Pax_eval p x - f x) + Rabs (f x - f' x)).
   - apply Rabs_dist_triang.
@@ -62,7 +62,7 @@ Qed.
 Fixpoint PMgeometric n p :=
   match n with
   | O => PMconstant Funit
-  | S m => PMadd (PMconstant Funit) (PMmultiply p (PMgeometric m p))
+  | S m => PMadd (PMconstant Funit) (PMmul p (PMgeometric m p))
   end
 .
 
@@ -77,28 +77,28 @@ Proof.
     apply PMadd_correct.
     -- rewrite <- flt_unit.
        apply PMconstant_correct.
-    -- apply PMmultiply_correct.
+    -- apply PMmul_correct.
          exact H. exact IHn.
 Qed.
 
 
-Definition PMreciprocal (n : nat) (t : @PolynomialModel F) : PolynomialModel :=
-  let t' := PMdifference (PMconstant Funit) t in
+Definition PMrec (n : nat) (t : @PolynomialModel F) : PolynomialModel :=
+  let t' := PMsub (PMconstant Funit) t in
   let d' := PMnorm t' in
   PMadd (PMgeometric n t') (PMerror_ball (Fdiv up (Fpow_up d' (n+1)) (Fsub down Funit d'))).
 
 (* A lower bound on min[-1<=x<=1](1-t(x)) *)
 Definition PMunit_mig t :=
-   FinjR (Fsub down Funit (PMnorm (PMdifference (PMconstant Funit) t))).
+   FinjR (Fsub down Funit (PMnorm (PMsub (PMconstant Funit) t))).
 
-Theorem PMreciprocal_correct : forall (n : nat) (t : PolynomialModel) (f : R->R),
+Theorem PMrec_correct : forall (n : nat) (t : PolynomialModel) (f : R->R),
   (PMunit_mig t > 0) -> PMmodels t f ->
-      PMmodels (PMreciprocal n t) (fun x => / f(x)).
+      PMmodels (PMrec n t) (fun x => / f(x)).
 Proof.
   intros n t' f'.
   intros Hd H'.
   unfold PMunit_mig in *.
-  remember (PMdifference (PMconstant Funit) t') as t.
+  remember (PMsub (PMconstant Funit) t') as t.
   remember (fun x => 1 - f' x) as f.
   set (b:=PMnorm t).
   assert (FinjR b < 1) as Hb1. {
@@ -112,7 +112,7 @@ Proof.
   }
   assert (PMmodels t f) as H. {
     rewrite -> Heqt. rewrite -> Heqf.
-    apply PMdifference_correct.
+    apply PMsub_correct.
     rewrite <- flt_unit.
     apply PMconstant_correct.
     exact H'.
@@ -143,7 +143,7 @@ Proof.
   }
   apply PMmodels_extensional with (fun x => /(1 - f x)).
   2: { intros x Hx. rewrite -> Heqf. field. apply Rgt_not_eq. apply Hf0'. exact Hx. }
-  unfold PMreciprocal.
+  unfold PMrec.
   rewrite <- Heqt.
   clear H'.
 
@@ -197,18 +197,18 @@ Proof.
     lra.
 Qed.
 
-Definition PMquotient n t1 t2 := PMmultiply t1 (PMreciprocal n t2).
+Definition PMdiv n t1 t2 := PMmul t1 (PMrec n t2).
 
-Theorem PMdifference_correct : forall n t1 t2 f1 f2,
+Theorem PMdiv_correct : forall n t1 t2 f1 f2,
   (PMunit_mig t2 > 0) ->
     PMmodels t1 f1 -> PMmodels t2 f2 ->
-      PMmodels (PMquotient n t1 t2) (fun x => f1 x / f2 x).
+      PMmodels (PMdiv n t1 t2) (fun x => f1 x / f2 x).
 Proof.
   intros n t1 t2 f1 f2 Hd H1 H2.
-  unfold PMquotient, Rdiv.
-  apply PMmultiply_correct. exact H1.
+  unfold PMdiv, Rdiv.
+  apply PMmul_correct. exact H1.
   set ( f2s := fun x => / f2 x ).
-  apply PMreciprocal_correct. exact Hd. exact H2.
+  apply PMrec_correct. exact Hd. exact H2.
 Qed.
 
 
