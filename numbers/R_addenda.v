@@ -139,9 +139,7 @@ Definition Rmult_resp_nonzero:=RIneq.prod_neq_R0.
 Definition Rinv_resp_nonzero:=Rinv_neq_0_compat.
 Definition Ropp_resp_nonzero:=RIneq.Ropp_neq_0_compat.
 
-(*
 #[export]
-*)
 Hint Resolve Rlt_Ropp_pos Rinv_pos R1_neq_R0 Rle_mult_nonneg_nonneg
              Rlt_mult_pos_pos Rlt_mult_neg_neg Rlt_not_eq' Rlt_not_eq
              Rmult_resp_nonzero Rinv_resp_nonzero Ropp_resp_nonzero.
