@@ -41,7 +41,7 @@ Proof.
   unfold error_add. simpl.
   unfold pre_merge_add_error.
   rewrite -> (pre_merge_error_eq_1 p).
-  unfold pre_merge_add_polynom.
+  unfold pre_merge_add_polynomial.
   rewrite -> (pre_merge_eq_1 p).
   simpl.
   apply Rle_trans with (Rabs (Pax_eval p x - f x) + Rabs (f x - f' x)).

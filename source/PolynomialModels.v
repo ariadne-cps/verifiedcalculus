@@ -46,8 +46,8 @@ Definition Ptail p : list (nat * F) :=
 .
 
 Record PolynomialModel : Type :=
-{ polynom : list (nat * F);
-  polynom_sorted : is_sorted_fst polynom;
+{ polynomial : list (nat * F);
+  sorted : is_sorted_fst polynomial;
   error: F;
 }.
 
@@ -108,7 +108,7 @@ Proof.
 Qed.
 
 Function PMnorm (t: PolynomialModel) : F :=
-  Fadd up (Pnorm t.(polynom)) t.(error).
+  Fadd up (Pnorm t.(polynomial)) t.(error).
   
 (* `multiplying' by polynomial norm *)
 Definition Pscale_norm e sp := Fmul_up e (Pnorm sp).
@@ -117,30 +117,30 @@ Definition Pdifference (p:Polynomial) (f:R->R) (x:R) :=
   f(x)-(Pax_eval p x).
 
 Definition PMmodels (t:PolynomialModel) (f:R->R) := forall x,
-  -1 <= x <= 1 -> Rabs ((Pax_eval t.(polynom) x) - f(x)) <= FinjR (t.(error)) .
+  -1 <= x <= 1 -> Rabs ((Pax_eval t.(polynomial) x) - f(x)) <= FinjR (t.(error)) .
 
 Lemma PMmodels_extensional: forall t f1 f2, PMmodels t f1 -> (forall x, -1<=x<=1 -> f1 x = f2 x) -> PMmodels t f2.
 Proof.
  intros t f1 f2 H H_ext x Hx.
  specialize (H _ Hx).
- stepl (Rabs (Pax_eval t.(polynom) x - f1 x)); trivial.
+ stepl (Rabs (Pax_eval t.(polynomial) x - f1 x)); trivial.
  f_equal. rewrite H_ext. reflexivity. exact Hx.
 Qed.
 
 Lemma PMerror_nonneg : forall t f, PMmodels t f -> 0<=FinjR t.(error).
 Proof.
  intros t f hyp;
- apply Rle_trans with (Rabs (Pax_eval t.(polynom) 0 - f 0));[ apply Rabs_pos| apply hyp; auto with real].
+ apply Rle_trans with (Rabs (Pax_eval t.(polynomial) 0 - f 0));[ apply Rabs_pos| apply hyp; auto with real].
 Qed.
 
 Definition PMzero : PolynomialModel :=
-  {| polynom :=nil;  polynom_sorted :=is_sorted_fst_nil; error:=Fnull |}.
+  {| polynomial :=nil;  sorted :=is_sorted_fst_nil; error:=Fnull |}.
 
 Definition PMconstant a : PolynomialModel :=
-  {| polynom := (0%nat, a) :: nil; polynom_sorted := is_sorted_fst_one (0%nat,a); error := Fnull |}.
+  {| polynomial := (0%nat, a) :: nil; sorted := is_sorted_fst_one (0%nat,a); error := Fnull |}.
 
 Definition PMerror_ball e : PolynomialModel :=
-  {| polynom := nil; polynom_sorted := is_sorted_fst_nil; error := e |}.
+  {| polynomial := nil; sorted := is_sorted_fst_nil; error := e |}.
 
 Lemma PMconstant_correct : forall a, 
   PMmodels (PMconstant a) (fun _ => FinjR a).
@@ -181,13 +181,13 @@ Qed.
 
 Definition PMtail t : PolynomialModel :=
   match t with
-  | {| polynom := nil |} => PMzero
-  | {| polynom := (n,a0) :: l; polynom_sorted := H_p; error :=e |} =>
-        {| polynom := l; polynom_sorted := is_sorted_fst_cons_inv _ _ H_p; error := e |}
+  | {| polynomial := nil |} => PMzero
+  | {| polynomial := (n,a0) :: l; sorted := H_p; error :=e |} =>
+        {| polynomial := l; sorted := is_sorted_fst_cons_inv _ _ H_p; error := e |}
   end.
 
 Theorem PMtail_correct:forall t f, PMmodels t f -> forall n a l,
-  t.(polynom) = (n,a) :: l -> PMmodels (PMtail t) (fun x=>f(x)- (FinjR a)*(pow x n)).
+  t.(polynomial) = (n,a) :: l -> PMmodels (PMtail t) (fun x=>f(x)- (FinjR a)*(pow x n)).
 Proof.
  intros [[|(n0,a0) l0] H_p e] f H_t n a l hyp.
   discriminate hyp.

@@ -54,8 +54,8 @@ Proof.
 Qed.
 
 Definition PMmonomial_scale (n : nat) (t : PolynomialModel) : PolynomialModel :=
- {| polynom := pre_monomial n t.(polynom)
-  ; polynom_sorted := @pre_monomial_sorted n t.(polynom) t.(polynom_sorted)
+ {| polynomial := pre_monomial n t.(polynomial)
+  ; sorted := @pre_monomial_sorted n t.(polynomial) t.(sorted)
   ; error := t.(error) |}.
 
 Close Scope nat_scope.
@@ -80,7 +80,7 @@ Proof.
  intros n t f H x hyp_x.
  assert (H_err_nonneg:=PMerror_nonneg t f H).
  specialize (H x hyp_x).
- stepl (Rabs ((pow x n)*((Pax_eval t.(polynom) x)-(f x)))).
+ stepl (Rabs ((pow x n)*((Pax_eval t.(polynomial) x)-(f x)))).
   apply Rle_trans with (Rabs ((pow x n) * FinjR (error t))).
    do 2 rewrite Rabs_mult; apply Rmult_le_compat_l;
    [ apply Rabs_pos

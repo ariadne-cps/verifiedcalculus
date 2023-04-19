@@ -60,8 +60,8 @@ Qed.
   
  
 Definition PMnegate (t : PolynomialModel) : PolynomialModel :=
-  {| polynom := Pnegate t.(polynom);
-     polynom_sorted := is_sorted_polynomial_negate t.(polynom) t.(polynom_sorted);
+  {| polynomial := Pnegate t.(polynomial);
+     sorted := is_sorted_polynomial_negate t.(polynomial) t.(sorted);
      error := t.(error) |}.
      
 Theorem PMnegate_correct : forall t f,

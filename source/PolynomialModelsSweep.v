@@ -261,8 +261,8 @@ Qed.
 
 Definition PMsweep (r : (nat * F) -> bool) (t : PolynomialModel) : PolynomialModel :=
   match t with
-  | {| polynom:=p; polynom_sorted:= H_p; error :=e |} =>
-        {| polynom:=fst (Psweep r p); polynom_sorted := Psweep_sorted r p H_p; error := Fadd up e (snd (Psweep r p)) |}
+  | {| polynomial:=p; sorted:= H_p; error :=e |} =>
+        {| polynomial:=fst (Psweep r p); sorted := Psweep_sorted r p H_p; error := Fadd up e (snd (Psweep r p)) |}
   end.  
 
 Definition Pmodels p f e := forall x, -1<=x<=1 -> Rabs (Pax_eval p x - f x) <= e.

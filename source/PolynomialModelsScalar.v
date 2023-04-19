@@ -61,14 +61,14 @@ Definition pre_error_scale c : list (nat * F) -> F :=
   fold_right (fun nf=> Fadd_up (Fdiv2_up (Fsub_up (Fmul_up c (snd nf)) (Fmul_down c (snd nf))))) Fnull.
 
 Definition error_scale c t : F :=
-  Fadd_up (Fmul_up (Fabs_exact c) t.(error)) (pre_error_scale c t.(polynom)).
+  Fadd_up (Fmul_up (Fabs_exact c) t.(error)) (pre_error_scale c t.(polynomial)).
 
 Definition PMscale (c:F) (t:PolynomialModel) : PolynomialModel :=
-  {| polynom := pre_scale c t.(polynom); 
-     polynom_sorted:= @pre_scale_sorted c t.(polynom) t.(polynom_sorted); 
+  {| polynomial := pre_scale c t.(polynomial); 
+     sorted:= @pre_scale_sorted c t.(polynomial) t.(sorted); 
      error := error_scale c t |}.
 
-Lemma pre_error_scale_nonneg : forall c (t: PolynomialModel), 0<= FinjR (pre_error_scale c t.(polynom)).
+Lemma pre_error_scale_nonneg : forall c (t: PolynomialModel), 0<= FinjR (pre_error_scale c t.(polynomial)).
 Proof.
  intros c [p H e]; induction p; simpl in *.
   simpl; rewrite -> flt_null; auto with real.
@@ -133,13 +133,13 @@ Proof.
  intros c t f H x hyp_x.
  specialize (H x hyp_x).
  assert (H_sum_err_nonneg:= pre_error_scale_nonneg c t).
- apply Rle_trans with (Rabs (FinjR c) * FinjR (error t) + FinjR (pre_error_scale c t.(polynom))).
+ apply Rle_trans with (Rabs (FinjR c) * FinjR (error t) + FinjR (pre_error_scale c t.(polynomial))).
 
-  2:apply Rle_trans with (Rabs (FinjR c) * FinjR (error t) + FinjR (pre_error_scale c t.(polynom)));
+  2:apply Rle_trans with (Rabs (FinjR c) * FinjR (error t) + FinjR (pre_error_scale c t.(polynomial)));
      [ apply Rplus_le_compat_l
-     ; generalize (FinjR (pre_error_scale c (polynom t))) H_sum_err_nonneg; intros r H_r; lra
+     ; generalize (FinjR (pre_error_scale c (polynomial t))) H_sum_err_nonneg; intros r H_r; lra
      | rewrite <- flt_abs_exact;
-       apply Rle_trans with (FinjR (Fmul_up (Fabs c) (error t)) + FinjR (pre_error_scale c (polynom t)));
+       apply Rle_trans with (FinjR (Fmul_up (Fabs c) (error t)) + FinjR (pre_error_scale c (polynomial t)));
        [ apply Rplus_le_compat_r; apply Rge_le; apply flt_mul_up
        | apply Rge_le; apply flt_add_up
        ]
