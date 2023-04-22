@@ -3,6 +3,7 @@ source/R_addenda.v
 source/Analysis.v
 source/Sum.v
 source/Floats.v
+source/DyadicFloat.v
 source/Bounds.v
 source/Ball.v
 source/PolynomialModels.v

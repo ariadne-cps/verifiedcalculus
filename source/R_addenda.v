@@ -12,8 +12,12 @@
 (* This file contains various properties of R that are not in the standard library. *)
 
 Require Import Reals.
-Require Import Rdefinitions.
-Require Import Rfunctions.
+Require Import Reals.Rbase.
+Require Import Reals.Rfunctions.
+Require Import Reals.Rbasic_fun.
+Require Import Reals.Rbasic_fun.
+Require Import Reals.Rdefinitions.
+
 Require Import Lra.
 
 Open Scope R_scope.
@@ -65,16 +69,16 @@ Proof.
   intro x.
   split.
   intro H. apply Ropp_0_ge_le_contravar. apply Rle_ge. exact H.
-  intro H. 
-  assert (x + 0 <= x + -x) as He. 
+  intro H.
+  assert (x + 0 <= x + -x) as He.
   apply Rplus_le_compat. apply Rle_refl. exact H.
   rewrite -> Rplus_0_r in He. rewrite -> Rplus_opp_r in He. exact He.
 Qed.
 
 Lemma Rminus_eq_0 : forall x, (x-x=0)%R.
 Proof.
-  intro x. 
-  ring. 
+  intro x.
+  ring.
 Qed.
 
 Lemma Rminus_0_eq : forall r1 r2 : R, r1 - r2 = 0 -> r1 = r2.
@@ -591,18 +595,18 @@ Lemma Rabs_0_eq (a:R) : (Rabs a = 0) -> a=0.
 Proof.
   intro H.
   (* Req_dec : forall r1 r2, r1 = r2 \/ r1 <> r2. *)
-  assert (a=0 \/ a<>0) as Heq_dec by (apply Req_dec). 
+  assert (a=0 \/ a<>0) as Heq_dec by (apply Req_dec).
   destruct Heq_dec.
   - assumption.
-  - assert (Rabs a <> 0) by (apply (Rabs_no_R0 a H0)). 
+  - assert (Rabs a <> 0) by (apply (Rabs_no_R0 a H0)).
     contradiction.
 Qed.
 
 Lemma Rabs_0_neq (a:R) : (Rabs a <> 0) -> a <> 0.
 Proof.
   intros H Ha.
-  rewrite -> Ha in H. 
-  rewrite -> Rabs_R0 in H. 
+  rewrite -> Ha in H.
+  rewrite -> Rabs_R0 in H.
   contradiction.
 Qed.
 
@@ -624,7 +628,7 @@ Qed.
 
 Lemma Rabs_dist_triang : forall x y z:R, Rabs (x-z) <= Rabs (x-y) + Rabs (y-z).
 Proof.
-  intros. 
+  intros.
   replace (x-z) with ((x-y)+(y-z)) by ring.
   apply Rabs_triang.
 Qed.
@@ -713,33 +717,33 @@ Lemma Rdist_sym : forall x y : R, Rdist x y = Rdist y x.
 Proof. intros. unfold Rdist. apply Rabs_minus_sym. Qed.
 
 Lemma Rdist_refl : forall x y : R, Rdist x y = 0 <-> x = y.
-Proof. intros. unfold Rdist. split.  
+Proof. intros. unfold Rdist. split.
   intro H. apply Rminus_0_eq. apply Rabs_0_eq. exact H.
   intro H. rewrite <- H. rewrite -> Rminus_eq_0. rewrite -> Rabs_R0. reflexivity.
-Qed. 
-  
+Qed.
+
 Lemma Rdist_eq : forall x : R, Rdist x x = 0.
-Proof. 
+Proof.
   intros. apply Rdist_refl. reflexivity.
 Qed.
 
 Lemma Rdist_triang : forall x y z : R, Rdist x y <= Rdist x z + Rdist z y.
 Proof.
-  intros. unfold Rdist. 
+  intros. unfold Rdist.
   assert (x-y = (x-z)+(z-y)) as H by ring.
-  rewrite -> H. apply Rabs_triang. 
+  rewrite -> H. apply Rabs_triang.
 Qed.
 
 Lemma Rdist_plus_compat : forall w x y z, Rdist (w+x) (y+z) <= Rdist w y + Rdist x z.
 Proof.
-  intros. unfold Rdist. 
+  intros. unfold Rdist.
   replace ((w+x)-(y+z)) with ((w-y)+(x-z)) by ring.
   apply Rabs_triang.
  Qed.
-  
+
 Lemma Rdist_minus_compat : forall w x y z, Rdist (w-x) (y-z) <= Rdist w y + Rdist x z.
 Proof.
-  intros. unfold Rdist. 
+  intros. unfold Rdist.
   replace (Rabs (x-z)) with (Rabs (z-x)) by (apply Rabs_minus_sym).
   replace ((w-x)-(y-z)) with ((w-y)+(z-x)) by ring.
   apply Rabs_triang.
@@ -747,13 +751,13 @@ Proof.
 
 Lemma Rdist_abs_l : forall w x y, Rdist (w*x) (w*y) = Rabs w * Rdist x y.
 Proof.
-  intros. unfold Rdist. 
+  intros. unfold Rdist.
   rewrite <- Rmult_minus_distr_l.
   apply Rabs_mult.
 Qed.
-  
+
 (* |w*x - y*z| <= |w-y|*|x| + |y|*|x-z| <= |w-y|*|x| + |w|*|x-z| + |w-y|*|x-z| *)
-Lemma Rdist_mult_compat : forall w x y z, 
+Lemma Rdist_mult_compat : forall w x y z,
   Rdist (w*x) (y*z) <= Rdist w y * Rabs x + Rabs w * Rdist x z + Rdist w y * Rdist x z.
 Proof.
   intros. unfold Rdist.
@@ -764,7 +768,7 @@ Proof.
   repeat (rewrite <- Rabs_mult).
   apply Rabs_triang.
 Qed.
-  
+
 Lemma Rabs_dist_ivl : forall x y z, Rdist x y <= z -> y-z <= x /\ x <= y+z.
 Proof.
   intros x y z.
@@ -772,15 +776,56 @@ Proof.
   assert (-z <= x-y <= z) as Hb. { apply (Rabs_ivl _ _ H). }
   destruct Hb as [H0 H1].
   unfold Rminus in *.
-  split. 
-  - apply Rplus_le_reg_l with (-y). 
+  split.
+  - apply Rplus_le_reg_l with (-y).
     rewrite <- Rplus_assoc. rewrite -> Rplus_opp_l. rewrite -> Rplus_0_l.
     rewrite -> Rplus_comm.
     exact H0.
-  - apply Rplus_le_reg_l with (-y). 
+  - apply Rplus_le_reg_l with (-y).
     rewrite <- Rplus_assoc. rewrite -> Rplus_opp_l. rewrite -> Rplus_0_l.
     rewrite -> Rplus_comm.
     exact H1.
+Qed.
+
+
+Lemma Rabs_dist_mult_l : forall x y z : R, Rabs x * Rdist y z = Rdist (x*y) (x*z).
+Proof.
+  intros. unfold Rdist.
+  rewrite <- Rabs_mult.
+  f_equal.
+  apply Rmult_minus_distr_l.
+Qed.
+
+Lemma Rabs_dist_mult_r : forall x y z : R, Rdist x y * Rabs z = Rdist (x*z) (y*z).
+Proof.
+  intros. unfold Rdist.
+  rewrite <- Rabs_mult.
+  f_equal.
+  apply Rmult_minus_distr_r.
+Qed.
+
+Lemma Rdist_mult_l : forall x y z : R, 0 <= x -> x * Rdist y z = Rdist (x*y) (x*z).
+Proof.
+  intros.
+  rewrite <- Rabs_dist_mult_l.
+  rewrite -> Rabs_pos_eq.
+  reflexivity.
+  assumption.
+Qed.
+
+Lemma Rdist_mult_r : forall x y z : R, 0 <= z -> (Rdist x y) * z = Rdist (x*z) (y*z).
+Proof.
+  intros.
+  rewrite <- Rabs_dist_mult_r.
+  rewrite -> Rabs_pos_eq.
+  reflexivity.
+  assumption.
+Qed.
+
+Lemma Rdist_eq_le : forall x y z, (Rdist x x <= Rdist y z)%R.
+Proof.
+  intros x y z. unfold Rdist. rewrite -> Rminus_eq_0.
+  rewrite -> Rabs_R0. apply Rabs_pos.
 Qed.
 
 

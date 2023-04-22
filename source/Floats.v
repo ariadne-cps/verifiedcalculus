@@ -8,19 +8,18 @@
 (************************************************************************)
 
 
-Require Export Reals.
-Require Export Reals.Rbase.
-Require Export Reals.Rfunctions.
-Require Export Reals.Rbasic_fun.
-Require Export Reals.Rbasic_fun.
-Require Export Reals.Rdefinitions.
+Require Import Reals.
+Require Import Reals.Rbase.
+Require Import Reals.Rfunctions.
+Require Import Reals.Rbasic_fun.
+Require Import Reals.Rbasic_fun.
+Require Import Reals.Rdefinitions.
 
-Require Export Lra.
-Require Export List.
+Require Import List.
 
 Require Export R_addenda.
 
-(* 
+(*
 Module Floats.
 *)
 
@@ -29,7 +28,7 @@ Module Floats.
 Open Scope R_scope.
 
 
-Lemma or_impl_compat : forall p1 p2 p3 p4 : Prop, 
+Lemma or_impl_compat : forall p1 p2 p3 p4 : Prop,
   (p1 -> p3) -> (p2 -> p4) -> (p1 \/ p2) -> (p3 \/ p4).
 Proof.
   intros p1 p2 p3 p4 Hp13 Hp24 Hor.
@@ -60,10 +59,10 @@ Lemma INR_1 : INR 1%nat = 1%R.
 Proof.
   unfold INR. reflexivity.
 Qed.
-  
+
 Lemma Rabs_neg_eq : forall x : R, Rle x 0 -> Rabs x = Ropp x.
 Proof.
-  intro x. intro H. 
+  intro x. intro H.
   rewrite <- Rabs_pos_eq.
   apply eq_sym. apply Rabs_Ropp.
   apply Ropp_0_le_contravar; exact H.
@@ -92,8 +91,6 @@ Definition Rapply (fval:BinOp) : R -> R -> R :=
   end
 .
 
-Definition Rdist (x y : R) : R := Rabs (Rminus x y).
-
 
 
 Class Float (F : Type) :=
@@ -106,7 +103,7 @@ Class Float (F : Type) :=
 
   F0 := Fnull;
   F1 := Funit;
-  
+
   Fneg : F -> F;
   Fabs : F -> F;
 
@@ -121,33 +118,33 @@ Class Float (F : Type) :=
 
   Fmin : F -> F -> F;
   Fmax : F -> F -> F;
-  
+
   Fleb : F -> F -> bool;
 
 
-  Fneg_exact := Fneg; 
-  Fabs_exact := Fabs; 
-  
-  Fadd_up := Fadd up;  
-  Fadd_down := Fadd down;  
+  Fneg_exact := Fneg;
+  Fabs_exact := Fabs;
+
+  Fadd_up := Fadd up;
+  Fadd_down := Fadd down;
   Fadd_near := Fadd near;
 
-  Fsub_up := Fsub up;  
-  Fsub_down := Fsub down;  
+  Fsub_up := Fsub up;
+  Fsub_down := Fsub down;
   Fsub_near := Fsub near;
 
-  Fmul_up := Fmul up;  
-  Fmul_down := Fmul down;  
+  Fmul_up := Fmul up;
+  Fmul_down := Fmul down;
   Fmul_near := Fmul near;
 
-  Fdiv_up := Fdiv up;  
-  Fdiv_down := Fdiv down;  
+  Fdiv_up := Fdiv up;
+  Fdiv_down := Fdiv down;
   Fdiv_near := Fdiv near;
 
-  Frec_up := Frec up;  
-  Frec_down := Frec down;  
+  Frec_up := Frec up;
+  Frec_down := Frec down;
   Frec_near := Frec near;
-  
+
 (*
   Fapply (fop : BinOp) : Rounding -> F -> F -> F :=
     match fop with | Add => Fadd | Sub => Fsub | Mul => Fmul | Div => Fdiv end;
@@ -156,7 +153,7 @@ Class Float (F : Type) :=
     match fop with | Add => Fadd | Sub => Fsub | Mul => Fmul end;
 
 
-  flt_val_exact (fval : F) (rval : R) := 
+  flt_val_exact (fval : F) (rval : R) :=
     FinjR fval = rval;
   flt_unop_exact (fop : F -> F) (rop : R -> R) :=
      forall x : F, FinjR (fop x) = rop (FinjR x);
@@ -164,7 +161,7 @@ Class Float (F : Type) :=
      forall x1 x2 : F, FinjR (fop x1 x2)  = rop (FinjR x1) (FinjR x2);
 
   flt_val_rounded (fval : Rounding -> F) (rval : R) (rnd : Rounding) :=
-    match rnd with 
+    match rnd with
     | down => FinjR (fval down) <= rval
     | near => forall w, Rdist (FinjR (fval near)) rval <= Rdist (FinjR w) rval
     | up   => FinjR (fval up) >= rval
@@ -176,9 +173,9 @@ Class Float (F : Type) :=
 
 
   flt_ninjr : forall n : nat, FinjR (NinjF n) = INR n;
-  
+
   flt_leb : forall (x1 x2 : F), (Fleb x1 x2 = true) <-> (FinjR x1) <= (FinjR x2);
-   
+
   flt_neg_exact : forall x : F, FinjR (Fneg x) = Ropp (FinjR x);
   flt_abs_exact : forall x : F, FinjR (Fabs x) = Rabs (FinjR x);
 
@@ -235,7 +232,7 @@ Definition Fdiv2_up {F} {Flt : Float F} := Fdiv2 up.
 
 Fixpoint Fsum {F} {Flt : Float F} (r : Rounding) (xs : list F) :=
   match xs with | nil => Fnull | hd::tl => Fadd r hd (Fsum r tl) end.
-  
+
 Definition Fsum_snd_add {I} {F} {Flt : Float F} (r : Rounding) : list (I * F) -> F
   := fold_right (fun nf=> Fadd r (snd nf)) Fnull.
 
@@ -277,7 +274,7 @@ Proof.
   - simpl. apply Req_ge. apply flt_ninjr.
   - simpl.
     apply Rge_trans with (FinjR x * FinjR (Fpow_up x n)).
-    -- apply flt_mul_up. 
+    -- apply flt_mul_up.
     -- apply Rmult_ge_compat_l.  exact Hp. exact IHn.
 Qed.
 
@@ -349,7 +346,7 @@ Proof.
   apply Rge_le. apply flt_sub_up.
 Qed.
 
-Lemma flt_val_near_up_down_sub_hlf_up : forall x y, (forall rnd, flt_val_rounded x y rnd) -> 
+Lemma flt_val_near_up_down_sub_hlf_up : forall x y, (forall rnd, flt_val_rounded x y rnd) ->
   Rdist (FinjR (x near)) y <= FinjR (Fdiv2 up (Fsub up (x up) (x down))).
 Proof.
   intros x y H.
@@ -364,35 +361,35 @@ Proof.
 Qed.
 
 (*
-Lemma flt_val_near_up_down_sub_hlf_up' : forall x y, (forall rnd, flt_val_rounded x y rnd) -> 
+Lemma flt_val_near_up_down_sub_hlf_up' : forall x y, (forall rnd, flt_val_rounded x y rnd) ->
   Rdist (FinjR (x near)) y <= FinjR (Fdiv2 up (Fsub up (x up) (x down))).
 Proof.
   intros x y Hrnd.
-  assert (FinjR (x down) <= y) as Hd. { exact (Hrnd down). }	
+  assert (FinjR (x down) <= y) as Hd. { exact (Hrnd down). }
   assert (forall w, Rdist (FinjR (x near)) y <= Rdist (FinjR w) y) as Hn. { exact (Hrnd near). }
   assert (FinjR (x up) >= y) as Hu. { exact (Hrnd up). }
-  assert (2<>0) as Hneq_2_0. { apply not_eq_sym. apply Rlt_not_eq. exact Rlt_0_2. } 
+  assert (2<>0) as Hneq_2_0. { apply not_eq_sym. apply Rlt_not_eq. exact Rlt_0_2. }
   apply Rle_trans with ((FinjR (x up) - FinjR (x down))/2).
   - apply Rmult_le_reg_r with (2) ; [exact Rlt_0_2|].
     unfold Rdiv. rewrite -> Rmult_assoc. rewrite -> Rinv_l; [|exact Hneq_2_0]. rewrite -> Rmult_1_r.
     replace (FinjR (x up) - FinjR (x down)) with (Rdist (FinjR (x up)) y + Rdist (FinjR (x down)) y).
     rewrite -> Rmult_comm. rewrite -> double.
     apply Rplus_le_compat; apply Hn.
-    unfold Rdist.  
+    unfold Rdist.
     rewrite -> Rabs_pos_eq. rewrite -> Rabs_neg_eq. ring.
     apply Rle_minus; exact Hd.
     apply Rle_Rminus_zero. apply Rge_le. exact Hu.
   - apply Rge_le.
     apply Rge_trans with (FinjR (Fsub up (x up) (x down)) / FinjR (NinjF 2)).
     -- unfold Fdiv2; apply flt_div_up; [rewrite -> flt_ninjr; trivial].
-    -- rewrite -> flt_ninjr. 
+    -- rewrite -> flt_ninjr.
        replace (INR 2%nat) with (2%R); [|trivial].
        apply Rmult_ge_compat_r; [apply Rle_ge; apply Rlt_le; apply pos_half_prf|].
        apply flt_sub_up.
 Qed.
 *)
 
-Lemma flt_op_near_up_down_sub_hlf_up : forall fval x1 x2, 
+Lemma flt_op_near_up_down_sub_hlf_up : forall fval x1 x2,
     Rdist (FinjR  (Fapply fval near x1 x2)) (Rapply fval (FinjR x1) (FinjR x2))
       <=  FinjR (Fdiv2 up (Fsub up (Fapply fval up x1 x2) (Fapply fval down x1 x2))).
 Proof.
@@ -430,6 +427,8 @@ Qed.
 
 
 End Float_defs.
+
+Close Scope R_scope.
 
 (*
 End Floats.
