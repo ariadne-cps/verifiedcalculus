@@ -56,7 +56,7 @@ Definition Ptail p : list (nat * F) :=
   end
 .
 
-Record PolynomialModel : Type :=
+Record PolynomialModel {F} {FltF : Float F} : Type :=
 { polynomial : list (nat * F);
   error: F;
 }.
@@ -206,6 +206,73 @@ Proof.
   intros x Hx.
   specialize (H_t _ Hx); inversion hyp; subst n0; subst a0; subst l0;
   stepl (Rabs (FinjR a * x ^ n + Pax_eval l x - f x)); trivial; f_equal. ring.
+Qed.
+
+
+
+
+Fixpoint Peval {FF} {FltFF : Float FF} 
+  (p : list (nat * FF)) (x : @Bounds FF FltFF) : @Bounds FF FltFF :=
+    match p with
+    | nil => bounds Fnull Fnull
+    | a0 :: p1 => let c := bounds (snd a0) (snd a0) in
+                    let y := pow_bounds x (fst a0) in
+                      add_bounds (mul_bounds c y) (Peval p1 x)
+    end.
+
+Lemma Peval_cons : forall a0 p1 x, Peval (a0::p1) x = 
+  add_bounds (mul_bounds (bounds (snd a0) (snd a0)) (pow_bounds x (fst a0))) (Peval p1 x).
+Proof. intros. simpl. trivial. Qed.
+
+Lemma Pax_eval_cons : forall a0 p1 y, Pax_eval (a0::p1) y = 
+  FinjR (snd a0) * (pow y (fst a0)) + (Pax_eval p1 y).
+Proof. intros. simpl. trivial. Qed.
+
+
+Lemma Peval_correct : 
+  forall p x y, models x y -> models (Peval p x) (Pax_eval p y).
+Proof.
+  intros p x y H.
+  induction p as [|a0 p1 IHp].
+  - simpl. unfold Fnull.
+    rewrite -> flt_ninjr. 
+    split; apply Rle_refl.
+  - rewrite -> Peval_cons, Pax_eval_cons.
+    1: apply add_bounds_correct.
+    1: apply mul_bounds_correct.
+    2: apply pow_bounds_correct.
+    -- unfold models. split; apply Rle_refl.
+    -- exact H.
+    -- exact IHp.
+Qed.
+
+
+Definition PMeval {FF} {FltFF : Float FF} 
+   (t : PolynomialModel) (x : Bounds) : Bounds :=
+  add_bounds
+    (Peval t.(polynomial) x)
+    (bounds (Fneg t.(error)) (t.(error))).
+
+Theorem PMeval_correct : forall t f x y, (-1 <= y <= 1) -> 
+  PMmodels t f -> models x y -> models (PMeval t x) (f y).
+Proof.
+  intros t f x y Hy.
+  destruct t as [p e]. 
+  unfold PMmodels.
+  unfold PMeval.
+  simpl.
+  set (g:=Pax_eval p).
+  intros Hmt Hmx.
+  specialize (Hmt y Hy).
+  replace (f y) with (g y + (f y - g y)) by ring.
+  apply add_bounds_correct.
+  - apply Peval_correct.
+    exact Hmx.
+  - unfold models.
+    rewrite -> flt_neg_exact.
+    apply Rabs_ivl.
+    rewrite -> Rabs_minus_sym.
+    exact Hmt.
 Qed.
 
 Close Scope R_scope.

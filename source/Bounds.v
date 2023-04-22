@@ -13,7 +13,8 @@ Require Import Lra.
 Require Import R_addenda.
 Require Import Floats.
 
-Module FloatBounds.
+
+Section Bounds.
 
 Open Scope R_scope.
 
@@ -25,11 +26,11 @@ Inductive Bounds {F:Type} {FltF : Float F} :=
 
 Check bounds.
 
-Definition models : Bounds -> R -> Prop :=
+Definition models {F:Type} {FltF : Float F} : Bounds -> R -> Prop :=
   fun x y => match x with bounds l u => FinjR l <= y /\ y <= FinjR u end.
 
 
-Definition add_bounds : Bounds -> Bounds -> Bounds :=
+Definition add_bounds {F:Type} {FltF : Float F} : Bounds -> Bounds -> Bounds :=
   fun x1 x2 => 
     match x1 with bounds l1 u1 
       => match x2 with bounds l2 u2
@@ -57,7 +58,7 @@ Proof.
 Qed.
   
 (* Definition sub_bounds ((bounds l1 u1) : Bounds) (x2 : Bounds) : Bounds *)
-Definition sub_bounds (x1 x2 : Bounds) : Bounds :=
+Definition sub_bounds {F:Type} {FltF : Float F} (x1 x2 : Bounds) : Bounds :=
   match x1 with bounds l1 u1 => match x2 with bounds l2 u2
       => bounds (Fsub down l1 u2) (Fsub up u1 l2) end end.
 
@@ -87,7 +88,7 @@ Qed.
   
 
 
-Definition mul_bounds (x1 x2 : Bounds) : Bounds :=
+Definition mul_bounds {F:Type} {FltF : Float F} (x1 x2 : Bounds) : Bounds :=
   match x1 with bounds l1 u1 => 
     match x2 with bounds l2 u2 => 
       if Fleb Fnull l1 then
@@ -469,7 +470,7 @@ Proof.
 Qed.
 
 
-Definition div_bounds (x1 x2 : Bounds) : Bounds :=
+Definition div_bounds {F:Type} {FltF : Float F} (x1 x2 : Bounds) : Bounds :=
   match x1 with bounds l1 u1 => 
     match x2 with bounds l2 u2 => 
       if Fleb Fnull l1 then
@@ -758,4 +759,31 @@ Proof.
     }
 Qed.
 
-End FloatBounds.
+
+Fixpoint pow_bounds {F:Type} {FltF : Float F} x n :=
+  match n with
+  | O => bounds Funit Funit
+  | S m => mul_bounds x (pow_bounds x m)
+  end.
+
+Lemma pow_bounds_succ : forall x n, pow_bounds x (S n) = mul_bounds x (pow_bounds x n).
+Proof. intros. simpl. auto. Qed.
+
+Lemma pow_bounds_correct : forall (x : Bounds) (n:nat) (y : R),
+    models x y -> models (pow_bounds x n) (pow y n).
+Proof.
+  intros x n y H.
+  induction n as [|n Hn].
+  - simpl. unfold Funit.
+    rewrite -> flt_ninjr. 
+    split; apply Rle_refl.
+  - rewrite -> pow_bounds_succ.
+    replace (y ^ (S n)) with (y * y^n).
+    apply mul_bounds_correct; [exact H|exact Hn].
+    rewrite <- Nat.add_1_l. 
+    rewrite -> Rdef_pow_add. 
+    rewrite -> pow_1. 
+    reflexivity.
+Qed.
+
+End Bounds.

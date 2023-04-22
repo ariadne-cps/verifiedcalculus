@@ -80,7 +80,7 @@ Proof.
 Qed.
 
 
-Definition PMrec (n : nat) (t : @PolynomialModel F) : PolynomialModel :=
+Definition PMrec (n : nat) (t : PolynomialModel) : PolynomialModel :=
   let t' := PMsub (PMconstant Funit) t in
   let d' := PMnorm t' in
   PMadd (PMgeometric n t') (PMerror_ball (Fdiv up (Fpow_up d' (n+1)) (Fsub down Funit d'))).
