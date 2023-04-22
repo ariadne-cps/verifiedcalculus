@@ -7,11 +7,22 @@
 (*                  <http://www.gnu.org/licenses/gpl.txt>               *)
 (************************************************************************)
 
+Require Export Reals.
+Require Export Reals.Rbase.
+Require Export Reals.Rfunctions.
+Require Export Reals.Rbasic_fun.
+Require Export Reals.Rbasic_fun.
+Require Export Reals.Rdefinitions.
+
+Require Export List.
+
+Require Import Recdef.
+Require Import Lia.
 
 Require Export R_addenda.
 Require Export Floats.
-Require Import Recdef.
-Require Import Lia.
+
+Require Export Bounds.
 
 
 Section Polynomial_Models.
@@ -56,7 +67,7 @@ Fixpoint Pax_eval (p:list (nat*F)) (x:R) : R :=
     | fn :: p0 =>  (FinjR (snd fn) * (pow x (fst fn))) + Pax_eval p0 x
     end.
 
-Lemma Pax_eval_eq : forall t p x, 
+Lemma Pax_eval_eq : forall t p x,
   Pax_eval (t :: p) x = (FinjR (snd t)) * (pow x (fst t)) + Pax_eval p x.
 Proof.
  intros; trivial.
@@ -68,7 +79,7 @@ Function Pnorm (p: Polynomial) : F :=
   | nil  => Fnull
   | (n0,a0) :: l => Fadd_up (Fabs_exact a0) (Pnorm l)
   end.
-  
+
 Lemma Pnorm_nil :
   Pnorm nil = Fnull.
 Proof.
@@ -108,11 +119,11 @@ Qed.
 
 Function PMnorm (t: PolynomialModel) : F :=
   Fadd up (Pnorm t.(polynomial)) t.(error).
-  
+
 (* `multiplying' by polynomial norm *)
 Definition Pscale_norm e sp := Fmul_up e (Pnorm sp).
 
-Definition Pdifference (p:Polynomial) (f:R->R) (x:R) := 
+Definition Pdifference (p:Polynomial) (f:R->R) (x:R) :=
   f(x)-(Pax_eval p x).
 
 Definition PMmodels (t:PolynomialModel) (f:R->R) := forall x,
@@ -141,7 +152,7 @@ Definition PMconstant a : PolynomialModel :=
 Definition PMerror_ball e : PolynomialModel :=
   {| polynomial := nil; error := e |}.
 
-Lemma PMconstant_correct : forall a, 
+Lemma PMconstant_correct : forall a,
   PMmodels (PMconstant a) (fun _ => FinjR a).
 Proof.
   intros a.
@@ -149,12 +160,12 @@ Proof.
   simpl.
   intros x Hx.
   replace (FinjR Fnull) with (0%R) by (unfold Fnull; rewrite -> flt_ninjr; reflexivity).
-  rewrite -> Rmult_1_r. rewrite -> Rplus_0_r. 
+  rewrite -> Rmult_1_r. rewrite -> Rplus_0_r.
   unfold Rminus. rewrite -> Rplus_opp_r. rewrite -> Rabs_R0. apply Req_le. exact eq_refl.
-Qed.  
- 
-    
-Lemma PMnorm_correct : forall t f, 
+Qed.
+
+
+Lemma PMnorm_correct : forall t f,
   PMmodels t f -> forall x, -1<=x<=1 -> Rabs (f x) <= FinjR (PMnorm t).
 Proof.
   intros t f H x Hx.
@@ -175,7 +186,7 @@ Proof.
     field.
   - apply Rplus_le_compat_r.
     apply Pnorm_property. exact Hx.
-  - apply flt_add_up_le.  
+  - apply flt_add_up_le.
 Qed.
 
 Definition PMtail t : PolynomialModel :=

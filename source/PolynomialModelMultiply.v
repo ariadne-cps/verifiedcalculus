@@ -12,8 +12,10 @@ Require Export PolynomialModels.
 Require Export PolynomialModelAdd.
 Require Export PolynomialModelScale.
 Require Export PolynomialModelMonomialScale.
+
 Require Import Recdef.
 Require Import Lia.
+Require Import Lra.
 
 
 Section Polynomial_Model_Multiply.

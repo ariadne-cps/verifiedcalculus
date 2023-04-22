@@ -9,6 +9,7 @@
 
 
 Require Export PolynomialModels.
+
 Require Import Recdef.
 Require Import Lia.
 Require Import Lra.

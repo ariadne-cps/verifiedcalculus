@@ -8,6 +8,7 @@
 
 
 Require Import Reals.
+Require Import Lra.
 
 Require Import R_addenda.
 Require Import Floats.

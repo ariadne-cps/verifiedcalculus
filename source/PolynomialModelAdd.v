@@ -11,6 +11,7 @@
 Require Export PolynomialModels.
 Require Import Recdef.
 Require Import Lia.
+Require Import Lra.
 Require Import Ring.
 
 

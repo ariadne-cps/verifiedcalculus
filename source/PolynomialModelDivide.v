@@ -17,6 +17,7 @@ Require Export PolynomialModelMultiply.
 
 Require Import Recdef.
 Require Import Lia.
+Require Import Lra.
 
 Section Polynomial_Model_Divide.
 
