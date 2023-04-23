@@ -584,6 +584,9 @@ Ltac ring_exact_R hyp :=
  | ?X3 => fail 1
  end.
 
+Lemma Rdiv_mult_inv : forall x y, Rdiv x y = Rmult x (Rinv y).
+Proof. intros x y. unfold Rdiv. reflexivity. Qed.
+
 Lemma Rabs_0_eq (a:R) : (Rabs a = 0) -> a=0.
 Proof.
   intro H.

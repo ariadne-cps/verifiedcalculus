@@ -1,8 +1,10 @@
 -R source VerifiedCalculus
 source/R_addenda.v
+source/Analysis.v
+source/Sum.v
 source/Floats.v
 source/Bounds.v
-source/Sum.v
+source/Ball.v
 source/PolynomialModels.v
 source/PolynomialModelSweep.v
 source/PolynomialModelAdd.v
