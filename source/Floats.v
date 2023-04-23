@@ -79,20 +79,22 @@ Qed.
 Coercion INR : nat >-> R.
 
 
-Inductive Rounding := up | down | near.
+Inductive Rounding := down | near | up.
 
 
 Inductive BinOp := Add | Sub | Mul.
 (* Inductive BinOp := Add | Sub | Mul | Div. *)
 
 
-Definition Rapply (op:BinOp) : R -> R -> R :=
-  match op with
+Definition Rapply (fval:BinOp) : R -> R -> R :=
+  match fval with
     | Add => Rplus | Sub => Rminus | Mul => Rmult (* | Div => Rdiv *)
   end
 .
 
 Definition Rdist (x y : R) : R := Rabs (Rminus x y).
+
+
 
 Class Float (F : Type) :=
 {
@@ -106,7 +108,6 @@ Class Float (F : Type) :=
   F1 := Funit;
   
   Fneg : F -> F;
-  Fhlf : F -> F;
   Fabs : F -> F;
 
   Fadd : Rounding -> F -> F -> F;
@@ -124,19 +125,6 @@ Class Float (F : Type) :=
   Fleb : F -> F -> bool;
 
 
-
-
-  flt_ninjr : forall n : nat, FinjR (NinjF n) = INR n;
-  
-  flt_leb : forall (x1 x2 : F), (Fleb x1 x2 = true) <-> (FinjR x1) <= (FinjR x2);
-   
-  flt_neg_exact : forall x : F, FinjR (Fneg x) = Ropp (FinjR x);
-  flt_hlf_exact : forall x : F, FinjR (Fhlf x) = (FinjR x) / 2;
-  flt_abs_exact : forall x : F, FinjR (Fabs x) = Rabs (FinjR x);
-
-  flt_min_exact : forall x1 x2 : F, FinjR (Fmin x1 x2) = Rmin (FinjR x1) (FinjR x2);
-  flt_max_exact : forall x1 x2 : F, FinjR (Fmax x1 x2) = Rmax (FinjR x1) (FinjR x2);
-
   Fneg_exact := Fneg; 
   Fabs_exact := Fabs; 
   
@@ -152,68 +140,81 @@ Class Float (F : Type) :=
   Fmul_down := Fmul down;  
   Fmul_near := Fmul near;
 
-(*
-  flt_uop_exact (opF : F -> F) (opR : R -> R):
-     forall x : F, FinjR (opF x) = opR (FinjR x);
+  Fdiv_up := Fdiv up;  
+  Fdiv_down := Fdiv down;  
+  Fdiv_near := Fdiv near;
 
-  flt_op_exact (opF : F -> F -> F) (opR : R -> R -> R) :
-     forall x1 x2 : F, FinjR (opF x1 x2)  = opR (FinjR x1) (FinjR x2);
-*)
-
-(*
-  flt_op_near (opF : Rounding -> F -> F -> F) (opR : R -> R -> R) :
-    forall x y z: F, Rabs ( (FinjR (opF near x y)) - (opR (FinjR x) (FinjR y)) )
-                         <= Rabs ( (FinjR z) - (opR (FinjR x) (FinjR y)) );
-*)
-  
+  Frec_up := Frec up;  
+  Frec_down := Frec down;  
+  Frec_near := Frec near;
   
 (*
-  Fapply (op : BinOp) : Rounding -> F -> F -> F :=
-    match op with | Add => Fadd | Sub => Fsub | Mul => Fmul | Div => Fdiv end;
+  Fapply (fop : BinOp) : Rounding -> F -> F -> F :=
+    match fop with | Add => Fadd | Sub => Fsub | Mul => Fmul | Div => Fdiv end;
 *)
-  Fapply (op : BinOp) : Rounding -> F -> F -> F :=
-    match op with | Add => Fadd | Sub => Fsub | Mul => Fmul end;
+  Fapply (fop : BinOp) : Rounding -> F -> F -> F :=
+    match fop with | Add => Fadd | Sub => Fsub | Mul => Fmul end;
 
-  flt_op_up : forall (op : BinOp) (x y : F),
-    (FinjR (Fapply op up x y)) >= (Rapply op (FinjR x) (FinjR y));
-  flt_op_down : forall (op : BinOp) (x y : F),
-    (FinjR (Fapply op down x y)) <= (Rapply op (FinjR x) (FinjR y));
-  flt_op_near : forall (op : BinOp) (x y z : F), 
-    Rdist (FinjR (Fapply op near x y)) (Rapply op (FinjR x) (FinjR y))
-      <= Rdist (FinjR z) (Rapply op (FinjR x) (FinjR y));
 
-(*
-  flt_neg_exact := flt_uop_exact Fneg Ropp;
-  flt_abs_exact := flt_uop_exact Fabs Rabs;
-  flt_min_exact := flt_op_exact Fmin Rmin;
-  flt_max_exact := flt_op_exact Fmax Rmax;
-*)
+  flt_val_exact (fval : F) (rval : R) := 
+    FinjR fval = rval;
+  flt_unop_exact (fop : F -> F) (rop : R -> R) :=
+     forall x : F, FinjR (fop x) = rop (FinjR x);
+  flt_op_exact (fop : F -> F -> F) (rop : R -> R -> R) :=
+     forall x1 x2 : F, FinjR (fop x1 x2)  = rop (FinjR x1) (FinjR x2);
 
-  flt_add_near := flt_op_near Add;
-  flt_add_up := flt_op_up Add;
-  flt_add_down := flt_op_down Add;
+  flt_val_rounded (fval : Rounding -> F) (rval : R) (rnd : Rounding) :=
+    match rnd with 
+    | down => FinjR (fval down) <= rval
+    | near => forall w, Rdist (FinjR (fval near)) rval <= Rdist (FinjR w) rval
+    | up   => FinjR (fval up) >= rval
+    end;
+  flt_unop_rounded (fop : Rounding -> F -> F) (rop : R -> R) (rnd : Rounding) :=
+    forall (x : F), flt_val_rounded (fun r => fop rnd x) (rop (FinjR x)) rnd;
+  flt_binop_rounded (fop : Rounding -> F -> F -> F) (rop : R -> R -> R) (rnd : Rounding) :=
+    forall (x1 x2 : F), flt_val_rounded (fun r => fop rnd x1 x2) (rop (FinjR x1) (FinjR x2)) rnd;
 
-  flt_sub_near := flt_op_near Sub;
-  flt_sub_up := flt_op_up Sub;
-  flt_sub_down := flt_op_down Sub;
 
-  flt_mul_near := flt_op_near Mul;
-  flt_mul_up := flt_op_up Mul;
-  flt_mul_down := flt_op_down Mul;
+  flt_ninjr : forall n : nat, FinjR (NinjF n) = INR n;
+  
+  flt_leb : forall (x1 x2 : F), (Fleb x1 x2 = true) <-> (FinjR x1) <= (FinjR x2);
+   
+  flt_neg_exact : forall x : F, FinjR (Fneg x) = Ropp (FinjR x);
+  flt_abs_exact : forall x : F, FinjR (Fabs x) = Rabs (FinjR x);
 
-  flt_div_up : forall (x y : F),
-    (FinjR y <> 0%R) -> (FinjR (Fdiv up x y)) >= (Rdiv (FinjR x) (FinjR y));
-  flt_div_down : forall (x y : F),
-    (FinjR y <> 0%R) -> (FinjR (Fdiv down x y)) <= (Rdiv (FinjR x) (FinjR y));
-  flt_div_near : forall (x y : F),
-    (FinjR y <> 0%R) -> forall (z : F), Rdist (FinjR (Fdiv near x y)) (Rdiv (FinjR x) (FinjR y)) <= Rdist (FinjR z) (Rdiv (FinjR x) (FinjR y));
+  flt_min_exact : forall x1 x2 : F, FinjR (Fmin x1 x2) = Rmin (FinjR x1) (FinjR x2);
+  flt_max_exact : forall x1 x2 : F, FinjR (Fmax x1 x2) = Rmax (FinjR x1) (FinjR x2);
 
-  flt_rec_up : forall (x : F),
-    (FinjR x <> 0%R) -> (FinjR (Frec up x)) >= (Rinv (FinjR x));
-  flt_rec_down : forall (x : F),
-    (FinjR x <> 0%R) -> (FinjR (Frec down x)) <= (Rinv (FinjR x));
-  flt_rec_near : forall (x : F),
-    (FinjR x <> 0%R) -> forall (z : F), Rdist (FinjR (Frec near x)) (Rinv (FinjR x)) <= Rdist (FinjR z) (Rinv (FinjR x));
+  flt_add_rounded : forall rnd x1 x2,
+    (flt_val_rounded (fun r => Fadd r x1 x2) (Rplus (FinjR x1) (FinjR x2)) rnd);
+  flt_sub_rounded : forall rnd x1 x2,
+    (flt_val_rounded (fun r => Fsub r x1 x2) (Rminus (FinjR x1) (FinjR x2)) rnd);
+  flt_mul_rounded : forall rnd x1 x2,
+    (flt_val_rounded (fun r => Fmul r x1 x2) (Rmult (FinjR x1) (FinjR x2)) rnd);
+  flt_div_rounded : forall (rnd : Rounding) (x1 x2 : F),
+    (FinjR x2 <> 0%R) -> (flt_val_rounded (fun r => Fdiv r x1 x2) (Rdiv (FinjR x1) (FinjR x2)) rnd);
+  flt_rec_rounded : forall (rnd : Rounding) (x : F),
+    (FinjR x <> 0%R) -> (flt_val_rounded (fun r => Frec r x) (Rinv (FinjR x)) rnd);
+
+  flt_add_down := flt_add_rounded down;
+  flt_add_near := flt_add_rounded near;
+  flt_add_up   := flt_add_rounded up;
+
+  flt_sub_down := flt_sub_rounded down;
+  flt_sub_near := flt_sub_rounded near;
+  flt_sub_up   := flt_sub_rounded up;
+
+  flt_mul_down := flt_mul_rounded down;
+  flt_mul_near := flt_mul_rounded near;
+  flt_mul_up   := flt_mul_rounded up;
+
+  flt_div_down := flt_div_rounded down;
+  flt_div_near := flt_div_rounded near;
+  flt_div_up   := flt_div_rounded up;
+
+  flt_rec_down := flt_rec_rounded down;
+  flt_rec_near := flt_rec_rounded near;
+  flt_rec_up   := flt_rec_rounded up;
 }.
 
 (* Coercion (forall F : Float F), FinjR : F >-> R. *)
@@ -287,94 +288,146 @@ Proof.
   apply Rge_le; apply flt_pow_up; apply Rle_ge; exact Hp.
 Qed.
 
-Lemma flt_op_near_up_abs : forall op x y, 
-  Rdist (FinjR (Fapply op near x y)) (Rapply op (FinjR x) (FinjR y))
-    <= Rdist (FinjR (Fapply op up x y)) (Rapply op (FinjR x) (FinjR y)).
+
+Lemma flt_val_near_up_abs : forall x y, (forall rnd, flt_val_rounded x y rnd) ->
+  Rdist (FinjR (x near)) y <= Rdist (FinjR (x up)) y.
 Proof.
- intros op x y.
- apply (flt_op_near op) with (z:=Fapply op up x y).
+  intros x y H.
+  specialize (H near).
+  apply H.
 Qed.
 
-Lemma flt_op_near_down_abs : forall op x y, 
-  Rdist (FinjR (Fapply op near x y)) (Rapply op (FinjR x) (FinjR y))
-    <= Rdist (FinjR (Fapply op down x y)) (Rapply op (FinjR x) (FinjR y)).
+Lemma flt_val_near_down_abs : forall x y, (forall rnd, flt_val_rounded x y rnd) ->
+  Rdist (FinjR (x near)) y <= Rdist (FinjR (x down)) y.
 Proof.
- intros op x y.
- apply (flt_op_near op) with (z:=Fapply op down x y).
+  intros x y H.
+  apply (H near).
 Qed.
 
-Lemma flt_op_near_up : forall op x y, 
-  Rdist (FinjR (Fapply op near x y)) (Rapply op (FinjR x) (FinjR y))
-    <= (FinjR (Fapply op up x y)) - (Rapply op (FinjR x) (FinjR y)).
+Lemma flt_val_near_up : forall x y, (forall rnd, flt_val_rounded x y rnd) ->
+  Rdist (FinjR (x near)) y <= FinjR (x up) - y.
 Proof.
- intros op x y.
- apply Rle_trans with (r2 := Rabs ( (FinjR (Fapply op up x y)) - (Rapply op (FinjR x) (FinjR y)))).
- - exact (flt_op_near_up_abs op x y).
- - rewrite -> Rabs_pos_eq.
-   -- apply Rle_refl.
-   -- apply Rge_le. apply Rge_minus. apply flt_op_up.
+  intros x y H.
+  apply Rle_trans with (Rdist (FinjR (x up)) y).
+  - apply flt_val_near_up_abs; exact H.
+  - unfold Rdist. rewrite Rabs_pos_eq.
+    -- apply Rle_refl.
+    -- apply Rge_le. apply Rge_minus. apply (H up).
 Qed.
 
-Lemma flt_op_near_down : forall op x y, 
-  Rdist (FinjR (Fapply op near x  y)) (Rapply op (FinjR x) (FinjR y)) 
-    <= (Rapply op (FinjR x) (FinjR y)) - (FinjR (Fapply op down x y)).
+Lemma flt_val_near_down : forall x y, (forall rnd, flt_val_rounded x y rnd) ->
+  Rdist (FinjR (x near)) y <= y - FinjR (x down).
 Proof.
- intros op x y.
- apply Rle_trans with (r2 := Rabs ( (FinjR (Fapply op down x y)) - (Rapply op (FinjR x) (FinjR y)))).
- - apply flt_op_near_down_abs.
- - rewrite -> Rabs_minus_sym. rewrite Rabs_pos_eq.
-   -- apply Rle_refl.
-   -- apply Rge_le. apply Rge_minus. apply Rle_ge. apply flt_op_down.
+  intros x y H.
+  apply Rle_trans with (Rabs (FinjR (x down) - y)).
+  - apply flt_val_near_down_abs; exact H.
+  - rewrite -> Rabs_minus_sym. rewrite Rabs_pos_eq.
+    -- apply Rle_refl.
+    -- apply Rge_le. apply Rge_minus. apply Rle_ge. apply (H down).
 Qed.
 
 
-Lemma flt_op_near_up_down : forall op x y, 
-  Rdist (FinjR (Fapply op near x y)) (Rapply op (FinjR x) (FinjR y))
-    <= ( (FinjR (Fapply op  up x y)) - (FinjR (Fapply op  down x y)) ) / 2.
+Lemma flt_val_near_up_down : forall x y, (forall rnd, flt_val_rounded x y rnd) ->
+  Rdist (FinjR (x near)) y <= ( FinjR (x up) - FinjR (x down) ) / 2.
 Proof.
-  intros op x y. unfold Rdist.
-  apply Rmult_le_reg_l with 2. lra.
-  stepr ((FinjR (Fapply op up x y) - (Rapply op (FinjR x) (FinjR y))) + (Rapply op (FinjR x) (FinjR y) - FinjR (Fapply op down x y))) by field.
-  - stepl (Rabs ( (FinjR (Fapply op near x y)) - (Rapply op (FinjR x) (FinjR y)) ) + Rabs ((FinjR (Fapply op near x y)) - Rapply op (FinjR x) (FinjR y))) by ring.
+  intros x y H. unfold Rdist.
+  apply Rmult_le_reg_l with 2. exact Rlt_0_2.
+  stepr ( (FinjR (x up) - y) + (y - FinjR (x down)) ) by field.
+  - stepl ( Rabs (FinjR (x near) - y) + Rabs (FinjR (x near) - y) ) by ring.
     apply Rplus_le_compat.
-    -- apply flt_op_near_up.
-    -- apply flt_op_near_down.
+    -- apply flt_val_near_up; exact H.
+    -- apply flt_val_near_down; exact H.
 Qed.
 
-Lemma flt_op_near_up_down_sub_up : forall op x y, 
-  Rdist (FinjR (Fapply op near x y)) (Rapply op (FinjR x) (FinjR y)) 
-    <= (FinjR (Fsub up (Fapply op up x y) (Fapply op down x y))) / 2.
+Lemma flt_op_near_up_down_sub_up : forall x y, (forall rnd, flt_val_rounded x y rnd) ->
+  Rdist (FinjR (x near)) y <= FinjR (Fsub up (x up) (x down)) / 2%R.
 Proof.
-  intros op x y.
-  apply Rle_trans with (((FinjR (Fapply op up x y))-(FinjR (Fapply op down x y)))/2);
-    [apply flt_op_near_up_down|].
-  apply Rmult_le_compat_r; [lra|].
+  intros x y H.
+  apply Rle_trans with (((FinjR (x up))-(FinjR (x down)))/2).
+  apply flt_val_near_up_down; exact H.
+  apply Rmult_le_compat_r; [apply Rlt_le; apply Rinv_pos; exact Rlt_0_2|].
   apply Rge_le. apply flt_sub_up.
 Qed.
 
-Lemma flt_op_near_up_down_sub_hlf_up : forall op x y, 
-    Rdist (FinjR  (Fapply op near x y)) (Rapply op (FinjR x) (FinjR y))
-      <=  FinjR (Fdiv2 up (Fsub up (Fapply op up x y) (Fapply op down x y))).
+Lemma flt_val_near_up_down_sub_hlf_up : forall x y, (forall rnd, flt_val_rounded x y rnd) -> 
+  Rdist (FinjR (x near)) y <= FinjR (Fdiv2 up (Fsub up (x up) (x down))).
 Proof.
-  intros op x y.
-  apply Rle_trans with ((FinjR (Fsub up (Fapply op up x y) (Fapply op down x y)))/2);
-    [unfold Rdist; apply flt_op_near_up_down_sub_up|].
-  remember (Fsub up (Fapply op up x y) (Fapply op down x y)) as z.
-  stepl ((FinjR z)/(FinjR (NinjF 2))).
-  - assert (FinjR (NinjF 2%nat) <> 0%R) as H2ne0. {
-      rewrite -> flt_ninjr. apply not_O_S_INR.
-    }
-    apply Rge_le; unfold Fdiv2; apply flt_div_up. apply H2ne0.
-  - rewrite -> flt_ninjr; reflexivity.
-Qed. 
+  intros x y H.
+  apply Rle_trans with ((FinjR (Fsub up (x up) (x down)))/2).
+  apply flt_op_near_up_down_sub_up; exact H.
+  assert (FinjR (NinjF 2%nat) = 2) as H2. {
+    rewrite -> flt_ninjr. reflexivity. }
+  assert (FinjR (NinjF 2%nat) <> 0%R) as H2ne0. {
+    rewrite -> flt_ninjr. apply not_O_S_INR. }
+  replace (2%R) with (FinjR (NinjF 2%nat)) by H2.
+  apply Rge_le; unfold Fdiv2; apply flt_div_up; apply H2ne0.
+Qed.
 
 (*
-Lemma flt_mul_near_up: forall {F:Type} {FltF:Float F} x y,
-  Rabs ( (FinjR (Fmul near x y)) - ((FinjR x) * (FinjR y))) <= (FinjR (Fmul up x y)) - ((FinjR x) * (FinjR y)).
+Lemma flt_val_near_up_down_sub_hlf_up' : forall x y, (forall rnd, flt_val_rounded x y rnd) -> 
+  Rdist (FinjR (x near)) y <= FinjR (Fdiv2 up (Fsub up (x up) (x down))).
 Proof.
-  intros. apply (flt_op_near_up Mul).
+  intros x y Hrnd.
+  assert (FinjR (x down) <= y) as Hd. { exact (Hrnd down). }	
+  assert (forall w, Rdist (FinjR (x near)) y <= Rdist (FinjR w) y) as Hn. { exact (Hrnd near). }
+  assert (FinjR (x up) >= y) as Hu. { exact (Hrnd up). }
+  assert (2<>0) as Hneq_2_0. { apply not_eq_sym. apply Rlt_not_eq. exact Rlt_0_2. } 
+  apply Rle_trans with ((FinjR (x up) - FinjR (x down))/2).
+  - apply Rmult_le_reg_r with (2) ; [exact Rlt_0_2|].
+    unfold Rdiv. rewrite -> Rmult_assoc. rewrite -> Rinv_l; [|exact Hneq_2_0]. rewrite -> Rmult_1_r.
+    replace (FinjR (x up) - FinjR (x down)) with (Rdist (FinjR (x up)) y + Rdist (FinjR (x down)) y).
+    rewrite -> Rmult_comm. rewrite -> double.
+    apply Rplus_le_compat; apply Hn.
+    unfold Rdist.  
+    rewrite -> Rabs_pos_eq. rewrite -> Rabs_neg_eq. ring.
+    apply Rle_minus; exact Hd.
+    apply Rle_Rminus_zero. apply Rge_le. exact Hu.
+  - apply Rge_le.
+    apply Rge_trans with (FinjR (Fsub up (x up) (x down)) / FinjR (NinjF 2)).
+    -- unfold Fdiv2; apply flt_div_up; [rewrite -> flt_ninjr; trivial].
+    -- rewrite -> flt_ninjr. 
+       replace (INR 2%nat) with (2%R); [|trivial].
+       apply Rmult_ge_compat_r; [apply Rle_ge; apply Rlt_le; apply pos_half_prf|].
+       apply flt_sub_up.
 Qed.
 *)
+
+Lemma flt_op_near_up_down_sub_hlf_up : forall fval x1 x2, 
+    Rdist (FinjR  (Fapply fval near x1 x2)) (Rapply fval (FinjR x1) (FinjR x2))
+      <=  FinjR (Fdiv2 up (Fsub up (Fapply fval up x1 x2) (Fapply fval down x1 x2))).
+Proof.
+  intros fval x1 x2.
+  apply (flt_val_near_up_down_sub_hlf_up (fun rnd => Fapply fval rnd x1 x2) (Rapply fval (FinjR x1) (FinjR x2))).
+  unfold flt_val_rounded; destruct rnd; destruct fval; simpl.
+  - apply (flt_add_down x1 x2).
+  - apply (flt_sub_down x1 x2).
+  - apply (flt_mul_down x1 x2).
+  - apply (flt_add_near x1 x2).
+  - apply (flt_sub_near x1 x2).
+  - apply (flt_mul_near x1 x2).
+  - apply (flt_add_up   x1 x2).
+  - apply (flt_sub_up   x1 x2).
+  - apply (flt_mul_up   x1 x2).
+Qed.
+
+Lemma flt_div_near_up_down_sub_hlf_up : forall x1 x2, (FinjR x2 <> 0) ->
+  Rdist (FinjR  (Fdiv near x1 x2)) (Rdiv (FinjR x1) (FinjR x2))
+    <=  FinjR (Fdiv2 up (Fsub up (Fdiv up x1 x2) (Fdiv down x1 x2))).
+Proof.
+  intros x1 x2 Hx2.
+  apply (flt_val_near_up_down_sub_hlf_up (fun rnd => Fdiv rnd x1 x2) (Rdiv (FinjR x1) (FinjR x2))).
+  intros rnd; apply flt_div_rounded; exact Hx2.
+Qed.
+
+Lemma flt_rec_near_up_down_sub_hlf_up : forall x, (FinjR x <> 0) ->
+  Rdist (FinjR  (Frec near x)) (Rinv (FinjR x))
+    <=  FinjR (Fdiv2 up (Fsub up (Frec up x) (Frec down x))).
+Proof.
+  intros x Hx.
+  apply (flt_val_near_up_down_sub_hlf_up (fun rnd => Frec rnd x) (Rinv (FinjR x))).
+  intros rnd; apply flt_rec_rounded; exact Hx.
+Qed.
+
 
 End Float_defs.
 

@@ -595,6 +595,14 @@ Proof.
     contradiction.
 Qed.
 
+Lemma Rabs_0_neq (a:R) : (Rabs a <> 0) -> a <> 0.
+Proof.
+  intros H Ha.
+  rewrite -> Ha in H. 
+  rewrite -> Rabs_R0 in H. 
+  contradiction.
+Qed.
+
 Lemma Rabs_le_1 (a:R) : (-1 <= a) -> (a <= 1) -> (Rabs a) <= 1.
 Proof.
   assert (-1 <= a <= 1 -> Rabs a <=1). { apply Rabs_le. }
@@ -695,28 +703,82 @@ Qed.
 
 Definition Rdist (x y:R) : R := Rabs (x - y).
 
-Lemma Rdist_pos : forall x y:R, Rdist x y >= 0.
+Lemma Rdist_pos : forall x y : R, Rdist x y >= 0.
 Proof. intros. unfold Rdist. apply Rle_ge. apply Rabs_pos. Qed.
 
-Lemma Rdist_sym : forall x y:R, Rdist x y = Rdist y x.
+Lemma Rdist_sym : forall x y : R, Rdist x y = Rdist y x.
 Proof. intros. unfold Rdist. apply Rabs_minus_sym. Qed.
 
-Lemma Rdist_refl : forall x y:R, Rdist x y = 0 <-> x = y.
+Lemma Rdist_refl : forall x y : R, Rdist x y = 0 <-> x = y.
 Proof. intros. unfold Rdist. split.  
   intro H. apply Rminus_0_eq. apply Rabs_0_eq. exact H.
   intro H. rewrite <- H. rewrite -> Rminus_eq_0. rewrite -> Rabs_R0. reflexivity.
 Qed. 
   
-Lemma Rdist_eq : forall x:R, Rdist x x = 0.
+Lemma Rdist_eq : forall x : R, Rdist x x = 0.
 Proof. 
   intros. apply Rdist_refl. reflexivity.
 Qed.
 
-Lemma Rdist_triang : forall x y z:R, Rdist x y <= Rdist x z + Rdist z y.
+Lemma Rdist_triang : forall x y z : R, Rdist x y <= Rdist x z + Rdist z y.
 Proof.
   intros. unfold Rdist. 
   assert (x-y = (x-z)+(z-y)) as H by ring.
   rewrite -> H. apply Rabs_triang. 
 Qed.
+
+Lemma Rdist_plus_compat : forall w x y z, Rdist (w+x) (y+z) <= Rdist w y + Rdist x z.
+Proof.
+  intros. unfold Rdist. 
+  replace ((w+x)-(y+z)) with ((w-y)+(x-z)) by ring.
+  apply Rabs_triang.
+ Qed.
+  
+Lemma Rdist_minus_compat : forall w x y z, Rdist (w-x) (y-z) <= Rdist w y + Rdist x z.
+Proof.
+  intros. unfold Rdist. 
+  replace (Rabs (x-z)) with (Rabs (z-x)) by (apply Rabs_minus_sym).
+  replace ((w-x)-(y-z)) with ((w-y)+(z-x)) by ring.
+  apply Rabs_triang.
+ Qed.
+
+Lemma Rdist_abs_l : forall w x y, Rdist (w*x) (w*y) = Rabs w * Rdist x y.
+Proof.
+  intros. unfold Rdist. 
+  rewrite <- Rmult_minus_distr_l.
+  apply Rabs_mult.
+Qed.
+  
+(* |w*x - y*z| <= |w-y|*|x| + |y|*|x-z| <= |w-y|*|x| + |w|*|x-z| + |w-y|*|x-z| *)
+Lemma Rdist_mult_compat : forall w x y z, 
+  Rdist (w*x) (y*z) <= Rdist w y * Rabs x + Rabs w * Rdist x z + Rdist w y * Rdist x z.
+Proof.
+  intros. unfold Rdist.
+  replace (w*x-y*z) with ((w-y)*x+w*(x-z)-(w-y)*(x-z)) by ring.
+  apply Rle_trans with (Rabs ((w-y)*x+w*(x-z)) + Rabs (-((w-y)*(x-z)))).
+    apply Rabs_triang.
+  rewrite -> Rabs_Ropp. rewrite -> Rabs_mult. apply Rplus_le_compat_r.
+  repeat (rewrite <- Rabs_mult).
+  apply Rabs_triang.
+Qed.
+  
+Lemma Rabs_dist_ivl : forall x y z, Rdist x y <= z -> y-z <= x /\ x <= y+z.
+Proof.
+  intros x y z.
+  intros H.
+  assert (-z <= x-y <= z) as Hb. { apply (Rabs_ivl _ _ H). }
+  destruct Hb as [H0 H1].
+  unfold Rminus in *.
+  split. 
+  - apply Rplus_le_reg_l with (-y). 
+    rewrite <- Rplus_assoc. rewrite -> Rplus_opp_l. rewrite -> Rplus_0_l.
+    rewrite -> Rplus_comm.
+    exact H0.
+  - apply Rplus_le_reg_l with (-y). 
+    rewrite <- Rplus_assoc. rewrite -> Rplus_opp_l. rewrite -> Rplus_0_l.
+    rewrite -> Rplus_comm.
+    exact H1.
+Qed.
+
 
 Close Scope R_scope.

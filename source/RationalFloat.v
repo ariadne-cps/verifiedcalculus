@@ -17,11 +17,6 @@ Require Export QArith.Qreals.
 Open Scope Q_scope.
 
 
-(*
-Nat2Z.inj_add: forall n m : nat, Z.of_nat (n + m) = (Z.of_nat n + Z.of_nat m)%Z
-Qinv_plus_distr: forall (a b : Z) (c : positive), (a # c) + (b # c) == a + b # c 
-*)
-
 
 Lemma Qleb : forall q1 q2 : Q, Qle_bool q1 q2 = true <-> Rle (Q2R q1) (Q2R q2). 
 Proof.
@@ -89,6 +84,14 @@ Qed.
 Definition Q2R_0 := RMicromega.Q2R_0.
 Definition Q2R_1 := RMicromega.Q2R_1.
 
+Lemma Q2R_neq_0 : forall q, Q2R q <> 0%R -> ~(q == 0%Q).
+Proof.
+  intros s Hneq Heqv.
+  apply Qeq_eqR in Heqv.
+  rewrite -> Q2R_0 in Heqv.
+  contradiction.
+Qed.
+
 
 Lemma Qnijnr : forall n : nat, Q2R (INQ n) = INR n.
 Proof. 
@@ -105,23 +108,6 @@ Proof.
     rewrite -> INR_1.
     reflexivity.
 Qed.
-
-(*
-Rabs_pos_eq : forall x : R, Rle 0 x -> Rabs x = x.
-Rabs_neg_eq : forall x : R, Rle x 0 -> Rabs x = Ropp x.
-Qabs_pos: forall x : Q, 0 <= x -> Qabs x == x
-Qabs_neg: forall x : Q, x <= 0 -> Qabs x == - x
-*)
-
-(*
-Qeq_sym : forall x y : Q, x == y -> y == x
-Q.OT.lt_total: forall x y : Q, x < y \/ x == y \/ y < x
-Qlt_le_weak: forall x y : Q, x < y -> x <= y
-Qle_lt_or_eq: forall x y : Q, x <= y -> x < y \/ x == y
-Qle_lteq: forall x y : Q, x <= y <-> x < y \/ x == y
-Qle_Rle : forall x y : Q, x <= y -> (Q2R x <= Q2R y)%R
-Q2R_opp : forall x : Q, forall x : Q, Q2R (- x) = (- Q2R x)%R
-*)
 
 
 Lemma Qle_total : forall q1 q2 : Q, q1 <= q2 \/ q2 <= q1.
@@ -141,10 +127,10 @@ Proof.
   intro q.
   apply or_ind with (A:=0<=q) (B:=q<=0).
   - intro Hq. 
-    assert (Rle 0 (Q2R q)) as Hr. { rewrite <- RMicromega.Q2R_0. apply (Qle_Rle). exact Hq. }
+    assert (Rle 0 (Q2R q)) as Hr. { rewrite <- Q2R_0. apply (Qle_Rle). exact Hq. }
     rewrite Qabs_pos by (exact Hq). rewrite Rabs_pos_eq by (exact Hr). reflexivity.
   - intro Hq. 
-    assert (Rle (Q2R q) 0) as Hr. { rewrite <- RMicromega.Q2R_0. apply (Qle_Rle). exact Hq. }
+    assert (Rle (Q2R q) 0) as Hr. { rewrite <- Q2R_0. apply (Qle_Rle). exact Hq. }
     rewrite Qabs_neg by (exact Hq). { rewrite Rabs_neg_eq by (exact Hr). apply Q2R_opp. }
   - apply Qle_total.
 Qed.
@@ -161,14 +147,6 @@ Proof.
   rewrite -> Rinv_1.
   apply Rmult_1_r.
 Qed.
-
-
-(*
-Q.max_l: forall x y : Q, y <= x -> Qmax x y == x
-Q.max_r: forall x y : Q, x <= y -> Qmax x y == y
-Rmax_right: forall x y : R, (x <= y)%R -> Rmax x y = y
-Rmax_left: forall x y : R, (y <= x)%R -> Rmax x y = x
-*)
 
 Lemma Qmax_Rmax : forall q1 q2 : Q, Q2R (Qmax q1 q2) = Rmax (Q2R q1) (Q2R q2).
 Proof. 
@@ -195,7 +173,7 @@ Proof.
     rewrite Q.min_r by (exact Hq). { rewrite Rmin_right by (exact Hr). reflexivity. }
   - apply Qle_total.
 Qed.
-  
+
   
 
 #[refine]
@@ -204,7 +182,6 @@ Instance Rational_Float : Float Q :=
   NinjF := (fun n => Qmake (Z.of_nat n) 1);
   FinjR := (fun q => Q2R q);
   Fneg := Qopp;
-  Fhlf := (fun q => Qdiv q 2);
   Fabs := Qabs;
   
   Fadd := (fun (r:Rounding) q1 q2 => Qplus q1 q2);
@@ -224,65 +201,39 @@ Instance Rational_Float : Float Q :=
   flt_leb := Qleb;
   
   flt_neg_exact := Q2R_opp;
-  flt_hlf_exact := Qhlf_Rhlf;
   flt_abs_exact := Qabs_Rabs;
   flt_min_exact := Qmin_Rmin;
   flt_max_exact := Qmax_Rmax;
 }.
 Proof.
-  - intros op x y. destruct op.
-    -- rewrite <- Q2R_plus. apply Req_ge. reflexivity.
-    -- rewrite <- Q2R_minus. apply Req_ge. reflexivity.
-    -- rewrite <- Q2R_mult. apply Req_ge. reflexivity.
-  - intros op x y. destruct op.
-    -- rewrite <- Q2R_plus. apply Req_le. reflexivity.
-    -- rewrite <- Q2R_minus. apply Req_le. reflexivity.
-    -- rewrite <- Q2R_mult. apply Req_le. reflexivity.
-  - intros op x y z. 
-    assert (forall u v : R, Rle (Rabs (Rminus u u)) (Rabs v)) as H. {
-      intros u v. rewrite -> Rminus_eq_0. rewrite -> Rabs_R0. apply Rabs_pos.  
-    }
-    destruct op.
-    -- rewrite <- Q2R_plus. apply H.
-    -- rewrite <- Q2R_minus. apply H.
-    -- rewrite <- Q2R_mult. apply H.
-  - (* div up *)
-    intros x y H.
-    rewrite <- Q2R_div. apply Req_ge. reflexivity.
-    intro Hfls.
-    assert (Q2R y = Q2R 0) as H0. { apply Qeq_eqR. exact Hfls. } 
-    rewrite -> Q2R_0 in H0. apply H. exact H0.
-  - (* div down *)
-    intros x y H.
-    rewrite <- Q2R_div. apply Req_ge. reflexivity.
-    intro Hfls.
-    assert (Q2R y = Q2R 0) as H0. { apply Qeq_eqR. exact Hfls. } 
-    rewrite -> Q2R_0 in H0. apply H. exact H0.
-  - (* div near *)
-    intros x y H. intro z. unfold Rdist.
-    rewrite <- Q2R_div. rewrite -> Rminus_eq_0. rewrite -> Rabs_R0. apply Rabs_pos.
-    intro Hfls.
-    assert (Q2R y = Q2R 0) as H0. { apply Qeq_eqR. exact Hfls. } 
-    rewrite -> Q2R_0 in H0. apply H. exact H0.
- - (* rec up *) 
-    intros x H.
-    rewrite <- Q2R_inv. apply Req_ge. reflexivity.
-    intro Hfls.
-    assert (Q2R x = Q2R 0) as H0. { apply Qeq_eqR. exact Hfls. } 
-    rewrite -> Q2R_0 in H0. apply H. exact H0.
- - (* rec down *) 
-    intros x H.
-    rewrite <- Q2R_inv. apply Req_ge. reflexivity.
-    intro Hfls.
-    assert (Q2R x = Q2R 0) as H0. { apply Qeq_eqR. exact Hfls. } 
-    rewrite -> Q2R_0 in H0. apply H. exact H0.
- - (* rec up *) 
-    intros x H. intro z. unfold Rdist.
-    rewrite <- Q2R_inv. 
-    rewrite -> Rminus_eq_0. rewrite -> Rabs_R0. apply Rabs_pos.
-    intro Hfls.
-    assert (Q2R x = Q2R 0) as H0. { apply Qeq_eqR. exact Hfls. } 
-    rewrite -> Q2R_0 in H0. apply H. exact H0.
-Qed.  
-      
-Close Scope Q_scope.
+ - (* add rounded *) 
+    intros rnd x1 x2.
+    destruct rnd; rewrite <- Q2R_plus.
+    -- apply Req_ge; reflexivity.
+    -- intro z; unfold Rdist; rewrite -> Rminus_eq_0; rewrite -> Rabs_R0; apply Rabs_pos.
+    -- apply Req_ge; reflexivity.
+ - (* sub rounded *) 
+    intros rnd x1 x2.
+    destruct rnd; rewrite <- Q2R_minus.
+    -- apply Req_ge; reflexivity.
+    -- intro z; unfold Rdist; rewrite -> Rminus_eq_0; rewrite -> Rabs_R0; apply Rabs_pos.
+    -- apply Req_ge; reflexivity.
+ - (* mul rounded *) 
+    intros rnd x1 x2.
+    destruct rnd; rewrite <- Q2R_mult.
+    -- apply Req_ge; reflexivity.
+    -- intro z; unfold Rdist; rewrite -> Rminus_eq_0; rewrite -> Rabs_R0; apply Rabs_pos.
+    -- apply Req_ge; reflexivity.
+ - (* div rounded *) 
+    intros rnd x1 x2 Hx2.
+    destruct rnd; rewrite <- Q2R_div by (exact (Q2R_neq_0 x2 Hx2)).
+    -- apply Req_ge; reflexivity.
+    -- intro z; unfold Rdist; rewrite -> Rminus_eq_0; rewrite -> Rabs_R0; apply Rabs_pos.
+    -- apply Req_ge; reflexivity.
+ - (* rec rounded *) 
+    intros rnd x Hx.
+    destruct rnd; rewrite <- Q2R_inv by (exact (Q2R_neq_0 x Hx)).
+    -- apply Req_ge; reflexivity.
+    -- intro z; unfold Rdist; rewrite -> Rminus_eq_0; rewrite -> Rabs_R0; apply Rabs_pos.
+    -- apply Req_ge; reflexivity.
+Qed.
