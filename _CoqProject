@@ -34,6 +34,8 @@ utilities/LimitMonads.v
 utilities/EnsembleMonad.v
 utilities/InhabitedEnsembleMonad.v
 
+logic/Sierpinskian.v
+
 numbers/R_addenda.v
 numbers/Analysis.v
 numbers/Sum.v
