@@ -18,7 +18,7 @@ Context `{F : Type} `{FltF : Float F}.
 
 
 Fixpoint Pnegate (p : list (nat * F)) : list (nat * F) :=
-  match p with 
+  match p with
   | nil => nil
   | (m0,c0) :: p1 => (m0, Fneg c0) :: (Pnegate p1)
   end.
@@ -27,13 +27,13 @@ Lemma Pnegate_eq_nil : Pnegate nil = nil.
 Proof.
   intros. trivial.
 Qed.
- 
-Lemma Pnegate_eq_cons : forall a0 p1, 
+
+Lemma Pnegate_eq_cons : forall a0 p1,
   Pnegate (a0::p1) = (fst a0, Fneg (snd a0)) :: Pnegate p1.
 Proof.
   intros. destruct a0. trivial.
 Qed.
- 
+
 Proposition is_sorted_polynomial_negate : forall p,
   is_sorted_fst p -> is_sorted_fst (Pnegate p).
 Proof.
@@ -54,15 +54,15 @@ Proof.
            replace (m1, Fneg c1) with (fst a1, Fneg (snd a1)) by trivial.
            rewrite <- Pnegate_eq_cons.
            apply IHp1.
-           apply (is_sorted_fst_cons_inv (m0,c0)). 
+           apply (is_sorted_fst_cons_inv (m0,c0)).
            exact Hs.
 Qed.
-  
- 
+
+
 Definition PMneg (t : PolynomialModel) : PolynomialModel :=
   {| polynomial := Pnegate t.(polynomial);
      error := t.(error) |}.
-     
+
 Theorem PMneg_correct : forall t f,
   PMmodels t f -> PMmodels (PMneg t) (fun x => - f x).
 Proof.
@@ -82,22 +82,22 @@ Proof.
     specialize (IHp1 f1).
     unfold PMneg, PMmodels in *.
     simpl in *.
-    replace (FinjR (Fneg c0) * x ^ m0 + 
+    replace (FinjR (Fneg c0) * x ^ m0 +
               Pax_eval (Pnegate p1) x - - f x)
       with (Pax_eval (Pnegate p1) x - - f1 x)
-      by (rewrite -> Hf1; rewrite -> flt_neg_exact; field). 
+      by (rewrite -> Hf1; rewrite -> flt_neg_exact; field).
       apply IHp1; [|exact Hx].
       intros x' Hx'.
       replace (Pax_eval p1 x' - f1 x') with (FinjR (snd (m0, c0)) * x' ^ fst (m0, c0) + Pax_eval p1 x' - f x').
       apply H; exact Hx'.
       unfold f1; simpl; field.
 Qed.
-    
 
- 
+
+
 Definition PMsub t1 t2 := PMadd t1 (PMneg t2).
 
-Theorem PMsub_correct : forall t1 t2 f1 f2, 
+Theorem PMsub_correct : forall t1 t2 f1 f2,
   PMmodels t1 f1 -> PMmodels t2 f2 -> PMmodels (PMsub t1 t2) (fun x => f1 x - f2 x).
 Proof.
   intros t1 t2 f1 f2 H1 H2.

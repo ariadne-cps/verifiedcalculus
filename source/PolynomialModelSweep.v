@@ -25,7 +25,7 @@ Open Scope R_scope.
 Fixpoint Psweep (r : (nat * F) -> bool) (p : Polynomial) : (Polynomial * F) :=
   match p with
   | nil => (nil,Fnull)
-  | p0 :: p1 => let (sp1, e1) := (Psweep r p1) in 
+  | p0 :: p1 => let (sp1, e1) := (Psweep r p1) in
                   if (r p0) then (rp1, Fadd up (Fabs (snd p0)) e1) else (p0 :: sp1, e1)
   end
 .
@@ -34,8 +34,8 @@ Fixpoint Psweep (r : (nat * F) -> bool) (p : Polynomial) : (Polynomial * F) :=
 Fixpoint Psweep (r : (nat * F) -> bool) (p : Polynomial) : (Polynomial * F) :=
   match p with
   | nil => (nil,Fnull)
-  | p0 :: p1 => if (r p0) 
-                  then (fst (Psweep r p1), Fadd up (Fabs (snd p0)) (snd (Psweep r p1))) 
+  | p0 :: p1 => if (r p0)
+                  then (fst (Psweep r p1), Fadd up (Fabs (snd p0)) (snd (Psweep r p1)))
                   else (p0 :: fst (Psweep r p1), snd (Psweep r p1))
   end
 .
@@ -45,14 +45,14 @@ Fixpoint Psweep_ax_error (r : (nat * F) -> bool) (p : Polynomial) : R :=
   | nil => 0%R
   | p0::p1 => (if (r p0) then Rabs (FinjR (snd p0)) else 0%R) + Psweep_ax_error r p1
   end.
-  
-Lemma Psweep_ax_error_true : forall r a0 p1, (true = r a0) -> 
+
+Lemma Psweep_ax_error_true : forall r a0 p1, (true = r a0) ->
   Psweep_ax_error r (a0::p1) = Rabs (FinjR (snd a0)) + Psweep_ax_error r p1.
 Proof.
   intros. simpl. rewrite <- H. simpl. reflexivity.
 Qed.
 
-Lemma Psweep_ax_error_false : forall r a0 p1, (false = r a0) -> 
+Lemma Psweep_ax_error_false : forall r a0 p1, (false = r a0) ->
   Psweep_ax_error r (a0::p1) = Psweep_ax_error r p1.
 Proof.
   intros. simpl. rewrite <- H. simpl. apply Rplus_0_l.
@@ -77,19 +77,19 @@ Proof.
   intros. simpl. rewrite <- H. simpl. reflexivity.
 Qed.
 
-Lemma Psweep_error_true : forall r a0 p1, (true = r a0) -> 
+Lemma Psweep_error_true : forall r a0 p1, (true = r a0) ->
   snd (Psweep r (a0::p1)) = Fadd up (Fabs (snd a0)) (snd (Psweep r p1)).
 Proof.
   intros. simpl. rewrite <- H. simpl. reflexivity.
 Qed.
 
-Lemma Psweep_error_false : forall r a0 p1, (false = r a0) -> 
+Lemma Psweep_error_false : forall r a0 p1, (false = r a0) ->
   snd (Psweep r (a0::p1)) = snd (Psweep r p1).
 Proof.
   intros. simpl. rewrite <- H. simpl. reflexivity.
 Qed.
 
- 
+
 Lemma Psweep_head_true : forall r a0 p1, (true = r a0) -> head (fst (Psweep r (a0::p1))) = head (fst (Psweep r p1)).
 Proof.
   intros. simpl. rewrite <- H. simpl. reflexivity.
@@ -100,14 +100,14 @@ Proof.
   intros. simpl. rewrite <- H. simpl. reflexivity.
 Qed.
 
-Lemma Psweep_head_leq : forall (r:nat*F->bool) (p:list (nat*F)), (is_sorted_fst p) ->  
+Lemma Psweep_head_leq : forall (r:nat*F->bool) (p:list (nat*F)), (is_sorted_fst p) ->
   match (head p, head (fst (Psweep r p))) with
     | (Some a0,Some sa0) => ((fst a0) <= (fst sa0))%nat
     | (_,_) => True
   end.
 Proof.
   intros r p Hsrtp.
-  induction p as [|a0 p1]. 
+  induction p as [|a0 p1].
   - simpl. trivial.
   - simpl.
     remember (r a0) as ra0.
@@ -118,7 +118,7 @@ Proof.
        apply IHp1 in Hsrtp1 as IHp1'.
        destruct p1 as [|a1 p2].
        --- simpl in Heqswp1. rewrite -> Heqswp1. simpl. trivial.
-       --- simpl in IHp1'. 
+       --- simpl in IHp1'.
            destruct swp1 as [|swa1 swp2]. simpl. trivial.
            assert ((fst a1 <= fst swa1)%nat) as Ha1. { apply IHp1'. }
            assert ((fst a0 < fst a1)%nat) as Ha0. { apply (is_sorted_fst_cons_lt a0 a1 p2). exact Hsrtp. }
@@ -131,20 +131,20 @@ Qed.
 Proposition Psweep_sorted : forall r p, is_sorted_fst p -> is_sorted_fst (fst (Psweep r p)).
 Proof.
   intros r p Hsrtp.
-  
+
   induction p as [|a0 p1 IHp1].
   - simpl. trivial.
   - assert (is_sorted_fst p1) as Hsrtp1. {
-      apply (is_sorted_fst_cons_inv a0). 
+      apply (is_sorted_fst_cons_inv a0).
       exact Hsrtp.
     }
     assert (is_sorted_fst (fst (Psweep r p1))) as Hsrtswp1. {
-      apply IHp1. 
-      exact Hsrtp1. 
+      apply IHp1.
+      exact Hsrtp1.
     }
     apply (Psweep_head_leq r p1) in Hsrtp1 as Hswa1.
     remember (r a0) as ra0.
-    destruct ra0.  
+    destruct ra0.
     -- (* Case drop term a0. *)
        rewrite -> Psweep_true by (exact Heqra0).
        exact Hsrtswp1.
@@ -176,13 +176,13 @@ Proof.
      exists a0.
      remember (r a0) as ra0.
      destruct ra0.
-     -- simpl. 
+     -- simpl.
         rewrite <- Heqra0.
         simpl.
-        assert (is_sorted_fst p1) as Hsrtp1. { 
+        assert (is_sorted_fst p1) as Hsrtp1. {
           apply (is_sorted_fst_cons_inv a0 p1). exact Hsrtp. }
         assert (fst (Psweep r p1) <> nil) as Hnilp1. {
-          rewrite <- (Psweep_true r a0) by (exact Heqra0). exact Hnil. 
+          rewrite <- (Psweep_true r a0) by (exact Heqra0). exact Hnil.
         }
         apply IHp in Hsrtp1 as IHp'.
         destruct IHp' as [a1 IHp']. destruct IHp' as [sa1 IHp'].
@@ -196,8 +196,8 @@ Proof.
           apply (Nat.le_trans _ (fst a1) _).
           apply Nat.lt_le_incl.
           apply (is_sorted_fst_cons_lt _ _ (tl p1)).
-          assert (p1 = a1::tl p1) as Hp1. { 
-            apply hd_error_tl_repr. split. exact Ha1. reflexivity. 
+          assert (p1 = a1::tl p1) as Hp1. {
+            apply hd_error_tl_repr. split. exact Ha1. reflexivity.
           }
           rewrite <- Hp1. apply Hsrtp. exact Ha1lesa1.
           exact Hnilp1.
@@ -207,26 +207,26 @@ Proof.
         exists a0.
         split. trivial. split. trivial. apply Nat.eq_le_incl. reflexivity.
 Qed.
-  
-  
-  
+
+
+
 
 Proposition Psweep_sorted' : forall r p, is_sorted_fst p -> is_sorted_fst (fst (Psweep r p)).
 Proof.
   intros r p Hsrtp.
-  
+
   induction p as [|a0 p1 IHp1].
   - simpl. trivial.
   - assert (is_sorted_fst p1) as Hsrtp1. {
-      apply (is_sorted_fst_cons_inv a0). 
+      apply (is_sorted_fst_cons_inv a0).
       exact Hsrtp.
     }
     assert (is_sorted_fst (fst (Psweep r p1))) as Hsrtswp1. {
-      apply IHp1. 
-      exact Hsrtp1. 
+      apply IHp1.
+      exact Hsrtp1.
     }
     remember (r a0) as ra0.
-    destruct ra0.  
+    destruct ra0.
     -- (* Case drop term a0. *)
        rewrite -> Psweep_true by (exact Heqra0).
        exact Hsrtswp1.
@@ -243,13 +243,13 @@ Proof.
                 apply (is_sorted_fst_cons_lt _ _ p2). exact Hsrtp.
                 remember (a1::p2) as p1.
                 assert (exists a1' sa1', (head p1 = Some a1' /\ head (fst (Psweep r p1)) = Some sa1' /\ (fst a1' <= fst sa1')%nat)) as H. {
-                  apply Psweep_head_leq'. 
+                  apply Psweep_head_leq'.
                     exact Hsrtp1.
                     rewrite <- Heqswp1. discriminate.
                 }
                 destruct H as [a1' H]. destruct H as [swa1' H].
                 destruct H as [Ha1 H]. destruct H as [Hswa1 H].
-                rewrite -> Heqp1 in Ha1. simpl in Ha1. injection Ha1 as Ha1. 
+                rewrite -> Heqp1 in Ha1. simpl in Ha1. injection Ha1 as Ha1.
                 rewrite <- Heqswp1 in Hswa1. simpl in Hswa1. injection Hswa1 as Hswa1.
                 rewrite <- Ha1 in H.
                 rewrite <- Hswa1 in H.
@@ -263,11 +263,11 @@ Definition PMsweep (r : (nat * F) -> bool) (t : PolynomialModel) : PolynomialMod
   match t with
   | {| polynomial:=p; error :=e |} =>
         {| polynomial:=fst (Psweep r p); error := Fadd up e (snd (Psweep r p)) |}
-  end.  
+  end.
 
 Definition Pmodels p f e := forall x, -1<=x<=1 -> Rabs (Pax_eval p x - f x) <= e.
 
-Theorem Psweep_pre_correct : forall r p f e, 
+Theorem Psweep_pre_correct : forall r p f e,
   Pmodels p f e -> Pmodels (fst (Psweep r p)) f (Psweep_ax_error r p + e).
 Proof.
   intros r p f e.
@@ -275,13 +275,13 @@ Proof.
   intros x Hx.
   specialize (H x Hx).
   revert e f H.
-  
+
   induction p as [|a0 p1].
-  - intros e f. 
+  - intros e f.
     simpl.
     rewrite -> Rplus_0_l.
     tauto.
-  - intros e f. 
+  - intros e f.
     remember (fun x => (f x - FinjR (snd a0) * x ^ (fst a0))) as f1.
     remember (f x - FinjR (snd a0) * x ^ (fst a0)) as f1x.
     remember (r a0) as ra0.
@@ -289,7 +289,7 @@ Proof.
     -- (* Case r a0 = true : drop term *)
        simpl; rewrite <- Heqra0; simpl.
        remember (Rabs (FinjR (snd a0)) + e) as e1.
-       specialize (IHp1 e f1). 
+       specialize (IHp1 e f1).
        assert (Pax_eval (a0::p1) x - f x = Pax_eval p1 x - f1 x) as Hf1. {
          rewrite -> Heqf1. simpl. ring. }
        rewrite <- Pax_eval_eq. rewrite -> Hf1.
@@ -307,7 +307,7 @@ Proof.
            rewrite -> Rabs_Ropp.
            assert (Rabs (FinjR (snd a0) * x^(fst a0)) <= Rabs (FinjR (snd a0))) as Ha0. {
              rewrite -> Rabs_mult.
-             stepr (Rabs (FinjR (snd a0))*1). 
+             stepr (Rabs (FinjR (snd a0))*1).
                apply Rmult_le_compat_l.
                apply Rabs_pos.
                apply Rabs_pow_le_1. apply Rabs_le_1; [apply Hx|apply Hx].
@@ -320,14 +320,14 @@ Proof.
            assert (swe1 + e + e0 = e0 + swe1 + e) as Heq by  (ring).
            right. exact Heq.
     -- (* Case r a0 = true : keep term *)
-       simpl; rewrite <- Heqra0; simpl. 
-       specialize (IHp1 e f1). 
+       simpl; rewrite <- Heqra0; simpl.
+       specialize (IHp1 e f1).
        intro Hp0.
        replace (FinjR (snd a0)*x^(fst a0)+Pax_eval (fst (Psweep r p1)) x - f x)
-         with (Pax_eval (fst (Psweep r p1)) x - f1 x); [|rewrite -> Heqf1; ring].  
+         with (Pax_eval (fst (Psweep r p1)) x - f1 x); [|rewrite -> Heqf1; ring].
        rewrite -> Rplus_0_l.
        apply IHp1.
-       rewrite -> Heqf1. 
+       rewrite -> Heqf1.
        replace (Pax_eval p1 x - (f x - FinjR (snd a0)*x^(fst a0)))
           with (FinjR (snd a0)*x^(fst a0) + Pax_eval p1 x - f x).
        exact Hp0.
@@ -350,7 +350,7 @@ Proof.
   - clear H.
     revert e.
     induction p as [|a0 p1].
-    -- intro e. simpl. rewrite -> Rplus_comm. 
+    -- intro e. simpl. rewrite -> Rplus_comm.
        replace 0 with (FinjR (NinjF 0%nat)) by (apply flt_ninjr).
        apply flt_add_up_le.
     -- intro e.
@@ -358,7 +358,7 @@ Proof.
        destruct ra0.
        --- rewrite -> Psweep_ax_error_true by (exact Heqra0).
            rewrite -> Psweep_error_true by (exact Heqra0).
-           (* Take e:=Fabs (snd a0) in IHp1. 
+           (* Take e:=Fabs (snd a0) in IHp1.
               This is not the original intention of the induction,
                 but handles the second Fadd up. *)
               rewrite <- flt_abs_exact in *.

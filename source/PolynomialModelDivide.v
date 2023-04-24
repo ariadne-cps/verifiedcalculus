@@ -51,7 +51,7 @@ Proof.
     -- stepl ((FinjR e + FinjR d) + 0%R) by ring.
        rewrite <- flt_null.
        apply Rle_trans with (FinjR (Fadd up e d) + FinjR Fnull).
-       --- apply Rplus_le_compat_r. apply flt_add_up_le. 
+       --- apply Rplus_le_compat_r. apply flt_add_up_le.
        --- apply flt_add_up_le.
 Qed.
 

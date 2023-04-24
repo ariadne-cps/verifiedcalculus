@@ -29,7 +29,7 @@ Nat.add_sub
   : forall n m : nat, n + m - m = n
 Nat.sub_add:
   forall n m : nat, n <= m -> m - n + n = m.
-Nat.sub_succ_l: 
+Nat.sub_succ_l:
   forall n m : nat, n <= m -> S m - n = S (m - n)
 *)
 
@@ -41,13 +41,13 @@ Qed.
 
 Lemma sum_incr : forall (s n:nat) (f:nat->R), (s<=n) -> sum_f s (n+1) f = Rplus (sum_f s n f) (f (n+1)).
 Proof.
-  intros s n f. intro Hslen. unfold sum_f. 
-  assert ((n+1 - s) = ((n-s)+1)) as Hns. { 
-    rewrite -> Nat.add_1_r. rewrite -> Nat.sub_succ_l; [|exact Hslen]. rewrite -> Nat.add_1_r. reflexivity. 
+  intros s n f. intro Hslen. unfold sum_f.
+  assert ((n+1 - s) = ((n-s)+1)) as Hns. {
+    rewrite -> Nat.add_1_r. rewrite -> Nat.sub_succ_l; [|exact Hslen]. rewrite -> Nat.add_1_r. reflexivity.
   }
-  rewrite -> Hns. rewrite -> sum_incr_R0. 
+  rewrite -> Hns. rewrite -> sum_incr_R0.
   apply f_equal. apply f_equal.
-  rewrite <- Hns. 
+  rewrite <- Hns.
   rewrite -> Nat.sub_add. reflexivity.
   apply Arith_prebase.le_plus_trans_stt. exact Hslen.
 Qed.
@@ -69,23 +69,23 @@ Proof.
     rewrite -> Nat.add_1_r.
     apply Rplus_assoc.
 Qed.
-  
+
 
 Open Scope R_scope.
 
 Lemma geometric_sum : forall (n : nat) (x : R), (x<>1%R) -> sum_f 0 n (fun k => pow x k) = ((1-x^(n+1)) / (1-x))%R.
 Proof.
-  intros n x Hxne1. 
+  intros n x Hxne1.
   assert (forall s n c f, sum_f s n (fun k => (f k) * c) = c * sum_f s n f) as Hscal_sum. {
-    intros s n' c f'. unfold sum_f. apply eq_sym. apply scal_sum with (x:=c) (N:=(n'-s)%nat) (An := (fun x0 => f'(plus x0 s))). 
+    intros s n' c f'. unfold sum_f. apply eq_sym. apply scal_sum with (x:=c) (N:=(n'-s)%nat) (An := (fun x0 => f'(plus x0 s))).
   }
-  assert (forall k, x^k * x = x^(k+1)) as Hpow_x_1. { 
-    intro k. rewrite -> pow_add. rewrite -> pow_1. reflexivity. 
+  assert (forall k, x^k * x = x^(k+1)) as Hpow_x_1. {
+    intro k. rewrite -> pow_add. rewrite -> pow_1. reflexivity.
   }
   assert (x * (sum_f 0 n (fun k => x^k)) = sum_f 0 n (fun k => x^(k+1))) as H0. {
     rewrite <- Hscal_sum. apply sum_eq. intros i Hilen. rewrite -> Hpow_x_1. reflexivity.
   }
-  assert (sum_f 0 n (fun k => x^(k+1)) = sum_f 1 (n+1) (fun k => x^k)) as H1. { 
+  assert (sum_f 0 n (fun k => x^(k+1)) = sum_f 1 (n+1) (fun k => x^k)) as H1. {
     unfold sum_f. rewrite -> Nat.sub_0_r. rewrite -> Nat.add_sub. apply sum_eq. intros i Hilen. rewrite -> Nat.add_0_r. reflexivity.
   }
   assert (sum_f 1 (n+1) (fun k => x^k) = sum_f 0 n (fun k => x^k) + x^(n+1) - 1) as H2. {
@@ -95,16 +95,16 @@ Proof.
   }
 
   remember (sum_f 0 n (fun k => x^k)) as s.
-  
+
   assert (x * s = s + x^(n+1)-1) as Hxs. {
-    rewrite -> H0. rewrite -> H1. rewrite -> H2. ring. 
+    rewrite -> H0. rewrite -> H1. rewrite -> H2. ring.
   }
-  rewrite -> Rmult_comm in Hxs. 
-  assert (s*(1-x)=1-x^(n+1)) as Hsp. { 
-    rewrite -> Rmult_minus_distr_l. rewrite -> Hxs. ring. 
+  rewrite -> Rmult_comm in Hxs.
+  assert (s*(1-x)=1-x^(n+1)) as Hsp. {
+    rewrite -> Rmult_minus_distr_l. rewrite -> Hxs. ring.
   }
-  assert (s * (1-x) / (1-x) = (1-x^(n+1))/(1-x)) as Hsq. { 
-    rewrite -> Hsp. reflexivity. 
+  assert (s * (1-x) / (1-x) = (1-x^(n+1))/(1-x)) as Hsq. {
+    rewrite -> Hsp. reflexivity.
   }
   rewrite <- Hsq.
   field.
@@ -126,14 +126,14 @@ Fixpoint Fgeometric n (f : R -> R) : (R -> R) :=
   end
 .
 
-Lemma FRgeometric_equal : forall n f x, Fgeometric n f x = Rgeometric n (f x). 
+Lemma FRgeometric_equal : forall n f x, Fgeometric n f x = Rgeometric n (f x).
 Proof.
-  intros n f x. induction n. 
-  - trivial.  
+  intros n f x. induction n.
+  - trivial.
   - simpl. rewrite -> IHn. trivial.
 Qed.
 
- 
+
 
 
 
@@ -142,7 +142,7 @@ Proof.
   intros n x Hx.
   assert (1-x <> 0) as Hx0. { lra. }
   induction n.
-  - simpl. field. exact Hx0. 
+  - simpl. field. exact Hx0.
   - simpl. rewrite -> IHn. field. exact Hx0.
 Qed.
 
@@ -158,11 +158,11 @@ Proof.
   rewrite -> Rabs_inv.
   (*  |w^(n+1)|/|1-w| <= d^(n+1)/(1-d)  *)
   apply Rmult_le_compat.
-  - apply Rabs_pos.  
+  - apply Rabs_pos.
   - apply Rlt_le. apply Rinv_pos. assert (0<1-w); [lra|]. rewrite -> Rabs_pos_eq. exact H. apply Rlt_le. apply H.
   - rewrite <- RPow_abs. apply pow_incr. split. apply Rabs_pos. exact Hwd.
   - apply Rinv_le_contravar.
-    lra. 
+    lra.
     rewrite -> Rabs_pos_eq. lra. lra.
 Qed.
 

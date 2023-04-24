@@ -25,7 +25,7 @@ Context `{F : Type} `{FltF : Float F}.
 Open Scope R_scope.
 
 
-Function Pmul (p1 p2 : Polynomial) 
+Function Pmul (p1 p2 : Polynomial)
     {measure (fun p => length p) p1} : PolynomialModel :=
   match p1 with
   | nil => PMzero
@@ -78,7 +78,7 @@ Qed.
 
 Theorem Pscale_norm_error : forall t1 t2 f1 f2,
   PMmodels t1 f1 -> PMmodels t2 f2 ->
-    PMmodels {| polynomial := nil; 
+    PMmodels {| polynomial := nil;
                 error := (Fadd_up (Pscale_norm t1.(error) t2.(polynomial))
                               (Fadd_up (Pscale_norm t2.(error) t1.(polynomial))
                                       (Fmul_up t1.(error) t2.(error))))
@@ -94,7 +94,7 @@ Proof.
 (*
  remember t1.(spolynomial) as sp1.
  remember t2.(spolynomial) as sp2.
-*) 
+*)
  stepl (Rabs ( (Pdifference t1.(polynomial) f1 x)*(Pax_eval t2.(polynomial) x) +
                ( (Pdifference t2.(polynomial) f2 x)*(Pax_eval t1.(polynomial) x) +
                  (Pdifference t1.(polynomial) f1 x)*(Pdifference t2.(polynomial) f2 x) ))) by (f_equal; simpl; ring).
@@ -117,7 +117,7 @@ Proof.
  repeat apply Rplus_le_compat; unfold Pscale_norm; rewrite Rabs_mult.
   apply Rle_trans with ( (FinjR t1.(error))*(FinjR (Pnorm t2.(polynomial)))). {
    apply Rmult_le_compat; try apply Rabs_pos; trivial. unfold Pnorm. simpl. apply Pnorm_property; trivial.
-  } 
+  }
   apply Rle_trans with ( (FinjR t1.(error))*(FinjR (Pnorm t2.(polynomial)))); [| apply flt_mul_up_le].
    apply Rle_refl.
   apply Rle_trans with ( (FinjR t2.(error))*(FinjR (Pnorm t1.(polynomial)))); [| apply flt_mul_up_le].

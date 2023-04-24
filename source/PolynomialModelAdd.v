@@ -25,7 +25,7 @@ Open Scope R_scope.
 Definition Fadd_err_up x1 x2 := Fdiv2 up (Fsub up (Fadd up x1 x2) (Fadd down x1 x2)).
 
 
-Function Padd_approx' (p1p2 : list (nat*F) * list (nat*F))   
+Function Padd_approx' (p1p2 : list (nat*F) * list (nat*F))
     {measure (fun l1l2=> (length (fst l1l2) + length (snd l1l2)))%nat p1p2} : list (nat*F) :=
   match p1p2 with
   | (nil, nil) => nil
@@ -35,7 +35,7 @@ Function Padd_approx' (p1p2 : list (nat*F) * list (nat*F))
     match lt_eq_lt_dec (fst a1) (fst a2) with
     | inleft (left _) => (fst a1, snd a1) :: Padd_approx' (p1', a2::p2')
     | inleft (right _) => (fst a1, Fadd_near (snd a1) (snd a2)) :: Padd_approx' (p1', p2')
-    | inright _ => (fst a2, snd a2) :: Padd_approx' (a1::p1', p2') 
+    | inright _ => (fst a2, snd a2) :: Padd_approx' (a1::p1', p2')
     end
   end.
 Proof.
@@ -49,7 +49,7 @@ Definition Padd_approx p1 p2 : list (nat*F) := Padd_approx' (p1,p2).
 
 Lemma Padd_approx_eq_nil_l : forall p2, Padd_approx nil p2 = p2.
 Proof.
-  intros p2; unfold Padd_approx; rewrite Padd_approx'_equation; destruct p2; trivial. 
+  intros p2; unfold Padd_approx; rewrite Padd_approx'_equation; destruct p2; trivial.
 Qed.
 
 Lemma Padd_approx_eq_nil_r: forall p1, Padd_approx p1 nil = p1.
@@ -62,15 +62,15 @@ Lemma Padd_approx_eq_cons_cons: forall a1 p1 a2 p2,
     match lt_eq_lt_dec (fst a1) (fst a2) with
     | inleft (left _) => (fst a1, snd a1) :: Padd_approx p1 (a2::p2)
     | inleft (right _) => (fst a1, Fadd_near (snd a1) (snd a2)) :: Padd_approx p1 p2
-    | inright _ => (fst a2, snd a2) :: Padd_approx (a1::p1) p2 
+    | inright _ => (fst a2, snd a2) :: Padd_approx (a1::p1) p2
     end.
 Proof.
   intros a1 p1 a2 p2; unfold Padd_approx; rewrite Padd_approx'_equation; trivial.
 Qed.
 
 
-  
-Lemma Padd_sorted: forall p1 p2, 
+
+Lemma Padd_sorted: forall p1 p2,
   is_sorted_fst p1 -> is_sorted_fst p2 -> is_sorted_fst (Padd_approx p1 p2).
 Proof.
   induction p1 as [|a1 p].
@@ -154,10 +154,10 @@ Proof.
 Qed.
 
 
-Definition Padd_error_term (a1 a2 : nat * F) := 
+Definition Padd_error_term (a1 a2 : nat * F) :=
   Fdiv2_up (Fsub_up (Fadd_up (snd a1) (snd a2)) (Fadd_down (snd a1) (snd a2))).
-  
-Function Padd_error' (p1p2 : list (nat*F) * list (nat*F))   
+
+Function Padd_error' (p1p2 : list (nat*F) * list (nat*F))
    {measure (fun l1l2 => (length (fst l1l2) + length (snd l1l2)))%nat} : F :=
          match p1p2 with
          | (nil, nil) => Fnull
@@ -204,7 +204,7 @@ Definition PMadd_error t1 t2 : F := Fadd_up (Fadd_up t1.(error) t2.(error)) (Pad
 
 
 Definition PMadd (t1 t2 : PolynomialModel) : PolynomialModel :=
-  {| polynomial:= Padd_approx t1.(polynomial) t2.(polynomial); 
+  {| polynomial:= Padd_approx t1.(polynomial) t2.(polynomial);
      error:=PMadd_error t1 t2 |}.
 
 
@@ -214,12 +214,12 @@ Lemma Padd_correct : forall (p1 p2:Polynomial) x,  -1 <= x <= 1 ->
 Proof.
   intros p1.
   induction p1 as [|a1 p1]; intros p2.
-  
-  (* nil, p2 *) 
+
+  (* nil, p2 *)
   intros  x _; simpl.
   rewrite Padd_approx_eq_nil_l. rewrite Padd_error_eq_nil_l. simpl.
   stepl 0; [ rewrite flt_null; lra | symmetry; stepl (Rabs 0); [apply Rabs_R0|f_equal; ring]].
- 
+
   (* a1::p1, p2 *)
   induction p2 as [|a2 p2].
 
@@ -252,7 +252,7 @@ Proof.
                       + (Pax_eval p1 x + Pax_eval p2 x - Pax_eval (Padd_approx p1 p2) x) ) ).
     2: f_equal; simpl; unfold Padd_approx; simpl; ring.
     apply Rle_trans with (Rabs ( FinjR (Fadd_near c1 c2) - (FinjR c1 + FinjR c2) )
-                              * Rabs (pow x m) 
+                              * Rabs (pow x m)
                             + Rabs (Pax_eval p1 x + Pax_eval p2 x - Pax_eval (Padd_approx p1 p2) x) ).
     -- rewrite <- Rabs_mult.
        replace ((FinjR (Fadd_near c1 c2) - (FinjR c1 + FinjR c2)) * (pow x m)) with
@@ -261,7 +261,7 @@ Proof.
     -- apply Rplus_le_compat; [| apply (IHp1 _ _ Hx)].
        apply Rle_trans with (Rabs (FinjR (Fadd_near c1 c2) - (FinjR c1 + FinjR c2))).
        --- stepr ( (Rabs (FinjR (Fadd_near c1 c2) - (FinjR c1 + FinjR c2))) * 1); [|ring].
-          apply Rmult_le_compat_l; [apply Rabs_pos|]. 
+          apply Rmult_le_compat_l; [apply Rabs_pos|].
           apply Rabs_pow_le_1; apply Rabs_le; exact Hx.
        --- unfold Fadd_near, Fadd_up, Fadd_down.
            replace Fadd with (Fapply Add); [|trivial].
@@ -287,7 +287,7 @@ Proof.
   destruct t1 as [p1 e1]; destruct t2 as [p2 e2].
   unfold PMadd_error.
   simpl in *.
-      
+
   apply Rle_trans with (FinjR e1 + FinjR e2 + FinjR (Padd_error p1 p2)).
   - set (pp1:= Pax_eval p1).
     set (pp2:= Pax_eval p2).

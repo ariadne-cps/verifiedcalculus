@@ -65,7 +65,7 @@ Definition PMscal_error c t : F :=
   Fadd_up (Fmul_up (Fabs_exact c) t.(error)) (Pscal_error c t.(polynomial)).
 
 Definition PMscal (c:F) (t:PolynomialModel) : PolynomialModel :=
-  {| polynomial := Pscal c t.(polynomial); 
+  {| polynomial := Pscal c t.(polynomial);
      error := PMscal_error c t |}.
 
 Lemma Pscal_error_nonneg : forall c (t: PolynomialModel), 0<= FinjR (Pscal_error c t.(polynomial)).
@@ -126,7 +126,7 @@ Proof.
 Qed.
 
 
-Theorem PMscal_correct : forall (c:F) (t:PolynomialModel) (f:R->R), 
+Theorem PMscal_correct : forall (c:F) (t:PolynomialModel) (f:R->R),
   PMmodels t f -> PMmodels (PMscal c t) (fun x=> (FinjR c) * f(x)).
 Proof.
  intros c t f H x hyp_x.
