@@ -24,7 +24,6 @@ Require Import Coq.Relations.Relation_Definitions.
 
 Section OrderSorting.
 
-
 Lemma asymmetric_irreflexive {A} (R : A -> A -> Prop) : 
   (Asymmetric R) -> (Irreflexive R).
 Proof.
@@ -355,6 +354,37 @@ Proof.
 Qed.
 
 
+
+
+Lemma map_cons : forall {X} (r : X -> X) n0 ns1, 
+  map r (n0::ns1) = r n0 :: map r ns1.
+Proof. intros. simpl. reflexivity. Qed.
+
+Definition increasing (r : X -> X) : Prop :=
+  forall (x1 x2 : X), x1 < x2 -> r x1 < r x2.
+
+Theorem map_sorted : forall (r : X -> X) (p : increasing r) (ns : list X), 
+  is_sorted ns -> is_sorted (map r ns).
+Proof.
+  intros r p ns.
+  induction ns as [|n0 ns1].
+  - (* ns = nil *)
+    simpl. tauto.
+  - (* ns = n0::ns1 *)
+    intros H.
+    assert (is_sorted ns1) as Hns1 by (apply (is_sorted_cons_inv n0 _ H)).
+    specialize (IHns1 Hns1).
+    destruct ns1 as [|n1 ns2].
+    -- (* ns1 = nil *)
+       apply is_sorted_one.
+    -- (* ns1 = n1 :: ns2 *)
+       rewrite -> map_cons.
+       apply is_sorted_cons with (r n1).
+       --- simpl; reflexivity.
+       --- apply p.
+           exact (is_sorted_cons_lt n0 n1 ns2 H).
+       --- exact IHns1.
+Qed.
 
 
 
