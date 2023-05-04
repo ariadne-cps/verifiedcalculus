@@ -12,17 +12,11 @@
 *)
 (* ---------------------------------------------------------------- *)
 
-Require Import Coq.Program.Syntax.
-Require Import Coq.Program.Basics.
-Require Import Coq.Init.Datatypes.
-Require Import Coq.Unicode.Utf8.
-Require Import Coq.Init.Nat.
 Require Import Coq.Arith.PeanoNat.
 
-Require Import List.
-Import ListNotations.
+Require Export definitions.
 
-Require Import definitions.
+Require Export definitions.
 
 Notation mixed_causal := definitions.mixed_causal.
 Notation mixed_causal' := definitions.mixed_causal'.
@@ -37,10 +31,10 @@ Inductive system {UA UD X Y : Type} : Type :=
 
 (* S is "successor" function: S n => n+1 *)
 (* Trajectory x:ℕ→X is defined by x[n+1] = f(x[n], u[n]) *)
-Fixpoint trajectory {UA UD X : Type}
-  (f:X->UA*UD->X)
+Fixpoint trajectory {U X : Type}
+  (f:X->U->X)
   (e:X)
-  (u:nat->UA*UD)
+  (u:nat->U)
   (n:nat)
   : X :=
     match n with
@@ -48,6 +42,8 @@ Fixpoint trajectory {UA UD X : Type}
     | S n' => f (trajectory f e u n') (u n')
     end
 .
+
+
 
 Check trajectory.
 
@@ -70,7 +66,6 @@ Definition signal' {Y:Type} {X:Type} {U:Type}
 .
 
 Check signal.
-Check signal'.
 
 (* The behavior of a system is the input-output map
    taking input signals ℕ→U to the corresponding output ℕ→Y. *)
@@ -106,9 +101,7 @@ Definition behavior'' {UA UD Y X : Type}
  .
 
  Check behavior.
- Check behavior'.
- Check behavior''.
-
+ 
 (* Show that the behavior of a system satisfies the weaker definition of causal. *)
 Lemma behavior_mixed_causal' :
   forall {UA UD X Y : Type}
@@ -191,8 +184,6 @@ Definition  is_composed_behavior'
         py1 = gy1 /\ py2 = gy2
 .
 
-Check (is_composed_behavior').
-
 
 (* A predicate which is true if b12 is a composed behavior of b1 and b2.
    b12 is a composed behavior if the projections onto inputs/outputs
@@ -221,7 +212,7 @@ Check (is_composed_behavior').
          py1 n = gy1 n /\ py2 n = gy2 n
   .
 
- Check (is_composed_behavior).
+Check is_composed_behavior.
 
 
 (* Define the composition of state space models. *)
@@ -301,7 +292,7 @@ Theorem composed_system_behavior {UA UD X1 X2 Y1 Y2 : Type} :
           assert ( x1 (S n) = f1 (x1 n) (fst (u n), (snd (u n), h2 (x2 n) (fst (u n), h1 (x1 n) (fst (u n)))))) as Hx1Sn.
           { rewrite -> Ex1. simpl. f_equal. f_equal.
             rewrite -> Ey12. unfold signal. rewrite -> Eh12. simpl.
-            assert ( x1 n = fst (x12 n) ∧ x2 n = snd (x12 n) ) as Hnx.
+            assert ( x1 n = fst (x12 n) /\ x2 n = snd (x12 n) ) as Hnx.
             { apply IHn. apply Nat.le_refl. }
             assert (x2 n = snd (x12 n)) as Hx2n. { apply Hnx. }
             rewrite <- Hx2n.
@@ -316,7 +307,7 @@ Theorem composed_system_behavior {UA UD X1 X2 Y1 Y2 : Type} :
           assert ( x2 (S n) = f2 (x2 n) ((fst (u n), h1 (x1 n) (fst (u n))), snd (u n))) as Hx2Sn.
           { rewrite -> Ex2. simpl. f_equal.
             rewrite -> Ey12. unfold signal. rewrite -> Eh12. simpl.
-            assert ( x1 n = fst (x12 n) ∧ x2 n = snd (x12 n) ) as Hnx.
+            assert ( x1 n = fst (x12 n) /\ x2 n = snd (x12 n) ) as Hnx.
             { apply IHn. apply Nat.le_refl. }
             assert (x1 n = fst (x12 n)) as Hx1n. { apply Hnx. }
             rewrite <- Hx1n. reflexivity.
@@ -346,9 +337,9 @@ Theorem composed_system_behavior {UA UD X1 X2 Y1 Y2 : Type} :
                    rewrite <- Hx1n. reflexivity.
    }
 
-   assert ( forall n : nat, n<=n -> x1 n = fst (x12 n) ∧ x2 n = snd (x12 n) ) as Hnx.
+   assert ( forall n : nat, n<=n -> x1 n = fst (x12 n) /\ x2 n = snd (x12 n) ) as Hnx.
    { intros n. apply SHx. }
-   assert ( forall n : nat, x1 n = fst (x12 n) ∧ x2 n = snd (x12 n) ) as Hx.
+   assert ( forall n : nat, x1 n = fst (x12 n) /\ x2 n = snd (x12 n) ) as Hx.
    { intros n. apply Hnx. apply Nat.le_refl. }
 
    intros n.
@@ -358,14 +349,9 @@ Theorem composed_system_behavior {UA UD X1 X2 Y1 Y2 : Type} :
    - f_equal. symmetry. apply Hx.
  Qed.
 
-Check surjective_pairing.
-Check pair_equal_spec.
-Check Nat.nlt_0_r.
-Check Nat.le_0_r.
-Check Lt.lt_n_Sm_le.
 
 (* The composition of two strictly causal behaviors should be unique. *)
-Theorem composed_strictly_causal_system_behavior_unique
+Theorem composed_mixed_causal_system_behavior_unique
   {UA UD X1 X2 Y1 Y2 : Type} :
   forall (b1 : (nat->(UA*(UD*Y2)))->(nat->Y1))
          (b2 : (nat->((UA*Y1)*UD))->(nat->Y2))
@@ -686,14 +672,14 @@ Proof.
     - (* n =  S n' *)
       apply Hb12eq.
       + intros m H0.
-        apply Lt.lt_n_Sm_le in H0.
+        apply (Nat.lt_succ_r m n') in H0.
         apply IHn'. exact H0.
       + intros m H0.
         (* Check Hb1eq'''. *)
         apply Hb1eq''' with (n:=S n').
         (* Same as just above *)
         * intros m0 H1.
-          apply Lt.lt_n_Sm_le in H1.
+          apply (Nat.lt_succ_r m0 n') in H1.
           apply IHn'. exact H1.
         * exact H0.
   }
@@ -726,9 +712,6 @@ Proof.
    - apply Hb12eq''.
    - apply Hb12eq''.
 
-   (* Show Existentials. *)
-   (* Admitted. *)
-
 Qed.
 
 
@@ -736,7 +719,7 @@ Qed.
 
 (* Intermediate step to show how this theorem easily follows from last theorem *)
 
-(* From above Theorem composed_strictly_causal_system_behavior_unique, get systems involved
+(* From above Theorem composed_mixed_causal_system_behavior_unique, get systems involved
    - replace b12' by (behavior (compose_systems s1 s2)).
    - use (behavior s1) for b1, (behavior s2) for b2.
 *)
@@ -755,8 +738,8 @@ Proof.
    remember (behavior s1) as b1 eqn:Eb1.
    remember (behavior s2) as b2 eqn:Eb2.
    intros u n.
-   (* Check composed_strictly_causal_system_behavior_unique. *)
-   apply @composed_strictly_causal_system_behavior_unique
+   (* Check composed_mixed_causal_system_behavior_unique. *)
+   apply @composed_mixed_causal_system_behavior_unique
      with (b1:=b1) (b2:=b2) (b12':=b12').
 
    - apply X1. (* ? *)
@@ -777,8 +760,8 @@ Theorem composed_system_behavior_unique {UA UD X1 X2 Y1 Y2 : Type} :
       -> forall (u : nat->UA*UD) (n:nat),
         b12 u n = behavior (compose_systems s1 s2) u n.
 Proof.
-  intros s1 s2 b12 H0 u n.
+  intros s1 s2 b12 Hb12 u n.
   apply Hb12eqbehav.
-  - exact H0.
+  - exact Hb12.
   - apply composed_system_behavior.
 Qed.

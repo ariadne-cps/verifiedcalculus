@@ -13,18 +13,9 @@
 *)
 (* ---------------------------------------------------------------- *)
 
-
-Require Import Coq.Program.Syntax.
-Require Import Coq.Program.Basics.
-Require Import Coq.Init.Datatypes.
-Require Import Coq.Unicode.Utf8.
-Require Import Coq.Init.Nat.
 Require Import Coq.Arith.PeanoNat.
 
-Require Import List.
-Import ListNotations.
-
-Require Import definitions.
+Require Export definitions.
 
 Notation causal := definitions.causal.
 Notation causal' := definitions.causal'.
@@ -56,8 +47,6 @@ Definition fixed_behaviour_noinputs
   (b : (nat->Y)->(nat->Y))
   (y_default : Y)
   : (nat->Y) := fun n => (iterated_behaviours_noinputs b y_default (S n)) n.
-
-Check fixed_behaviour_noinputs.
 
 Definition zip {Y1 Y2 : Type} (y1s : nat->Y1) (y2s : nat->Y2) : nat->(Y1*Y2)
   := fun n => (y1s n, y2s n).
@@ -94,8 +83,6 @@ Definition is_composed_behaviour_noinputs {Y1 Y2 : Type}
 Definition is_fixed_behaviour_noinputs {Y : Type} (b : (nat->Y)->(nat->Y)) (ys : nat->Y) : Prop
   := forall (n:nat), (b ys) n = ys n.
 
-Check is_fixed_behaviour_noinputs.
-
 (* Show that the fixed behaviour of the combined behaviour extends to the composed behaviour. *)
 Lemma combined_behaviour_causal_noinputs {Y1 Y2 : Type} :
   forall (b1 : (nat->Y2) -> (nat->Y1))
@@ -126,9 +113,9 @@ Proof.
       apply Hcb2 with (n:=n'). (* !!! *)
       + intros m0 H4.
         apply H2.
-        apply Lt.le_lt_n_Sm.
+        apply Nat.lt_succ_r.
         apply H4.
-      + apply Lt.lt_n_Sm_le in H3.
+      + apply (Nat.lt_succ_r m1 n') in H3.
         apply H3.
   }
 
@@ -169,7 +156,7 @@ Proof.
   apply Hscb with (n:= S n).
   - intros m H1.
     (* Search (_ < S _). *)
-    apply Lt.lt_n_Sm_le in H1.
+    apply (Nat.lt_succ_r m n) in H1.
     apply H0. apply H1.
   - reflexivity.
 Qed.
@@ -214,8 +201,8 @@ Proof.
        rewrite -> HS. rewrite <- IHk.
        + apply H0.
          (* Search (_ < _ + _). *)
-         apply Plus.lt_plus_trans.
-         exact Hmltn.
+         apply Nat.lt_le_trans with n; [exact Hmltn|].
+         apply Nat.le_add_r.
        + exact Hmltn.
   }
 
@@ -257,7 +244,7 @@ Proof.
     exfalso. exact H4.
   - apply H3.
     (* Search (_ < S _). *)
-    apply Lt.lt_n_Sm_le in H4.
+    apply (Nat.lt_succ_r m n') in H4.
     exact H4.
 Qed.
 
@@ -295,13 +282,12 @@ Proof.
       intros m0 H1.
       rewrite IHn'.
       + reflexivity.
-      + apply Lt.lt_n_Sm_le in H0.
+      + apply (Nat.lt_succ_r m n') in H0.
         apply Nat.lt_le_trans with (m:=m).
         * exact H1.
         * exact H0.
   }
 
-  Check table.
   intros n m H0.
   rewrite table.
   - reflexivity.

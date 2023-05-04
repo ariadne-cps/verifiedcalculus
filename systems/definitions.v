@@ -13,15 +13,7 @@
 (* ---------------------------------------------------------------- *)
 
 
-Require Import Coq.Program.Syntax.
-Require Import Coq.Program.Basics.
-Require Import Coq.Init.Datatypes.
-Require Import Coq.Unicode.Utf8.
-Require Import Coq.Init.Nat.
 Require Import Coq.Arith.PeanoNat.
-
-Require Import List.
-Import ListNotations.
 
 Module definitions.
 
@@ -54,9 +46,6 @@ Definition strictly_causal' {U:Type} {Y:Type}
    forall u u' : nat -> U, forall n:nat, (forall m:nat, m < n -> u m = u' m)
        -> (b u) n = (b u') n
 .
-
-(* Search for some theorems involving lt < and le <= *) Search lt le.
-Check Nat.lt_le_trans.
 
 (* Show that the two definitions of causality are actually equivalent. *)
 Lemma strictly_causal_equivalent : forall {U:Type} {Y:Type}
@@ -122,6 +111,8 @@ Definition mixed_causal {UA UD Y : Type}
         (b (fun k => (ua' k, ud' k))) m0)
 .
 
+Check mixed_causal.
+
 (* Weaker definition *)
 Definition mixed_causal' {UA UD Y : Type}
   (b : (nat->UA*UD)->(nat->Y))
@@ -132,8 +123,6 @@ Definition mixed_causal' {UA UD Y : Type}
       (b (fun k => (ua k, ud k))) n =
       (b (fun k => (ua' k, ud' k))) n
 .
-
-Check mixed_causal'.
 
 (* Show that the two definitions of causality are actually equivalent. *)
 Lemma mixed_causal_equivalent :
