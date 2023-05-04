@@ -11,17 +11,29 @@
                  Master's Thesis Artificial Intelligence
                  Maastricht University
 *)
-(* ---------------------------------------------------------------- *)
+
+(* Definition and correctness proof of composition of mixed causal behaviours: *)
+(************************************************************************)
+(* Copyright 2023 Pieter Collins                                        *)
+(* This file is distributed under the terms of the                      *)
+(* GNU General Public License Version 2                                 *)
+(* A copy of the license can be found at                                *)
+(*                  <http://www.gnu.org/licenses/gpl.txt>               *)
+(************************************************************************)
+
 
 Require Import Coq.Arith.PeanoNat.
 
 Require Export definitions.
+Require Export system_problems.
 
 Notation causal := definitions.causal.
 Notation causal' := definitions.causal'.
 Notation strictly_causal := definitions.strictly_causal.
 Notation strictly_causal' := definitions.strictly_causal'.
 Notation strictly_causal_equivalent := definitions.strictly_causal_equivalent.
+Notation mixed_causal := definitions.mixed_causal.
+Notation is_composed_behaviour := system_problems.is_composed_behaviour.
 
 (* Think of a better name than 'combine', maybe 'function_compose' *)
 Definition combine_behaviours_noinputs
@@ -405,3 +417,95 @@ Proposition causal_composed_unique_noinputs {Y1 Y2 : Type} :
 .
 Proof.
 Admitted.
+
+
+
+Definition compose_behaviours
+    {UA UD Y1 Y2 : Type} 
+    (b1 : (nat -> UA*(UD*Y2)) -> (nat -> Y1))
+    (b2 : (nat -> (UA*Y1)*UD) -> (nat -> Y2))
+    (y_default : Y1)
+      : (nat -> (UA*UD)) -> (nat -> (Y1*Y2)) :=
+  fun (uad : nat -> UA*UD) =>
+    let ua := fun n => fst (uad n) in
+    let ud := fun n => snd (uad n) in
+    let b1' := fun (y2 : nat -> Y2) => b1 (fun n => (ua n, (ud n, y2 n))) in
+    let b2' := fun (y1 : nat -> Y1) => b2 (fun n => ((ua n, y1 n), ud n)) in
+      compose_behaviours_noinputs b1' b2' y_default.
+
+
+Definition extensional {U Y : Type} (b : (nat -> U) -> (nat -> Y)) :=
+  forall u u', (forall n, u n = u' n) -> (forall n, (b u) n = (b u') n).
+
+Lemma strictly_causal_extensional {U Y} : forall (b:(nat->U)->(nat->Y)),
+  strictly_causal b -> extensional b.
+Proof.
+  unfold strictly_causal, extensional.
+  intros b Hc. intros u u' Hu n. apply (Hc u u' n).
+  intros m Hm. apply Hu. apply Nat.le_refl.
+Qed.
+
+
+
+Theorem mixed_causal_composed {UA UD Y1 Y2 : Type} :
+  forall (b1 : (nat->UA*(UD*Y2)) -> (nat->Y1))
+         (b2 : (nat->(UA*Y1)*UD) -> (nat->Y2))
+         (y_default : Y1),
+         (mixed_causal b1) -> (mixed_causal b2) ->
+           is_composed_behaviour b1 b2
+             (compose_behaviours b1 b2 y_default).
+Proof.
+  intros b1 b2 y_default.
+  intros Hb1 Hb2.
+  intros uad.
+  intro n.
+  intros ua ud.
+  remember (fun (y2 : nat -> Y2) => b1 (fun n => (ua n, (ud n, y2 n)))) as b1'.
+  remember (fun (y1 : nat -> Y1) => b2 (fun n => ((ua n, y1 n), ud n))) as b2'.  
+  intros py1 py2 gy1 gy2.
+  assert (strictly_causal b1') as Hb1'. {
+    unfold strictly_causal. unfold mixed_causal in Hb1.
+    intros u u' n' Hsc. rewrite -> Heqb1'. apply Hb1. trivial.
+    intros m' Hm'. f_equal. apply Hsc. exact Hm'. 
+  }
+  assert (causal b2') as Hb2'. {
+    unfold causal. unfold mixed_causal in Hb2.
+    intros u u' n' Hc. rewrite -> Heqb2'. apply Hb2. 
+    intros m' Hm'. f_equal. apply Hc. exact Hm'. trivial. 
+  }
+  assert (extensional b1') as Heb1'. { 
+    apply strictly_causal_extensional. exact Hb1'. 
+  }
+  assert (is_composed_behaviour_noinputs b1' b2' (compose_behaviours_noinputs b1' b2' y_default)). {
+    pose (@causal_composed_noinputs Y1 Y2) as Hni.
+    unfold mixed_causal in *.
+    apply Hni.
+    apply Hb1'.
+    apply Hb2'.
+  }
+  assert (forall k, compose_behaviours b1 b2 y_default uad k
+            = compose_behaviours_noinputs b1' b2' y_default k) as Hcni. {
+    intros k. unfold compose_behaviours. rewrite -> Heqb1', Heqb2'. trivial. 
+  } 
+  assert (forall k, py1 k = fst (compose_behaviours_noinputs b1' b2' y_default k)) as Hpy1.  {
+    intro k. unfold py1. rewrite <- Hcni. reflexivity. }
+  assert (forall k, py2 k = snd (compose_behaviours_noinputs b1' b2' y_default k)) as Hpy2. {
+    intro k. unfold py2. rewrite <- Hcni. reflexivity. }
+  assert (forall k, gy1 k = b1' (fun n => py2 n) k) as Hgy1. {
+    intro k. unfold gy1. rewrite -> Heqb1'. reflexivity. }
+  assert (forall k, gy2 k = b2' (fun n => py1 n) k) as Hgy2. {
+    intro k. unfold gy2. rewrite -> Heqb2'. reflexivity. }
+  unfold is_composed_behaviour_noinputs in H.
+  destruct (H n) as [H1 H2].
+  rewrite <- Hpy1 in H1.
+  rewrite <- Hpy2 in H2.
+  rewrite -> Hgy1, -> Hgy2.
+  split.
+  - rewrite <- H1. 
+    apply Heb1'.
+    intros n'.
+    rewrite <- Hpy2. 
+    reflexivity.
+  - rewrite <- Hgy2. 
+    reflexivity.
+Qed.
