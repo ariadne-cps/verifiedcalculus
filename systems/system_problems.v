@@ -67,9 +67,9 @@ Definition signal' {Y:Type} {X:Type} {U:Type}
 
 Check signal.
 
-(* The behavior of a system is the input-output map
+(* The behaviour of a system is the input-output map
    taking input signals ℕ→U to the corresponding output ℕ→Y. *)
-Definition behavior {UA UD Y X : Type}
+Definition behaviour {UA UD Y X : Type}
   (s:@system UA UD X Y)
   (u:nat->UA*UD)
   (n:nat)
@@ -80,8 +80,8 @@ Definition behavior {UA UD Y X : Type}
     end
 .
 
- (* By Currying, behavior' and behavior'' below are equivalent to behavior above. *)
-Definition behavior' {UA UD Y X : Type}
+ (* By Currying, behaviour' and behaviour'' below are equivalent to behaviour above. *)
+Definition behaviour' {UA UD Y X : Type}
   (s : @system UA UD X Y)
   (u:nat->UA*UD)
   : (nat->Y) :=
@@ -91,7 +91,7 @@ Definition behavior' {UA UD Y X : Type}
     end
 .
 
-Definition behavior'' {UA UD Y X : Type}
+Definition behaviour'' {UA UD Y X : Type}
    (s : @system UA UD X Y) :
    (nat->UA*UD) -> (nat->Y) :=
    match s with
@@ -100,19 +100,19 @@ Definition behavior'' {UA UD Y X : Type}
    end
  .
 
- Check behavior.
+ Check behaviour.
  
-(* Show that the behavior of a system satisfies the weaker definition of causal. *)
-Lemma behavior_mixed_causal' :
+(* Show that the behaviour of a system satisfies the weaker definition of causal. *)
+Lemma behaviour_mixed_causal' :
   forall {UA UD X Y : Type}
     (s : @system UA UD X Y),
-      mixed_causal' (behavior s).
+      mixed_causal' (behaviour s).
 Proof.
   intros UA UD X Y. intro s. unfold mixed_causal'.
   intros ua ua' ud ud'. intro n.
   intros H0 H1.
   destruct s as (f,h,e).
-  unfold behavior. unfold signal.
+  unfold behaviour. unfold signal.
   f_equal.
   - induction n.
     + unfold trajectory. reflexivity.
@@ -141,15 +141,15 @@ Proof.
     * apply Nat.le_refl.
 Qed.
 
-(* Show that the behavior of a system (usplit) is causal. *)
-Theorem behavior_mixed_causal :
+(* Show that the behaviour of a system (usplit) is causal. *)
+Theorem behaviour_mixed_causal :
   forall {UA UD X Y : Type}
     (s : @system UA UD X Y),
-      mixed_causal (behavior s).
+      mixed_causal (behaviour s).
 Proof.
   intros UA UD X Y s.
   apply mixed_causal_equivalent.
-  apply behavior_mixed_causal'.
+  apply behaviour_mixed_causal'.
 Qed.
 
 
@@ -158,11 +158,11 @@ Qed.
 *)
 
 
-(* A predicate which is true if b12 is a composed behavior of b1 and b2.
-   b12 is a composed behavior if the projections onto inputs/outputs
-   of the component systems b1 and b2 give the component behavior.
-   For non-strictly-causal systems, composed behaviors need not be unique. *)
-Definition  is_composed_behavior'
+(* A predicate which is true if b12 is a composed behaviour of b1 and b2.
+   b12 is a composed behaviour if the projections onto inputs/outputs
+   of the component systems b1 and b2 give the component behaviour.
+   For non-strictly-causal systems, composed behaviours need not be unique. *)
+Definition  is_composed_behaviour'
   {UA UD Y1 Y2 : Type}
   (b1 : (nat->(UA*(UD*Y2)))->(nat->Y1))
   (b2 : (nat->((UA*Y1)*UD))->(nat->Y2))
@@ -177,7 +177,7 @@ Definition  is_composed_behavior'
       let py1: Y1 := fst (b12 u n) in
       let py2: Y2 := snd (b12 u n) in
 
-      (* Outputs from separate behaviors *)
+      (* Outputs from separate behaviours *)
       let gy1: Y1 := b1 (fun k => (ua k, (ud k, snd (b12 u k)))) n in
       let gy2: Y2 := b2 (fun k => ((ua k, fst (b12 u k)), ud k)) n in
 
@@ -185,11 +185,11 @@ Definition  is_composed_behavior'
 .
 
 
-(* A predicate which is true if b12 is a composed behavior of b1 and b2.
-   b12 is a composed behavior if the projections onto inputs/outputs
-   of the component systems b1 and b2 give the component behavior.
-   For non-strictly-causal systems, composed behaviors need not be unique. *)
-  Definition  is_composed_behavior {UA UD Y1 Y2 : Type}
+(* A predicate which is true if b12 is a composed behaviour of b1 and b2.
+   b12 is a composed behaviour if the projections onto inputs/outputs
+   of the component systems b1 and b2 give the component behaviour.
+   For non-strictly-causal systems, composed behaviours need not be unique. *)
+  Definition  is_composed_behaviour {UA UD Y1 Y2 : Type}
     (b1 : (nat->(UA*(UD*Y2)))->(nat->Y1))
     (b2 : (nat->((UA*Y1)*UD))->(nat->Y2))
     (b12 : (nat->UA*UD)->(nat->Y1*Y2))
@@ -205,14 +205,14 @@ Definition  is_composed_behavior'
        let py2 : (nat -> Y2) := (fun k => snd (b12 u k)) in
 
 
-       (* Outputs from separate behaviors *)
+       (* Outputs from separate behaviours *)
        let gy1 : (nat -> Y1) := b1 (fun k => (ua k, (ud k, py2 k))) in
        let gy2 : (nat -> Y2) := b2 (fun k => ((ua k, py1 k), ud k)) in
 
          py1 n = gy1 n /\ py2 n = gy2 n
   .
 
-Check is_composed_behavior.
+Check is_composed_behaviour.
 
 
 (* Define the composition of state space models. *)
@@ -245,15 +245,15 @@ Definition compose_systems {UA UD X1 X2 Y1 Y2 : Type}
     end
 .
 
-(* Show that the behavior of the composition of two systems
-   is a composition of the behaviors of the components. *)
-Theorem composed_system_behavior {UA UD X1 X2 Y1 Y2 : Type} :
+(* Show that the behaviour of the composition of two systems
+   is a composition of the behaviours of the components. *)
+Theorem composed_system_behaviour {UA UD X1 X2 Y1 Y2 : Type} :
    forall (s1 : @system UA (UD*Y2) X1 Y1)
           (s2 : @system (UA*Y1) UD X2 Y2),
-          is_composed_behavior
-            (behavior s1)
-            (behavior s2)
-            (behavior (compose_systems s1 s2))
+          is_composed_behaviour
+            (behaviour s1)
+            (behaviour s2)
+            (behaviour (compose_systems s1 s2))
  .
  Proof.
    intros s1 s2.
@@ -263,7 +263,7 @@ Theorem composed_system_behavior {UA UD X1 X2 Y1 Y2 : Type} :
    destruct s12 as (f12,h12,e12).
    unfold compose_systems in Es12.
    injection (Es12) as Ef12 Eh12 Ee12. clear Es12.
-   unfold is_composed_behavior.
+   unfold is_composed_behaviour.
    intros u.
    simpl.
 
@@ -350,21 +350,21 @@ Theorem composed_system_behavior {UA UD X1 X2 Y1 Y2 : Type} :
  Qed.
 
 
-(* The composition of two strictly causal behaviors should be unique. *)
-Theorem composed_mixed_causal_system_behavior_unique
+(* The composition of two mixed causal behaviours should be unique. *)
+Theorem composed_mixed_causal_system_behaviour_unique
   {UA UD X1 X2 Y1 Y2 : Type} :
   forall (b1 : (nat->(UA*(UD*Y2)))->(nat->Y1))
          (b2 : (nat->((UA*Y1)*UD))->(nat->Y2))
          (b12 b12' : (nat->UA*UD)->(nat->Y1*Y2)),
            mixed_causal b1 ->
            mixed_causal b2 ->
-           is_composed_behavior b1 b2 b12 ->
-           is_composed_behavior b1 b2 b12'
+           is_composed_behaviour b1 b2 b12 ->
+           is_composed_behaviour b1 b2 b12'
              -> forall (u : nat->UA*UD) (n:nat),
                   b12 u n = b12' u n.
 Proof.
   intros b1 b2 b12 b12' Hmcb1 Hmcb2.
-  unfold is_composed_behavior.
+  unfold is_composed_behaviour.
   intros HPcompb12 HPcompb12'.
   intros u.
 
@@ -457,9 +457,9 @@ Proof.
   (* Key insights
 
      1) Causality defines a relation between all possible inputs
-        with the behavior's output.
+        with the behaviour's output.
         For a subset of inputs there must also be a useful relation.
-        This subset of inputs can be the output from the other connected behavior.
+        This subset of inputs can be the output from the other connected behaviour.
 
      2) The composition has a circular structure.
         Output b1 is input to b2, output of b2 is input to b1.
@@ -471,28 +471,28 @@ Proof.
         It is an ideal candidate to get a grip on with induction.
 
      4) In order for induction to work a zero condition is needed.
-        The starting point for induction - what is it for behaviors?
+        The starting point for induction - what is it for behaviours?
 
         Took a while to realize that ex falso can be used here.
         There is no n<0.
 
-     With above insights it should be possible to prove that the behavior
-     of two equal composed systems always should the same behavior for all
+     With above insights it should be possible to prove that the behaviour
+     of two equal composed systems always should the same behaviour for all
      possible inputs.
-     In other words, this behavior is unique.
+     In other words, this behaviour is unique.
   *)
 
   (* In 3 steps
      For b1
      Step 1: Use causality to get setup circular dependency
-     between b1, b2 behaviors.
+     between b1, b2 behaviours.
      Only partly circular, will be closed later.
      Step 2: Get rid of unnecessary inputs. Keep only the useful.
-     Step 3: Bring up clearly the behavior dependency.
+     Step 3: Bring up clearly the behaviour dependency.
 
      For b2
      Different steps but leading to the same goal:
-       the component behavior dependency between the 2 components
+       the component behaviour dependency between the 2 components
 
   *)
 
@@ -506,7 +506,7 @@ Proof.
 
    ) as Hb1eq'.
    { intros n H0.
-     (* apply behavior_mixed_causal. *)
+     (* apply behaviour_mixed_causal. *)
      apply Hmcb1.
      - reflexivity.
      - apply H0.
@@ -589,10 +589,10 @@ Proof.
   }
 
   (* Now, close the circular structure.
-     From behaviors b1, b2 to behaviors b1, b2
+     From behaviours b1, b2 to behaviours b1, b2
 
      Resulting assert will be a candidate for induction.
-     To proof that behaviors must be equal in b12 and b12'.
+     To proof that behaviours must be equal in b12 and b12'.
 
      The conclusion states the same as the two premisses.
      But the conclusion is valid one step further.
@@ -703,7 +703,7 @@ Proof.
    intros n.
    (* Check (Hb12un). *)
 
-   (* Bring it to component behavior level
+   (* Bring it to component behaviour level
       Assertion Hb12eq'' has been set up for that.
    *)
    rewrite Hb12un. rewrite Hb12un'.
@@ -715,53 +715,53 @@ Proof.
 Qed.
 
 
-(* The composed behavior of two systems should be unique. *)
+(* The composed behaviour of two systems should be unique. *)
 
 (* Intermediate step to show how this theorem easily follows from last theorem *)
 
-(* From above Theorem composed_mixed_causal_system_behavior_unique, get systems involved
-   - replace b12' by (behavior (compose_systems s1 s2)).
-   - use (behavior s1) for b1, (behavior s2) for b2.
+(* From above Theorem composed_mixed_causal_system_behaviour_unique, get systems involved
+   - replace b12' by (behaviour (compose_systems s1 s2)).
+   - use (behaviour s1) for b1, (behaviour s2) for b2.
 *)
 
 Lemma Hb12eqbehav {UA UD X1 X2 Y1 Y2 : Type} :
   forall (s1 : @system UA (UD*Y2) X1 Y1)
          (s2 : @system (UA*Y1) UD X2 Y2)
          (b12 : (nat->UA*UD)->(nat->Y1*Y2)),
-    is_composed_behavior (behavior s1) (behavior s2) b12 ->
-    is_composed_behavior (behavior s1) (behavior s2) (behavior (compose_systems s1 s2))
+    is_composed_behaviour (behaviour s1) (behaviour s2) b12 ->
+    is_composed_behaviour (behaviour s1) (behaviour s2) (behaviour (compose_systems s1 s2))
       -> forall (u : nat->UA*UD) (n:nat),
-        b12 u n = behavior (compose_systems s1 s2) u n.
+        b12 u n = behaviour (compose_systems s1 s2) u n.
 Proof.
    intros s1 s2 b12 H0 H1.
-   remember (behavior (compose_systems s1 s2)) as b12' eqn:Eb12'.
-   remember (behavior s1) as b1 eqn:Eb1.
-   remember (behavior s2) as b2 eqn:Eb2.
+   remember (behaviour (compose_systems s1 s2)) as b12' eqn:Eb12'.
+   remember (behaviour s1) as b1 eqn:Eb1.
+   remember (behaviour s2) as b2 eqn:Eb2.
    intros u n.
-   (* Check composed_mixed_causal_system_behavior_unique. *)
-   apply @composed_mixed_causal_system_behavior_unique
+   (* Check composed_mixed_causal_system_behaviour_unique. *)
+   apply @composed_mixed_causal_system_behaviour_unique
      with (b1:=b1) (b2:=b2) (b12':=b12').
 
    - apply X1. (* ? *)
    - apply X2. (* ? *)
-   - rewrite Eb1. apply behavior_mixed_causal.
-   - rewrite Eb2. apply behavior_mixed_causal.
+   - rewrite Eb1. apply behaviour_mixed_causal.
+   - rewrite Eb2. apply behaviour_mixed_causal.
    - exact H0.
    - exact H1.
 Qed.
 
-(* The composed behavior of two systems should be unique. *)
+(* The composed behaviour of two systems should be unique. *)
 (* One condition can go, because it is already proven to be true *)
-Theorem composed_system_behavior_unique {UA UD X1 X2 Y1 Y2 : Type} :
+Theorem composed_system_behaviour_unique {UA UD X1 X2 Y1 Y2 : Type} :
   forall (s1 : @system UA (UD*Y2) X1 Y1)
          (s2 : @system (UA*Y1) UD X2 Y2)
          (b12 : (nat->UA*UD)->(nat->Y1*Y2)),
-    is_composed_behavior (behavior s1) (behavior s2) b12
+    is_composed_behaviour (behaviour s1) (behaviour s2) b12
       -> forall (u : nat->UA*UD) (n:nat),
-        b12 u n = behavior (compose_systems s1 s2) u n.
+        b12 u n = behaviour (compose_systems s1 s2) u n.
 Proof.
   intros s1 s2 b12 Hb12 u n.
   apply Hb12eqbehav.
   - exact Hb12.
-  - apply composed_system_behavior.
+  - apply composed_system_behaviour.
 Qed.
