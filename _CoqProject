@@ -28,6 +28,7 @@ functions/PolynomialModelMonomialScale.v
 functions/PolynomialModelMultiply.v
 functions/PolynomialModelDivide.v
 
-systems/definitions.v
-systems/system_problems.v
+systems/causality.v
+systems/behaviour_composition.v
+systems/system_composition.v
 systems/compose_behaviours.v
