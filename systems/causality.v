@@ -15,7 +15,7 @@
 
 Require Import Coq.Arith.PeanoNat.
 
-Module definitions.
+Module causality.
 
 (* A behaviour is causal if the output up to time n depends only on the input up to time n. *)
 Definition causal {U:Type} {Y:Type}
@@ -155,4 +155,19 @@ Proof.
     + apply Nat.le_refl.
 Qed.
 
-End definitions.
+
+Definition extensional {U Y : Type} (b : (nat -> U) -> (nat -> Y)) :=
+  forall u u', (forall n, u n = u' n) -> (forall n, (b u) n = (b u') n).
+
+Lemma strictly_causal_extensional {U Y} : forall (b:(nat->U)->(nat->Y)),
+  strictly_causal b -> extensional b.
+Proof.
+  unfold strictly_causal, extensional.
+  intros b Hc. intros u u' Hu n. apply (Hc u u' n).
+  intros m Hm. apply Hu. apply Nat.le_refl.
+Qed.
+
+
+
+
+End causality.

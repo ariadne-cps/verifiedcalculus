@@ -24,16 +24,18 @@
 
 Require Import Coq.Arith.PeanoNat.
 
-Require Export definitions.
-Require Export system_problems.
+Require Export causality.
+Require Export behaviour_composition.
 
-Notation causal := definitions.causal.
-Notation causal' := definitions.causal'.
-Notation strictly_causal := definitions.strictly_causal.
-Notation strictly_causal' := definitions.strictly_causal'.
-Notation strictly_causal_equivalent := definitions.strictly_causal_equivalent.
-Notation mixed_causal := definitions.mixed_causal.
-Notation is_composed_behaviour := system_problems.is_composed_behaviour.
+Notation causal := causality.causal.
+Notation causal' := causality.causal'.
+Notation strictly_causal := causality.strictly_causal.
+Notation strictly_causal' := causality.strictly_causal'.
+Notation strictly_causal_equivalent := causality.strictly_causal_equivalent.
+Notation mixed_causal := causality.mixed_causal.
+Notation extensional := causality.extensional.
+Notation strictly_causal_extensional := causality.strictly_causal_extensional.
+Notation is_composed_behaviour := behaviour_composition.is_composed_behaviour.
 
 (* Think of a better name than 'combine', maybe 'function_compose' *)
 Definition combine_behaviours_noinputs
@@ -433,17 +435,6 @@ Definition compose_behaviours
     let b2' := fun (y1 : nat -> Y1) => b2 (fun n => ((ua n, y1 n), ud n)) in
       compose_behaviours_noinputs b1' b2' y_default.
 
-
-Definition extensional {U Y : Type} (b : (nat -> U) -> (nat -> Y)) :=
-  forall u u', (forall n, u n = u' n) -> (forall n, (b u) n = (b u') n).
-
-Lemma strictly_causal_extensional {U Y} : forall (b:(nat->U)->(nat->Y)),
-  strictly_causal b -> extensional b.
-Proof.
-  unfold strictly_causal, extensional.
-  intros b Hc. intros u u' Hu n. apply (Hc u u' n).
-  intros m Hm. apply Hu. apply Nat.le_refl.
-Qed.
 
 
 
