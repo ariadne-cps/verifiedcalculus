@@ -415,3 +415,30 @@ Proof.
    - apply Hb12eq''.
 
 Qed.
+
+
+
+Theorem behaviour_composition_mixed_causal {UA UD Y1 Y2} :
+  forall b1 b2 (b12 : (nat->UA*UD)->(nat->Y1*Y2)), 
+    (mixed_causal b1) -> (mixed_causal b2) -> (is_composed_behaviour b1 b2 b12) ->
+      (mixed_causal b12).
+Proof.
+  intros b1 b2 b12 Hcb1 Hcb2 Hb12.
+  unfold mixed_causal in *.
+  unfold is_composed_behaviour in *.
+  intros u u'.
+  induction n.
+  - intros Hua _. intros m Hm.
+    assert (m=0) as Hm0; [apply Nat.le_0_r; exact Hm|].
+    rewrite -> Hm0.
+    f_equal.
+Admitted.    
+
+(*
+Theorem behaviour_composition_associative : 
+  forall b1 b2 b3 b123,
+    ( exists b12, (is_composed_behaviour b1 b2 b12) /\ (is_composed_behaviour b12 b3 b123) )
+    <->
+    ( exists b23, (is_composed_behaviour b2 b3 b23) /\ (is_composed_behaviour b1 b23 b123) )
+.
+*)  

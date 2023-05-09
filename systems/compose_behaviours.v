@@ -456,13 +456,13 @@ Proof.
   intros py1 py2 gy1 gy2.
   assert (strictly_causal b1') as Hb1'. {
     unfold strictly_causal. unfold mixed_causal in Hb1.
-    intros u u' n' Hsc. rewrite -> Heqb1'. apply Hb1. trivial.
-    intros m' Hm'. f_equal. apply Hsc. exact Hm'. 
+    intros y2 y2' n' Hsc. rewrite -> Heqb1'. apply Hb1. trivial.
+    intros m' Hm'. f_equal. f_equal. f_equal. apply Hsc. exact Hm'. 
   }
   assert (causal b2') as Hb2'. {
     unfold causal. unfold mixed_causal in Hb2.
-    intros u u' n' Hc. rewrite -> Heqb2'. apply Hb2. 
-    intros m' Hm'. f_equal. apply Hc. exact Hm'. trivial. 
+    intros y1 y1' n' Hc. rewrite -> Heqb2'. apply Hb2. 
+    intros m' Hm'. f_equal. f_equal. f_equal. apply Hc. exact Hm'. trivial. 
   }
   assert (extensional b1') as Heb1'. { 
     apply strictly_causal_extensional. exact Hb1'. 
@@ -500,3 +500,43 @@ Proof.
   - rewrite <- Hgy2. 
     reflexivity.
 Qed.
+
+
+Variable UA UD Y1 Y2 Y3 : Type.
+
+Variable y1_default : Y1.
+Variable y2_default : Y2.
+Variable b1 : (nat->UA*((UD*Y3)*Y2))->(nat->Y1).
+Variable b2 : (nat->(UA*Y1)*(UD*Y3))->(nat->Y2).
+Variable b3 : (nat->(UA*(Y1*Y2))*UD)->(nat->Y3).
+Let b12 : (nat->(UA)*(UD*Y3))->(nat->Y1*Y2) := compose_behaviours b1 b2 y1_default.
+Let b123 : (nat->UA*UD)->(nat->(Y1*Y2)*Y3) := compose_behaviours b12 b3 (y1_default,y2_default).
+
+Variable b1' : (nat->UA*(UD*(Y2*Y3)))->(nat->Y1).
+Variable b2' : (nat->(UA*Y1)*(UD*Y3))->(nat->Y2).
+Variable b3' : (nat->((UA*Y1)*Y2)*UD)->(nat->Y3).
+Let b23' : (nat->(UA*Y1)*UD)->(nat->Y2*Y3) := compose_behaviours b2' b3' y2_default.
+Let b123' : (nat->UA*UD)->(nat->Y1*(Y2*Y3)) := compose_behaviours b1' b23' y1_default.
+
+Definition preprocess1 {UA UD Y1 Y2 Y3} ( b1 : (nat->UA*(UD*(Y2*Y3)))->(nat->Y1) ) := 
+  fun (v : nat->UA*((UD*Y3)*Y2)) => b1 (fun k => let vk:=v k in (fst vk,(fst (fst (snd vk)),(snd (snd vk),snd (fst (snd vk)))))).
+Definition preprocess3 {UA UD Y1 Y2 Y3} ( b3 : (nat->(UA*(Y1*Y2))*UD)->(nat->Y3) ) := 
+  fun (v : nat->((UA*Y1)*Y2)*UD) => b3 (fun k => let vk:=v k in ((fst (fst (fst vk)),(snd (fst (fst vk)),snd (fst vk))),snd vk)).
+Definition postprocess {UA UD Y1 Y2 Y3} ( b123 : (nat->(UA*UD))->(nat->Y1*(Y2*Y3)) ) :=
+  fun (u : nat->UA*UD) => (fun k => let wk := b123 u k in ((fst wk,fst (snd wk)),snd (snd wk))).
+ 
+
+
+Theorem compose_behaviours_associative {UA UD Y1 Y2 Y3} : 
+  forall (y1_default : Y1) (y2_default : Y2)
+         (b1 : (nat->UA*(UD*(Y2*Y3)))->(nat->Y1)) 
+         (b2 : (nat->(UA*Y1)*(UD*Y3))->(nat->Y2))
+         (b3 : (nat->(UA*(Y1*Y2))*UD)->(nat->Y3)),
+    let pb1 := (preprocess1 b1) in
+    let pb3 := (preprocess3 b3) in
+    compose_behaviours (compose_behaviours pb1 b2 y1_default) b3 (y1_default,y2_default)
+      = postprocess (compose_behaviours b1 (compose_behaviours b2 pb3 y2_default) y1_default).
+Proof.
+Admitted.
+
+ 
