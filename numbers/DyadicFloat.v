@@ -773,6 +773,7 @@ Qed.
 
 
 
+#[export]
 #[refine]
 Instance Dyadic_Float (n:nat) : Float (Dyadic n) :=
 {

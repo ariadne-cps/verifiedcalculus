@@ -8,6 +8,7 @@
 
 Require Import Rbase.
 Require Import Rdefinitions.
+Require Import Rbasic_fun.
 Require Import Rfunctions.
 
 Require Import PartSum.
@@ -49,7 +50,9 @@ Proof.
   apply f_equal. apply f_equal.
   rewrite <- Hns.
   rewrite -> Nat.sub_add. reflexivity.
-  apply Arith_prebase.le_plus_trans_stt. exact Hslen.
+  apply Nat.le_trans with n.
+  exact Hslen.
+  apply Nat.le_add_r.
 Qed.
 
 Lemma sum_start : forall (n:nat) (f:nat->R), sum_f 0 (n+1) f = Rplus (f 0) (sum_f 1 (n+1) f).
