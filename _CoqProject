@@ -2,6 +2,7 @@
 
 utilities/Ordering.v
 utilities/Sorting.v
+utilities/Induction.v
 
 numbers/R_addenda.v
 numbers/Analysis.v
