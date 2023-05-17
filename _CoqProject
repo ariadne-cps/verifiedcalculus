@@ -22,3 +22,4 @@ functions/PolynomialModelMultiply.v
 functions/PolynomialModelDivide.v
 
 logic/Sierpinskian.v
+logic/Kleenean.v
