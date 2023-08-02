@@ -20,6 +20,7 @@
 
 Require Import Reals.
 Require Import Lra.
+Require Import Lia.
 
 Require Import R_addenda.
 
@@ -278,5 +279,112 @@ Proof.
   exact Hwdy.
 Qed.
 
+
+Lemma strictly_increasing_implies_increasing : forall (f : R -> R), 
+  (forall (x y : R), x<y -> f x < f y) -> (forall (x y : R), x<=y -> f x <= f y).
+Proof.
+  intros f H x y. specialize (H x y).
+  intro Hle. destruct Hle as [Hlt | Heq].
+  - apply Rlt_le. exact (H Hlt).
+  - apply Req_le. f_equal. exact Heq.
+Qed.
+
+Lemma exp_strict_incr :  forall (x y : R), x<y -> exp x < exp y.
+Proof.
+  exact (exp_increasing).
+Qed.
+
+Lemma exp_incr :  forall (x y : R), x<=y -> exp x <= exp y.
+Proof.
+  exact (strictly_increasing_implies_increasing exp exp_strict_incr).
+Qed.
+
+
+Lemma exp_ge : forall (x : R), 1+x <= exp(x).
+Proof.
+  exact exp_ineq1_le.
+Qed.
+
+Lemma exp_le : forall (x : R), x<1 -> exp(x) <= / (1-x).
+Proof.
+  intros x Hxlt1.
+  unfold Rminus.
+  assert (1 + (-x) <= exp (-x)) as Hnegx. { exact (exp_ineq1_le (-x)). } 
+  rewrite -> exp_Ropp in Hnegx.
+  assert (0 < 1+-x) as H1minusx. { apply Rlt_Rminus_zero. exact Hxlt1. }
+  assert (0 < exp x) as Hexpxpos. { exact (exp_pos x). }
+  apply Rle_Rinv in Hnegx.
+  rewrite -> Rinv_inv in Hnegx.
+  - exact Hnegx.
+  - exact H1minusx.
+  - apply Rinv_pos. exact Hexpxpos.
+Qed.
+
+
+(* If |y-w|<=d, then |e^y - e^w| <= e^w|e^(y-w)-1| <= e^w(e^d-1) *)
+Definition exp_err w d :=
+  ((exp d) - 1) * (exp w).
+
+
+Lemma Rminus_plus_cancel : forall (x y : R), (x-y)+y = x.
+Proof.
+  intros x y; unfold Rminus; rewrite -> Rplus_assoc, -> Rplus_opp_l, -> Rplus_0_r; reflexivity.
+Qed.
+
+Lemma Rplus_minus_cancel : forall (x y : R), (x+y)-y = x.
+Proof.
+  intros x y; unfold Rminus; rewrite -> Rplus_assoc, -> Rplus_opp_r, -> Rplus_0_r; reflexivity.
+Qed.
+
+Lemma rec_diff : forall x, 0<x -> 1-/x <= x-1.
+Proof.
+  intros x H.
+  apply Rmult_le_reg_r with (r:=x); [exact H|].
+  rewrite -> Rmult_minus_distr_r, Rmult_1_l.
+  rewrite <- Rinv_l_sym; [|apply Rgt_not_eq; exact H].
+  apply Rle_zero_Rminus.
+  set (y:=x-1); replace x with (y+1); [|exact (Rminus_plus_cancel x 1)].
+  rewrite -> Rmult_plus_distr_l, Rmult_1_r.
+  rewrite -> Rplus_minus_cancel.
+  apply Rmult_mult_nonneg.
+Qed.
+
+Lemma exp_err_correct : forall w d y,
+  Rdist w y <= d ->
+    Rdist (exp w) (exp y) <= exp_err w d.
+Proof.
+  intros w d y H.
+  rewrite -> Rdist_sym in H.
+  unfold Rdist in H.
+  apply Rabs_ivl in H.
+  unfold exp_err.
+  assert ((y-w)+w=y) as Hy; [apply Rminus_plus_cancel|].
+  rewrite <- Hy.
+  rewrite -> exp_plus.
+  assert (forall x y, Rdist y (x*y) = Rdist (1*y) (x*y)) as H1. {
+    intros; rewrite -> Rmult_1_l; reflexivity. }
+  rewrite -> H1.
+  rewrite <- Rdist_mult_r; [|apply Rlt_le; apply exp_pos].
+  apply Rmult_le_compat_r; [apply Rlt_le; apply exp_pos|].
+  unfold Rdist.
+  apply Rabs_le.
+  split.
+  - rewrite -> Ropp_minus_distr.
+    apply Rplus_le_compat_l.
+    apply Ropp_le_contravar.
+    apply exp_incr.
+    apply H.
+  - apply Rle_trans with (r2 := 1-exp (-d)).
+    -- apply Ropp_le_cancel.
+       rewrite -> Ropp_minus_distr.
+       rewrite -> Ropp_minus_distr.
+       apply Rplus_le_compat_r.
+       apply exp_incr. 
+       apply H. 
+    -- rewrite -> exp_Ropp.
+       set (x := exp d).
+       assert (0<x) as Hx; [apply exp_pos|].
+       exact (rec_diff x Hx).
+Qed.
 
 End Analysis.

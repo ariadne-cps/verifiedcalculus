@@ -20,10 +20,12 @@
 
 Require Import Reals.
 Require Import Lia.
+Require Import Lra.
 
 Require Import R_addenda.
 Require Import Floats.
 Require Import Analysis.
+Require Import Bounds.
 
 Section FloatBall.
 
@@ -538,5 +540,356 @@ Proof.
     exact H2.
     exact Hor.
 Qed.
+
+
+Definition ball_to_bounds (x : Ball) : (Bounds) :=
+  let (v,e) := (value x, error x) in
+    bounds (Fsub down v e) (Fadd up v e).
+
+Proposition ball_to_bounds_correct : 
+  forall (x : Ball) (y : R),
+    models x y -> Bounds.models (ball_to_bounds x) y.
+Proof.
+  intros x y H.
+  destruct x as (v & e).
+  unfold ball_to_bounds; unfold models in H; unfold Bounds.models; simpl.
+  unfold Rdist in H; apply Rabs_ivl in H; destruct H as (Hl&Hu).
+  split.
+  - apply Rle_trans with (r2:=FinjR v - FinjR e).
+    apply flt_sub_down.
+    lra.
+  - apply Rle_trans with (r2:=FinjR v + FinjR e).
+    lra.
+    apply Rge_le; apply flt_add_up.
+Qed.
+  
+  
+Definition bounds_to_ball (x : Bounds) : (Ball) :=
+  let (l,u) := (lower x, upper x) in
+    let v := Fdiv near (Fadd near l u) (NinjF 2) in 
+      let e := Fmax (Fsub up v l) (Fsub up u v) in
+        ball v e.
+        
+Proposition bounds_to_ball_correct : 
+  forall (x : Bounds) (y : R),
+    Bounds.models x y -> models (bounds_to_ball x) y.
+Proof.
+  intros x y H.
+  destruct x as (l & u).
+  unfold bounds_to_ball; unfold Bounds.models in H; unfold models; simpl.
+  destruct H as (Hl&Hu).
+  set (v:=Fdiv near (Fadd near l u) (NinjF 2)).
+  
+  unfold Rdist.
+  assert (FinjR v <= y \/ y <= FinjR v) as Hvy; [apply Rle_or_le|].
+  destruct Hvy as [Hvley|Hylev].
+  - assert (FinjR v - y <= 0) as Hvsy. { apply Rle_minus. exact Hvley. }
+    rewrite -> Rabs_neg_eq by (exact Hvsy).
+    rewrite -> Ropp_minus_distr.
+    apply Rle_trans with (r2:=Rmax (FinjR v - FinjR l) (FinjR u - FinjR v)).
+    apply Rle_trans with (r2:=FinjR u - FinjR v).
+    -- apply Rplus_le_compat_r.
+       exact Hu.
+    -- apply Rmax_r.
+    -- rewrite -> flt_max_exact.
+       apply Rle_max_compat.
+       apply Rge_le; apply flt_sub_up.
+       apply Rge_le; apply flt_sub_up.
+  - assert (0<=FinjR v - y) as Hvsy. { apply Rle_Rminus_zero. exact Hylev. }
+    rewrite -> Rabs_pos_eq by (exact Hvsy).
+    apply Rle_trans with (r2:=Rmax (FinjR v - FinjR l) (FinjR u - FinjR v)).
+    apply Rle_trans with (r2:=FinjR v - FinjR l).
+    -- apply Rplus_le_compat_l.
+       apply Ropp_le_contravar.
+       exact Hl.
+    -- apply Rmax_l.
+    -- rewrite -> flt_max_exact.
+       apply Rle_max_compat.
+       apply Rge_le; apply flt_sub_up.
+       apply Rge_le; apply flt_sub_up.
+Qed.
+  
+
+Definition exp_ball (x : Ball) : Ball :=
+  bounds_to_ball (exp_bounds (ball_to_bounds x)).
+
+Theorem exp_ball_correct : 
+  forall (x : Ball) (y : R), 
+    (FinjR (Fsub down Funit (Fadd up (value x) (error x))) > 0) ->
+      (models x y) -> (models (exp_ball x) (exp y)).
+Proof.
+  intros x y Hu H.
+  unfold exp_ball.
+  apply bounds_to_ball_correct.
+  apply exp_bounds_correct.
+  apply ball_to_bounds_correct.
+  exact H.
+  unfold ball_to_bounds; simpl; exact Hu.
+Qed.
+
+Definition Rexp_approx (x : R) : R :=
+  (x / 2 + 1) * x + 1.
+  
+Definition exp_approx' (rnd : Rounding) (x : F) : F :=
+  Fadd rnd (Fmul rnd (Fadd rnd (Fdiv rnd x (NinjF 2)) Funit) x) Funit.
+
+Definition exp_approx (x : F) : F := exp_approx' near x.
+
+Definition exp_approx_rng (x : F) : F :=
+  Fsub up (exp_approx' up x) (exp_approx' down x).
+
+Lemma exp_approx_down : 
+  forall (x : F), (0 <= FinjR x) -> FinjR (exp_approx' down x) <= Rexp_approx (FinjR x).
+Proof.
+  intros x  Hx.
+  unfold exp_approx', Rexp_approx.
+  apply Rle_trans with (r2:=FinjR (Fmul down (Fadd down (Fdiv down x (NinjF 2)) Funit) x) + 1).
+  rewrite <- flt_unit.
+  apply flt_add_down.
+  apply Rplus_le_compat_r.
+  apply Rle_trans with (r2:=FinjR (Fadd down (Fdiv down x (NinjF 2)) Funit) * FinjR x).
+  apply flt_mul_down.
+  apply Rmult_le_compat_r. apply Hx.
+  apply Rle_trans with (r2:=FinjR (Fdiv down x (NinjF 2)) + 1).
+  rewrite <- flt_unit.
+  apply flt_add_down.
+  apply Rplus_le_compat_r.
+  replace 2 with (FinjR (NinjF 2%nat)).
+  apply flt_div_down.
+  rewrite -> flt_ninjr. apply not_0_INR. auto.
+  rewrite -> flt_ninjr. auto. 
+Qed.
+ 
+Lemma exp_approx_up : 
+  forall (x : F), (0 <= FinjR x) -> FinjR (exp_approx' up x) >= Rexp_approx (FinjR x).
+Proof.
+  intros x  Hx.
+  unfold exp_approx', Rexp_approx.
+  apply Rge_trans with (r2:=FinjR (Fmul up (Fadd up (Fdiv up x (NinjF 2)) Funit) x) + 1).
+  rewrite <- flt_unit.
+  apply flt_add_up.
+  apply Rplus_ge_compat_r.
+  apply Rge_trans with (r2:=FinjR (Fadd up (Fdiv up x (NinjF 2)) Funit) * FinjR x).
+  apply flt_mul_up.
+  apply Rmult_ge_compat_r. apply Rle_ge; apply Hx.
+  apply Rge_trans with (r2:=FinjR (Fdiv up x (NinjF 2)) + 1).
+  rewrite <- flt_unit.
+  apply flt_add_up.
+  apply Rplus_ge_compat_r.
+  replace 2 with (FinjR (NinjF 2%nat)).
+  apply flt_div_up.
+  rewrite -> flt_ninjr. apply not_0_INR. auto.
+  rewrite -> flt_ninjr. auto. 
+Qed.
+
+
+Lemma Rdist_ge : forall (r1 r2 : R), r1>=r2 -> Rdist r1 r2 = r1-r2.
+Proof. 
+  intros r1 r2 H; unfold Rdist. 
+  apply Rabs_pos_eq; apply Rle_Rminus_zero; apply Rge_le; exact H.
+Qed.
+
+Lemma Rdist_le : forall (r1 r2 : R), r1<=r2 -> Rdist r1 r2 = r2-r1.
+Proof. 
+  intros r1 r2 H; unfold Rdist. 
+  rewrite <- (Ropp_minus_distr r1 r2); apply Rabs_neg_eq; apply Rle_minus; exact H.
+Qed.
+
+Lemma flt_add_near_up : forall (x y : F), FinjR (Fadd near x y) <= FinjR (Fadd up x y).
+Proof.
+  intros x y.
+  assert (Rdist (FinjR (Fadd near x y)) (FinjR x + FinjR y) <= Rdist (FinjR (Fadd up x y)) (FinjR x + FinjR y)) as Hn;
+    [apply flt_add_near|].
+  assert ((FinjR x + FinjR y) <= FinjR (Fadd up x y)) as Hu; [apply Rge_le; apply flt_add_up|].
+  set (zn := FinjR (Fadd near x y)) in *; 
+  set (zu := FinjR (Fadd up x y)) in *; 
+  set (ze := FinjR x + FinjR y) in *.
+  rewrite -> (Rdist_ge zu ze) in Hn; [|apply Rle_ge; exact Hu].
+  unfold Rdist in Hn.
+  apply Rabs_ivl in Hn.
+  apply Rplus_le_reg_r with (r:=-ze).
+  apply Hn.
+Qed. 
+  
+Lemma flt_add_near_down : forall (x y : F), FinjR (Fadd down x y) <= FinjR (Fadd near x y).
+Proof.
+  intros x y.
+  assert (Rdist (FinjR (Fadd near x y)) (FinjR x + FinjR y) <= Rdist (FinjR (Fadd down x y)) (FinjR x + FinjR y)) as Hn;
+    [apply flt_add_near|].
+  assert (FinjR (Fadd down x y) <= (FinjR x + FinjR y)) as Hl; [apply flt_add_down|].
+  set (zn := FinjR (Fadd near x y)) in *; 
+  set (zl := FinjR (Fadd down x y)) in *; 
+  set (ze := FinjR x + FinjR y) in *.
+  rewrite -> (Rdist_le zl ze) in Hn; [|exact Hl].
+  unfold Rdist in Hn.
+  apply Rabs_ivl in Hn.
+  rewrite -> Ropp_minus_distr in Hn.
+  apply Rplus_le_reg_r with (r:=-ze).
+  apply Hn.
+Qed. 
+  
+Lemma flt_add_near_monotone : forall (x1 x2 y1 y2 : F),
+  FinjR x1 <= FinjR x2 -> FinjR y1 <= FinjR y2 -> 
+    FinjR (Fadd near x1 y1) <= FinjR (Fadd near x2 y2).
+Proof. 
+(* z1<z2; |w1-z1|<=|w2-z1|; |w2-z2|<=|w1-z2| *)
+  assert (forall (x1 x2 : F), (FinjR x1 = FinjR x2) -> x1=x2) as HFinjR. { admit. }
+  
+  intros x1 x2 y1 y2 Hx Hy.
+  set (z1 := FinjR x1 + FinjR y1).
+  set (z2 := FinjR x2 + FinjR y2).
+  assert ((x1=x2 /\ y1=y2) \/ z1<z2) as Hz. { 
+    destruct Hx as [Hx|Hx].
+    - right. apply Rplus_lt_le_compat; [exact Hx|exact Hy].
+    - destruct Hy as [Hy|Hy].
+      right. apply Rplus_le_lt_compat; [apply Req_le;exact Hx|exact Hy].
+      left. split. apply HFinjR. exact Hx. apply HFinjR. exact Hy.
+  }
+  destruct Hz as [Hzeq | Hzlt].
+  - apply Req_le. f_equal. f_equal. apply Hzeq. apply Hzeq. 
+  - apply Rlt_le in Hzlt as Hzle.
+    assert (Rdist (FinjR (Fadd near x1 y1)) z1 <= (Rdist (FinjR (Fadd near x2 y2)) z1)) as Hz1. {
+      apply flt_add_near. }
+    assert (Rdist (FinjR (Fadd near x2 y2)) z2 <= (Rdist (FinjR (Fadd near x1 y1)) z2)) as Hz2. {
+      apply flt_add_near. }
+    set (w1 := FinjR (Fadd near x1 y1)) in *.
+    set (w2 := FinjR (Fadd near x2 y2)) in *.
+
+    assert (w1<=z2 \/ z1<=w2 \/ (z2<=w1 /\ w2<=z1)) as Hd. {
+      assert (w1<=z2 \/ z2<=w1) as Hw1; [apply Rle_or_le|].
+      assert (z1<=w2 \/ w2<=z1) as Hw2; [apply Rle_or_le|].
+      destruct Hw1 as [Hw1lez2|Hz2lew1].
+      - left. exact Hw1lez2.
+      - right. destruct Hw2 as [Hz1lew2|Hw2lez1].
+        -- left. exact Hz1lew2.
+        -- right. split. exact Hz2lew1. exact Hw2lez1.
+    }
+    destruct Hd as [Hw1lez2 | [Hz1lew2 | Hw2lez1ltz2lew1]].
+    -- rewrite -> (Rdist_le w1 z2) in Hz2.
+       unfold Rdist in Hz2; apply Rabs_ivl in Hz2. 
+       rewrite -> Ropp_minus_distr in Hz2.
+       apply Rplus_le_reg_r with (r:=-z2).
+       apply Hz2.
+       exact Hw1lez2.
+    -- rewrite -> (Rdist_ge w2 z1) in Hz1.
+       unfold Rdist in Hz1; apply Rabs_ivl in Hz1. 
+       apply Rplus_le_reg_r with (r:=-z1).
+       apply Hz1.
+       apply Rle_ge; exact Hz1lew2.
+    -- destruct Hw2lez1ltz2lew1 as (Hz2lew1 & Hw2lez1). 
+       rewrite -> (Rdist_le w2 z1) in Hz1; [|exact Hw2lez1].
+       rewrite -> (Rdist_ge w1 z2) in Hz2; [|apply Rle_ge; exact Hz2lew1].
+       unfold Rdist in Hz1; apply Rabs_ivl in Hz1. 
+       unfold Rdist in Hz2; apply Rabs_ivl in Hz2. 
+       rewrite -> Ropp_minus_distr in Hz2.
+       assert ((w1-z1)+(z2-w1)<=(z1-w2)+(w2-z2)) as Hc. {
+         apply Rplus_le_compat. apply Hz1. apply Hz2. }
+       lra.
+Admitted.
+
+Lemma flt_mul_near_monotone : forall (x1 x2 y1 y2 : F),
+  0 <= FinjR x1 -> 0<=FinjR y1 -> FinjR x1 <= FinjR x2 -> FinjR y1 <= FinjR y2 ->
+    FinjR (Fmul near x1 y1) <= FinjR (Fmul near x2 y2).
+Proof. Admitted.
+
+Lemma flt_mul_near_monotone_r : forall (x1 x2 y : F),
+  0<=FinjR y -> FinjR x1 <= FinjR x2 -> 
+    FinjR (Fmul near x1 y) <= FinjR (Fmul near x2 y).
+Proof. Admitted.
+
+Lemma flt_div_near_monotone : forall (x1 x2 y : F),
+  0 <= FinjR x1 -> 0<=FinjR y -> FinjR x1 <= FinjR x2 -> 
+    FinjR (Fdiv near x1 y) <= FinjR (Fdiv near x1 y).
+Proof. Admitted.
+
+Lemma flt_mul_near_up : forall (x y : F), FinjR (Fmul near x y) <= FinjR (Fmul up x y).
+Proof. Admitted.
+
+Lemma flt_div_near_up : forall (x y : F), FinjR (Fdiv near x y) <= FinjR (Fdiv up x y).
+Proof. Admitted.
+
+Lemma flt_add_monotone : forall rnd (x1 x2 y1 y2 : F),
+  FinjR x1 <= FinjR x2 -> FinjR y1 <= FinjR y2 -> 
+    FinjR (Fadd rnd x1 y1) <= FinjR (Fadd rnd x2 y2).
+Proof. Admitted.
+
+Lemma exp_approx_le : forall (x : F), (0<=FinjR x) -> Fle (exp_approx' near x) (exp_approx' up x).
+Proof.
+  intros x H0lex.
+  unfold exp_approx'.
+  assert (FinjR (Fdiv near x (NinjF 2)) <= FinjR (Fdiv up x (NinjF 2))) as H0. {
+    apply flt_div_near_up. }
+  assert ( FinjR (Fadd near (Fdiv near x (NinjF 2)) Funit)
+             <= FinjR (Fadd up (Fdiv up x (NinjF 2)) Funit) ) as H1. {
+    apply Rle_trans with (r2:=FinjR (Fadd near (Fdiv up x (NinjF 2)) Funit)).
+    apply flt_add_near_monotone.
+    exact H0.
+    apply Req_le; reflexivity.
+    apply flt_add_near_up.
+  }
+  assert ( FinjR (Fmul near (Fadd near (Fdiv near x (NinjF 2)) Funit) x)
+             <= FinjR (Fmul up (Fadd up (Fdiv up x (NinjF 2)) Funit) x) ) as H2. {
+    apply Rle_trans with (r2:=FinjR (Fmul near (Fadd up (Fdiv up x (NinjF 2)) Funit) x)).
+    apply flt_mul_near_monotone_r.
+    exact H0lex.
+    exact H1.
+    apply flt_mul_near_up.
+  }
+  assert (FinjR (Fadd near (Fmul near (Fadd near (Fdiv near x (NinjF 2)) Funit) x) Funit)
+            <= FinjR (Fadd up (Fmul up (Fadd up (Fdiv up x (NinjF 2)) Funit) x) Funit)) as H3. {
+    apply Rle_trans with (r2:=FinjR (Fadd near (Fmul up (Fadd up (Fdiv up x (NinjF 2)) Funit) x) Funit)).
+    apply flt_add_near_monotone.
+    exact H2.
+    apply Req_le; reflexivity.
+    apply flt_add_near_up.
+  }
+  set (wn:=(Fadd near (Fmul near (Fadd near (Fdiv near x (NinjF 2)) Funit) x) Funit)) in *.
+  set (wu:=(Fadd up (Fmul up (Fadd up (Fdiv up x (NinjF 2)) Funit) x) Funit)) in *.
+  unfold Fle.
+  exact H3.  
+Qed.
+
+Lemma bounds_error : forall (l u x1 x2 : R), l<=x1<=u -> l<=x2<=u -> Rdist x1 x2 <= u-l.
+Proof. intros; unfold Rdist; apply Rabs_le; lra. Qed.
+  
+Lemma exp_approx_ge : forall (x : F), (0<=FinjR x) -> Fle (exp_approx' down x) (exp_approx' near x).
+Proof. Admitted.
+
+Check exp_approx_le.
+Check exp_approx_ge.
+ 
+Lemma exp_approx_correct : 
+  forall (x : F), (0<=FinjR x) -> Rdist (Rexp_approx (FinjR x)) (FinjR (exp_approx x)) <= FinjR (exp_approx_rng x).
+Proof.
+  intros x Hx.
+  unfold exp_approx, exp_approx_rng.
+  set (wl := exp_approx' down x).
+  set (wu := exp_approx' up x).
+  assert (FinjR wu - FinjR wl <= FinjR (Fsub up wu wl) ) as He. {
+    apply Rge_le; apply flt_sub_up. }
+  set (zn := FinjR (exp_approx' near x)).
+  set (ze := Rexp_approx (FinjR x)).
+  apply Rle_trans with (r2:=FinjR wu - FinjR wl).
+  set (zl := FinjR wl) in *.
+  set (zu := FinjR wu) in *.
+  assert (zl <= zn) as Hln. { apply exp_approx_ge. exact Hx. }
+  assert (zn <= zu) as Hnu. { apply exp_approx_le. apply Hx. }
+  assert (zl <= ze) as Hle. { apply exp_approx_down. exact Hx. }
+  assert (ze <= zu) as Heu. { apply Rge_le; apply exp_approx_up. exact Hx. }
+  unfold Rdist; apply Rabs_le.
+  lra.
+  exact He.
+Qed.
+
+(*
+d(Fexp_approx x , exp x) <= d(Fexp_approx x , Rexp_approx x) + d(Rexp_approx x , exp x).
+d(x,y)<=d -> d(e^x,e^y)<=e^x*d(e^(y-x),1)<=e^x * (e^d-1)
+Suppose w≈e^x. Then 
+  d(w,e^y)<=d(w,e^x)+d(e^x,e^y)
+          <=d(w,e^x)+e^x*(e^d-1)
+          <=d(w,e^x)+(w+d(w,e^x))*(e^d-1)
+  
+(1+x/n)^n=1+x+(n*(n-1))/2/n^2*x^2+...=1+x+(1-1/n)*x^2/2+...
+*)
 
 End FloatBall.

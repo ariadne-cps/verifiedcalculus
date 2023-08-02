@@ -23,6 +23,7 @@ Require Import Lra.
 
 Require Import R_addenda.
 Require Import Floats.
+Require Import Analysis.
 
 
 Section Bounds.
@@ -796,5 +797,49 @@ Proof.
     rewrite -> pow_1.
     reflexivity.
 Qed.
+
+
+Definition exp_bounds {F:Type} {FltF : Float F} : Bounds -> Bounds :=
+  fun x =>
+    match x with bounds l u
+      => bounds (Fadd down Funit l) (Frec up (Fsub down Funit u)) end.
+
+Lemma exp_bounds_correct :
+  forall (x : Bounds) (y : R),
+    models x y -> (FinjR (Fsub down Funit (upper x)) > 0) -> models (exp_bounds x) (exp y).
+Proof.
+  intros x y H H1mu.  
+  destruct x as (l & u).
+  simpl in H1mu.
+  assert (FinjR u < 1) as Hu. {
+    apply Rlt_zero_Rminus; apply Rgt_lt.
+    rewrite <- flt_unit.
+    apply Rge_gt_trans with (r2 := FinjR (Fsub down Funit u));
+      [apply Rle_ge;apply flt_sub_down|apply H1mu].
+  }
+  unfold models in H.
+  unfold models; unfold exp_bounds.
+  split.
+  - apply Rle_trans with (r2:=1+y).
+    apply Rle_trans with (r2:=FinjR Funit + FinjR l).
+    -- apply flt_add_down.
+    -- apply Rplus_le_compat.
+       rewrite -> flt_unit. apply Rle_refl.
+       apply H.
+    -- apply exp_ge.
+  - apply Rle_trans with (r2:=/ (1%R-FinjR u)).
+    apply Rle_trans with (r2:=exp (FinjR u)).
+    -- apply exp_incr. apply H.  
+    -- apply exp_le. exact Hu.
+    -- apply Rle_trans with (r2:=/ FinjR (Fsub down Funit u)).
+       --- apply Rinv_le_contravar.
+           exact H1mu.
+           rewrite <- flt_unit. 
+           apply flt_sub_down.
+       --- apply Rge_le.
+           apply flt_rec_up.
+           apply Rgt_not_eq. exact H1mu.
+Qed.
+
 
 End Bounds.
