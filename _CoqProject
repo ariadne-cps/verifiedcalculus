@@ -4,6 +4,7 @@ utilities/Ordering.v
 utilities/Sorting.v
 utilities/Induction.v
 utilities/Monads.v
+utilities/SubsetMonad.v
 
 numbers/R_addenda.v
 numbers/Analysis.v
