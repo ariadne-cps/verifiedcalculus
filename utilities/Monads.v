@@ -1,6 +1,7 @@
-Section Monads.
+Require Import Coq.Logic.FunctionalExtensionality.
 
-Axiom extensionality : forall {A B} (f g : A -> B), (forall x, f x = g x) -> f = g.
+
+Section Monads.
 
 
 Class Monad (M : Type -> Type) :=
@@ -27,11 +28,6 @@ Class Monad (M : Type -> Type) :=
       := fun mu nu => Mbind ( fun x => ( Mbind (fun y => Mpure (pair x y)) nu ) ) mu;
 }.
 
-(*
-Axiom Mbind_extensionality : 
-  forall {M : Type -> Type} {MonadM : Monad M} {A B : Type} (f1 f2 : A -> M B) (a : M A),
-    (forall x, f1 x = f2 x) -> Mbind f2 a = Mbind f2 a.
-*)
 
 Definition compose {A B C : Type} (g : B -> C) (f : A -> B) : A -> C 
   := fun (a:A) => g (f a).
@@ -43,7 +39,7 @@ Proof.
   unfold Mlift.
   rewrite -> Massociativity.
   f_equal.
-  apply extensionality.
+  apply functional_extensionality.
   intro x.
   rewrite -> Mleft_identity.
   unfold compose.
@@ -55,7 +51,7 @@ Lemma Mlift_identity {M} {_ : Monad M}: forall {A : Type},
 Proof. 
   intros A.
   unfold Mlift.
-  apply extensionality. intros al.
+  apply functional_extensionality. intros al.
   rewrite -> Mright_identity.
   reflexivity.
 Qed.
@@ -66,10 +62,10 @@ Lemma Mfunctorial_compose {M} {_ : Monad M}  : forall {A B C : Type} (f : A -> B
 Proof. 
   intros A B C f g.
   unfold Mfunctor_map.
-  apply extensionality. intros al.
+  apply functional_extensionality. intros al.
   rewrite -> Massociativity.
   f_equal.
-  apply extensionality. intros a.
+  apply functional_extensionality. intros a.
   rewrite -> Mleft_identity.
   reflexivity.
 Qed.
@@ -79,7 +75,7 @@ Lemma Mfunctorial_identity {M} {_ : Monad M}: forall {A : Type},
 Proof. 
   intros A.
   unfold Mfunctor_map.
-  apply extensionality. intros al.
+  apply functional_extensionality. intros al.
   rewrite -> Mright_identity.
   reflexivity.
 Qed.
@@ -131,7 +127,7 @@ Proof.
   reflexivity.
 Qed.
 
-(* Requires extensionality *)
+(* Requires functional_extensionality *)
 Theorem Mproduct_pure_monad {M} {MonadM  : Monad M} : forall {A:Type} {B:Type} (x : A) (b : M B),
   Mleft_product (Mpure x) b = Mright_product (Mpure x) b.
 Proof.
@@ -139,12 +135,12 @@ Proof.
   unfold Mleft_product. unfold Mright_product.
   rewrite -> Mleft_identity.
   f_equal.
-  apply extensionality. intros b0.
+  apply functional_extensionality. intros b0.
   rewrite -> Mleft_identity.
   reflexivity.
 Qed.
 
-(* Requires extensionality *)
+(* Requires functional_extensionality *)
 Theorem Mproduct_monad_pure {M} {MonadM  : Monad M} : forall {A:Type} {B:Type} (a : M A) (y : B),
   Mleft_product a (Mpure y) = Mright_product a (Mpure y).
 Proof.
@@ -152,7 +148,7 @@ Proof.
   unfold Mleft_product. unfold Mright_product.
   rewrite -> Mleft_identity.
   f_equal.
-  apply extensionality. intros al.
+  apply functional_extensionality. intros al.
   rewrite -> Mleft_identity.
   reflexivity.
 Qed.
@@ -180,19 +176,19 @@ Proof.
     intro a.
     rewrite -> Massociativity.
     f_equal.
-    apply extensionality. intro b.
+    apply functional_extensionality. intro b.
     rewrite -> Mleft_identity.
     unfold fst.  
     reflexivity.
   }
-  apply extensionality in H1.
+  apply functional_extensionality in H1.
   rewrite -> H1.
   assert (forall (a:A), 
       Mbind (fun (b : B) => Mpure (a)) (nu a) = Mpure a) as H2. {
    intro a.
    apply Hbc.
   }
-  apply extensionality in H2.
+  apply functional_extensionality in H2.
   rewrite -> H2.
   rewrite -> Mright_identity.
   reflexivity.
@@ -206,7 +202,7 @@ Proof.
   unfold Mlift, compose.
   rewrite -> Massociativity.
   f_equal.
-  apply extensionality. intro a.
+  apply functional_extensionality. intro a.
   rewrite -> Mleft_identity.
   reflexivity.
 Qed.
@@ -228,16 +224,16 @@ Proof.
   rewrite -> Massociativity.
   rewrite -> Massociativity.
   f_equal.
-  apply extensionality. intro a.
+  apply functional_extensionality. intro a.
   rewrite -> Massociativity.
   rewrite -> Massociativity.
   rewrite -> Massociativity.
   f_equal.
-  apply extensionality. intro b.
+  apply functional_extensionality. intro b.
   rewrite -> Massociativity.
   rewrite -> Mleft_identity.
   f_equal.
-  apply extensionality. intro c.
+  apply functional_extensionality. intro c.
   rewrite -> Mleft_identity.
   rewrite -> Mleft_identity.
   unfold tuple_associate.

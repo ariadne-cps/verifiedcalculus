@@ -1,9 +1,8 @@
+Require Import Coq.Logic.FunctionalExtensionality.
+
 Require Import Monads.
 
 Module Type ContinuationMonads.
-
-
-Axiom extensionality: forall {A B : Type} (f1 f2 : A -> B), (forall x, f1 x = f2 x) -> f1 = f2.
 
 Parameter T : Type.
 
@@ -15,8 +14,9 @@ Definition pure {X : Type} (x : X) : (M X) :=
 Definition bind {X : Type} {Y : Type} (F : X -> M Y) (xi : M X) : (M Y) :=
   fun (psi : Y -> T) => xi (fun (x:X) => F x psi).
 
-Axiom bind_extensionality: forall {X1 X2 Y} (F1 : X1 -> M Y) (F2 : X2 -> M Y) (xi1 : M X1) (xi2 : M X2),
+Lemma bind_extensionality: forall {X1 X2 Y} (F1 : X1 -> M Y) (F2 : X2 -> M Y) (xi1 : M X1) (xi2 : M X2),
   (forall (psi : Y -> T), bind F1 xi1 psi = bind F2 xi2 psi) -> bind F1 xi1 = bind F2 xi2.
+Proof. intros X1 X2 Y F1 F2 xi1 xi2. apply functional_extensionality. Qed.
 
 Proposition left_identity  : forall {X} {Y} (F : X -> M Y) (x : X) (psi : Y->T), (bind F (pure x)) psi = F x psi.
 Proof.
@@ -47,10 +47,10 @@ Qed.
 
 
 Proposition left_identity_extensional : forall {X} {Y} (F : X -> M Y) (x : X), bind F (pure x) = F x.
-Proof. intros X Y F x. unfold bind, pure. apply extensionality. intro psi. reflexivity. Qed.
+Proof. intros X Y F x. unfold bind, pure. apply functional_extensionality. intro psi. reflexivity. Qed.
 
 Proposition right_identity_extensional : forall {X} (xi : M X),  bind pure xi = xi.
-Proof. intros X xi. unfold bind, pure. apply extensionality. intro phi. f_equal. Qed.
+Proof. intros X xi. unfold bind, pure. apply functional_extensionality. intro phi. f_equal. Qed.
 
 Proposition associativity_extensional : forall {X} {Y} {Z} (xi:M X) (F:X->M Y) (G:Y->M Z),
   bind G (bind F xi) = bind (fun x => bind G (F x)) xi.
@@ -80,7 +80,7 @@ Instance Continuation_Monad : Monad M :=
 }.
 
 
-(* Requires bind extensionality *)
+(* Requires bind functional_extensionality *)
 Theorem lift_associative : forall {A:Type} {B:Type} {C:Type} (a : M A) (f:A->B) (g:B->C),
   lift g (lift f a) = lift (fun x => g (f x)) a.
 Proof.
@@ -100,7 +100,7 @@ Proof.
   reflexivity.
 Qed.
 
-(* Requires bind extensionality *)
+(* Requires bind functional_extensionality *)
 Theorem product_pure_monad : forall {A:Type} {B:Type} (x : A) (b : M B), left_product (pure x) b = right_product (pure x) b.
 Proof.
   intros A B. intros x b.
@@ -110,7 +110,7 @@ Proof.
   f_equal.
 Qed.
 
-(* Requires bind extensionality *)
+(* Requires bind functional_extensionality *)
 Theorem product_monad_pure : forall {A:Type} {B:Type} (a : M A) (y : B), left_product a (pure y) = right_product a (pure y).
 Proof.
   intros A B. intros a y.
@@ -159,7 +159,7 @@ Proof.
   rewrite Hpure in Hpx.
   rewrite Hpx.
   f_equal.
-  apply extensionality.
+  apply functional_extensionality.
   auto.
   intros x0.
   unfold pure. 

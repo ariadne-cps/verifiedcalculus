@@ -1,3 +1,4 @@
+Require Import Coq.Logic.FunctionalExtensionality.
 Require Import Coq.Logic.PropExtensionality.
 Require Import Coq.Logic.PropExtensionalityFacts.
 
@@ -22,7 +23,7 @@ Lemma set_left_identity :
 Proof.
   intros X Y f x.
   unfold image, singleton.
-  apply extensionality. intro y.
+  apply functional_extensionality. intro y.
   apply propositional_extensionality.
   split.
   - intros [xe Hxe].
@@ -38,7 +39,7 @@ Lemma set_right_identity :
   forall {X : Type} (xs : Subset X), image (@singleton X) xs = xs.
 Proof.
   intros X xs. unfold image, singleton.
-  apply extensionality. intro x.
+  apply functional_extensionality. intro x.
   apply propositional_extensionality.
   split.
   - intros Hxe.
@@ -56,7 +57,7 @@ Lemma set_associativity :
 Proof.
   intros X Y Z xs fs gs.
   unfold image.
-  apply extensionality. 
+  apply functional_extensionality. 
   intro z.
   apply propositional_extensionality.
   split.
@@ -103,11 +104,11 @@ Proof.
   unfold set_product, Mright_product, Mleft_product.
   unfold Subset_Monad, Mpure, Mbind, image, singleton.
   split.
-  * apply extensionality.
+  * apply functional_extensionality.
     intro xs.
-    apply extensionality.
+    apply functional_extensionality.
     intro ys.
-    apply extensionality.
+    apply functional_extensionality.
     intros xy. 
     apply propositional_extensionality.
     split.
@@ -127,11 +128,11 @@ Proof.
       split.
       -- exact Hx.
       -- exact Hy.
-  * apply extensionality.
+  * apply functional_extensionality.
     intro xs.
-    apply extensionality.
+    apply functional_extensionality.
     intro ys.
-    apply extensionality.
+    apply functional_extensionality.
     intros xy. 
     apply propositional_extensionality.
     split.
@@ -165,7 +166,7 @@ Proof.
   unfold Subset_Monad.
   unfold Mright_skew, Mlift, Mpure, Mbind.
   unfold image, singleton.
-  apply extensionality. intro xy.
+  apply functional_extensionality. intro xy.
   apply propositional_extensionality.
   split.
   - intros [x [Hx [y [Hf Hxy]]]].
@@ -199,7 +200,7 @@ Proof.
   unfold Subset_Monad.
   unfold Mright_skew, Mlift, Mpure, Mbind.
   unfold image, singleton.
-  apply extensionality. intro xy. 
+  apply functional_extensionality. intro xy. 
   apply propositional_extensionality.
   split.
   - intros [Hx Hf].
