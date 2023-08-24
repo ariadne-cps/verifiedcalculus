@@ -3,6 +3,7 @@ Require Import Coq.Logic.PropExtensionality.
 Require Import Coq.Logic.PropExtensionalityFacts.
 
 Require Export Monads.
+Require Export SubMonads.
 
 Section SubsetMonad.
 

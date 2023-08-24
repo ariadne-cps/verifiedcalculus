@@ -1,4 +1,5 @@
 Require Import Coq.Logic.FunctionalExtensionality.
+Require Import Coq.Logic.ProofIrrelevance.
 
 
 Section Monads.
