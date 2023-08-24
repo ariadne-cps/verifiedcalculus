@@ -8,7 +8,7 @@ utilities/Monads.v
 utilities/SubMonads.v
 utilities/ContinuationMonads.v
 utilities/LimitMonads.v
-utilities/SubsetMonad.v
+utilities/EnsembleMonad.v
 
 numbers/R_addenda.v
 numbers/Analysis.v
