@@ -3,6 +3,7 @@
 utilities/Ordering.v
 utilities/Sorting.v
 utilities/Induction.v
+utilities/DependentChoice.v
 utilities/Monads.v
 utilities/SubMonads.v
 utilities/ContinuationMonads.v
