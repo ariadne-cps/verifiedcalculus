@@ -7,6 +7,7 @@ utilities/DependentChoice.v
 utilities/Monads.v
 utilities/SubMonads.v
 utilities/ContinuationMonads.v
+utilities/LimitMonads.v
 utilities/SubsetMonad.v
 
 numbers/R_addenda.v
