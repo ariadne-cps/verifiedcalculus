@@ -41,9 +41,23 @@ Definition is_infinite_skew_product {M : Type -> Type} {_ : Monad M} {X : Type}
         Mlift lcons (Mright_skew (Mlift (proj n) Finf) F) =
         Mlift (proj (S n)) Finf.
 
-Definition has_infinite_skew_product (M : Type -> Type) (_ : Monad M) :=
-  forall (X : Type) (F : (list X) -> M X),
+Definition exists_infinite_skew_product (M : Type -> Type) (_ : Monad M) :=
+  forall (X : Type) (F : (list X) -> M X), 
     exists (Finf : M (nat -> X)),
       is_infinite_skew_product F Finf.
+      
+Definition has_infinite_skew_product (M : Type -> Type) (_ : Monad M) :=
+  forall (X : Type) (F : (list X) -> M X), 
+    sig (fun Finf : M (nat -> X) => is_infinite_skew_product F Finf).
+      
+Definition infinite_skew_product (M : Type -> Type) (Monad_M : Monad M) (H : has_infinite_skew_product  M Monad_M)
+  {X : Type} (F : (list X) -> M X) : M (nat -> X).
+Proof.
+  unfold has_infinite_skew_product in H.
+  specialize (H X F).
+  destruct H as [Finf _].
+  exact Finf.
+Qed.
+
 
 End LimitMonads.
