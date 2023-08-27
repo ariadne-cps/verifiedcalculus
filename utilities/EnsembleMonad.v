@@ -339,7 +339,7 @@ Proof.
 Qed.
 
 Theorem ensemble_monad_does_not_have_infinite_skew_product :
-  not (has_infinite_skew_product (Ensemble) (Ensemble_Monad)).
+  not (exists_infinite_skew_product (Ensemble) (Ensemble_Monad)).
 Proof.
   unfold has_infinite_skew_product.
   set (F := fun (xl : list bool) =>
