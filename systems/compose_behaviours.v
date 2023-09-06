@@ -502,3 +502,327 @@ Proof.
     reflexivity.
 Qed.
 
+
+Definition preprocess1 {UA UD Y1 Y2 Y3} ( b1 : (nat->UA*(UD*(Y2*Y3)))->(nat->Y1) ) :=
+  fun (v : nat->UA*((UD*Y3)*Y2)) => b1 (fun k => let vk:=v k in (fst vk,(fst (fst (snd vk)),(snd (snd vk),snd (fst (snd vk)))))).
+Definition preprocess3 {UA UD Y1 Y2 Y3} ( b3 : (nat->(UA*(Y1*Y2))*UD)->(nat->Y3) ) :=
+  fun (v : nat->((UA*Y1)*Y2)*UD) => b3 (fun k => let vk:=v k in ((fst (fst (fst vk)),(snd (fst (fst vk)),snd (fst vk))),snd vk)).
+Definition postprocess {UA UD Y1 Y2 Y3} ( b123 : (nat->(UA*UD))->(nat->Y1*(Y2*Y3)) ) :=
+  fun (u : nat->UA*UD) => (fun k => let wk := b123 u k in ((fst wk,fst (snd wk)),snd (snd wk))).
+Definition unpostprocess {UA UD Y1 Y2 Y3} ( b123 : (nat->(UA*UD))->(nat->(Y1*Y2)*Y3) ) :=
+  fun (u : nat->UA*UD) => (fun k => let wk := b123 u k in (fst (fst wk),(snd (fst wk),snd wk))).
+
+
+Lemma mixed_causal_preprocess1  {UA UD Y1 Y2 Y3} :
+  forall (b1 : (nat->UA*(UD*(Y2*Y3)))->(nat->Y1)),
+    mixed_causal b1 -> mixed_causal (preprocess1 b1).
+Proof.
+  intros b1 Hc1.
+  unfold mixed_causal, preprocess1.
+  unfold mixed_causal in Hc1.
+  intros u u' n.
+  intros Hua1 Hud1.
+  set (ua:=fun n=>fst (u n)); set (ud:=fun n=>(fst (fst (snd (u n)))));
+  set (y2:=fun n=>snd (snd (u n))); set (y3:=fun n=>snd (fst (snd (u n)))).
+  set (ua':=fun n=>fst (u' n)); set (ud':=fun n=>(fst (fst (snd (u' n)))));
+  set (y2':=fun n=>snd (snd (u' n))); set (y3':=fun n=>snd (fst (snd (u' n)))).
+  assert (forall n, ua n = fst (u n)) as Huan; [unfold ua; reflexivity|].
+  assert (forall n, ua' n = fst (u' n)) as Huan'; [unfold ua'; reflexivity|].
+  assert (forall n, snd (u n) = ((ud n,y3 n),y2 n)) as Hudn; [unfold ud, y2, y3; intros m;
+    rewrite <- surjective_pairing, <- surjective_pairing; reflexivity|].
+  assert (forall n, snd (u' n) = ((ud' n,y3' n),y2' n)) as Hudn'. { unfold ud', y2', y3'; intros m;
+    rewrite <- surjective_pairing, <- surjective_pairing; reflexivity. }
+  apply Hc1.
+  - unfold ua, ua'. exact Hua1.
+  - intros m Hmltn.
+    simpl.
+    specialize (Hud1 m Hmltn).
+    rewrite -> Hudn, -> Hudn' in Hud1.
+    unfold ud, y2, y3, ud', y2', y3' in Hud1.
+    rewrite -> pair_equal_spec, -> pair_equal_spec in Hud1.
+    f_equal; [|f_equal].
+    apply Hud1. apply Hud1. apply Hud1.
+Qed.
+
+Lemma mixed_causal_preprocess3  {UA UD Y1 Y2 Y3} :
+  forall (b3 : (nat->(UA*(Y1*Y2))*UD)->(nat->Y3)),
+    mixed_causal b3 -> mixed_causal (preprocess3 b3).
+Proof.
+  intros b3 Hc3.
+  unfold mixed_causal, preprocess3.
+  unfold mixed_causal in Hc3.
+  intros u u' n.
+  intros Hua3 Hud3.
+  set (ua:=fun n=>fst (fst (fst (u n)))); set (ud:=fun n=>(snd (u n)));
+  set (y1:=fun n=>snd (fst (fst (u n)))); set (y2:=fun n=>snd (fst (u n))).
+  set (ua':=fun n=>fst (fst (fst (u' n)))); set (ud':=fun n=>(snd (u' n)));
+  set (y1':=fun n=>snd (fst (fst (u' n)))); set (y2':=fun n=>snd (fst (u' n))).
+  assert (forall n, fst (u n) = ((ua n,y1 n),y2 n)) as Huan; [unfold ua, y1, y2; intros m;
+    rewrite <- surjective_pairing, <- surjective_pairing; reflexivity|].
+  assert (forall n, fst (u' n) = ((ua' n,y1' n),y2' n)) as Huan'; [unfold ua', y1', y2'; intros m;
+    rewrite <- surjective_pairing, <- surjective_pairing; reflexivity|].
+  assert (forall n, ud n = snd (u n)) as Hudn; [unfold ud; reflexivity|].
+  assert (forall n, ud' n = snd (u' n)) as Hudn'; [unfold ud'; reflexivity|].
+  apply Hc3.
+  - intros m Hmlen.
+    simpl.
+    specialize (Hua3 m Hmlen).
+    rewrite -> Huan, -> Huan' in Hua3.
+    unfold ua, y1, y2, ua', y1', y2' in Hua3.
+    rewrite -> pair_equal_spec, -> pair_equal_spec in Hua3.
+    f_equal; [|f_equal].
+    apply Hua3. apply Hua3. apply Hua3.
+  - unfold ud, ud'. exact Hud3.
+Qed.
+
+
+Theorem compose_behaviours_associative {UA UD Y1 Y2 Y3} :
+  forall (b1 : (nat->UA*(UD*(Y2*Y3)))->(nat->Y1))
+         (b2 : (nat->(UA*Y1)*(UD*Y3))->(nat->Y2))
+         (b3 : (nat->(UA*(Y1*Y2))*UD)->(nat->Y3))
+         (y1_default : Y1) (y2_default : Y2),
+    let pb1 := (preprocess1 b1) in
+    let pb3 := (preprocess3 b3) in
+    mixed_causal b1 -> mixed_causal b2 -> mixed_causal b3 ->
+      forall u n,
+        (compose_behaviours (compose_behaviours pb1 b2 y1_default) b3 (y1_default,y2_default)) u n
+          = (postprocess (compose_behaviours b1 (compose_behaviours b2 pb3 y2_default) y1_default)) u n.
+Proof.
+  intros b1 b2 b3 y1_default y2_default pb1 pb3 Hcb1 Hcb2 Hcb3.
+  assert (mixed_causal pb1) as Hcpb1. { apply mixed_causal_preprocess1. exact Hcb1. }
+  assert (mixed_causal pb3) as Hcpb3. { apply mixed_causal_preprocess3. exact Hcb3. }
+  set (b12 := compose_behaviours pb1 b2 y1_default).
+  set (b12_3 := compose_behaviours b12 b3 (y1_default, y2_default)).
+  set (b23 := compose_behaviours b2 pb3 y2_default).
+  set (b1_23 := compose_behaviours b1 b23 y1_default).
+  assert (is_composed_behaviour pb1 b2 b12) as Hb12. {
+    apply mixed_causal_composed. exact Hcpb1. exact Hcb2. }
+  assert (mixed_causal b12) as Hcb12. {
+    exact (behaviour_composition_mixed_causal pb1 b2 b12 Hcpb1 Hcb2 Hb12). }
+  assert (is_composed_behaviour b12 b3 b12_3) as Hb12_3. {
+    apply mixed_causal_composed. exact Hcb12. exact Hcb3. }
+  assert (is_composed_behaviour b2 pb3 b23) as Hb23. {
+    apply mixed_causal_composed. exact Hcb2. exact Hcpb3. }
+  assert (mixed_causal b23) as Hcb23. {
+    exact (behaviour_composition_mixed_causal b2 pb3 b23 Hcb2 Hcpb3 Hb23). }
+  assert (is_composed_behaviour b1 b23 b1_23) as Hb1_23. {
+    apply mixed_causal_composed. exact Hcb1. exact Hcb23. }
+  intro u.
+  intro n; revert n.
+  set (ua := fun n => fst (u n)).
+  set (ud := fun n => snd (u n)).
+  set (y12_3 := b12_3 u).
+  set (y3 := fun n => (snd (y12_3 n))).
+  set (y12' := b12 (fun n => (ua n, (ud n, y3 n)))).
+  set (y12 := fun n => fst (y12_3 n)).
+  set (y1 := fun n => (fst (y12 n))).
+  set (y2 := fun n => (snd (y12 n))).
+
+  assert (forall n, b3 (fun n=>((ua n,(y1 n,y2 n)),ud n)) n = y3 n ) as Hy3. {
+    unfold ua, ud, y1, y2, y12, y12_3.
+    unfold y3, y12_3.
+    intro n.
+    rewrite -> (proj2 (Hb12_3 u n)).
+    f_equal.
+  }
+
+  assert (forall n, b12 (fun n=>(ua n,(ud n, y3 n))) n = y12 n ) as Hy12. {
+    unfold ua, ud, y1, y2, y12, y12_3.
+    unfold y3, y12_3.
+    intro n.
+    rewrite -> (proj1 (Hb12_3 u n)).
+    f_equal.
+  }
+
+  assert ( forall n, b12 (fun n=>(ua n,(ud n, y3 n))) n = y12' n ) as Hy12'. {
+    unfold ua, ud, y1, y2, y12', y12_3.
+    unfold y3, y12_3.
+    intro n.
+    f_equal.
+  }
+
+  assert (forall n, y12 n = y12' n) as Hy12e. {
+    intro n. rewrite <- Hy12, -> Hy12'. reflexivity. }
+
+  assert ( forall n, b1 (fun n=>(ua n,(ud n, (y2 n,y3 n)))) n = y1 n ) as Hy1. {
+    unfold y1.
+    unfold ua, ud, y1, y2, y12, y12_3.
+    unfold y3, y12_3.
+
+    intro n.
+    rewrite -> (proj1 (Hb12_3 u n)).
+    rewrite -> (proj1 (Hb12 (fun k=>(fst (u k), (snd (u k), snd (b12_3 u k)))) n)).
+    unfold pb1, preprocess1.
+    apply (mixed_causal_behaviour_extensional b1 Hcb1).
+    intro m.
+    f_equal. f_equal. f_equal.
+    replace (b12_3 u) with y12_3; [|reflexivity].
+    replace (b12 (fun k => (fst (u k), (snd (u k), snd (y12_3 k)))) m) with (b12 (fun k=>(ua k, (ud k, y3 k))) m).
+    rewrite -> Hy12.
+    reflexivity.
+    f_equal.
+  }
+
+  assert ( forall n, b2 (fun n=>((ua n,y1 n),(ud n,y3 n))) n = y2 n ) as Hy2. {
+    unfold y1.
+    unfold ua, ud, y1, y2, y12, y12_3.
+    unfold y3, y12_3.
+
+    intro n.
+    rewrite -> (proj1 (Hb12_3 u n)).
+    rewrite -> (proj2 (Hb12 (fun k=>(fst (u k), (snd (u k), snd (b12_3 u k)))) n)).
+    apply (mixed_causal_behaviour_extensional b2 Hcb2).
+    intro m.
+    f_equal. f_equal. f_equal.
+    replace (b12_3 u) with y12_3; [|reflexivity].
+    replace (b12 (fun k => (fst (u k), (snd (u k), snd (y12_3 k)))) m) with (b12 (fun k=>(ua k, (ud k, y3 k))) m).
+    rewrite -> Hy12.
+    reflexivity.
+    f_equal.
+  }
+
+  (* Cleanup. *)
+  unfold y12 in y1, y2.
+  clear Hy12' Hy12e y12' Hy12 Hb12 Hb12_3 y12.
+  set (y23 := fun n => (y2 n, y3 n)).
+  set (y1_23 := fun n => (y1 n, y23 n)).
+
+  (* Now show that y1, y2, y3 satisfy conditions for b1_23. *)
+  assert (forall n, b23 (fun k => ((ua k,y1 k),ud k)) n = y23 n) as Hy23'. {
+    set (uy1 := fun k => ((ua k,y1 k),ud k)).
+    set (y23' := b23 uy1).
+    intro n.
+    replace (y23' n) with (fst (y23' n), snd (y23' n)).
+    revert n.
+    unfold y23.
+    unfold is_composed_behaviour in Hb23.
+    apply (composed_mixed_causal_outputs_unique b2 pb3 Hcb2 Hcpb3 uy1).
+    - intro n. apply eq_sym. apply (proj1 (Hb23 uy1 n)).
+    - intro n. rewrite <- Hy2. f_equal.
+    - intro n. apply eq_sym. apply (proj2 (Hb23 uy1 n)).
+    - intro n. unfold pb3, preprocess3. rewrite <- Hy3. reflexivity.
+    - apply surjective_pairing.
+  }
+
+  assert (forall n, b1_23 (fun k => (ua k, ud k)) n = y1_23 n) as Hy1_23'. {
+    unfold y1_23.
+    set (y1_23' := b1_23 (fun k => (ua k, ud k))).
+    intro n. replace (y1_23' n) with (fst (y1_23' n), snd (y1_23' n)). revert n.
+    apply (composed_mixed_causal_outputs_unique b1 b23 Hcb1 Hcb23 (fun k => (ua k, ud k))).
+    - intro n. apply eq_sym. apply (proj1 (Hb1_23 u n)).
+    - intro n. rewrite <- Hy1. f_equal.
+    - intro n. apply eq_sym. apply (proj2 (Hb1_23 u n)).
+    - intro n. unfold pb3, preprocess3. rewrite <- Hy23'. reflexivity.
+    - apply surjective_pairing.
+  }
+  assert (forall n, b1_23 u n = y1_23 n) as Hy1_23. {
+    intro n. rewrite <- Hy1_23'. reflexivity.
+  }
+  unfold postprocess.
+  intro n.
+  rewrite -> Hy1_23.
+  reflexivity.
+Qed.
+
+
+Theorem behaviour_composition_associative {UA UD Y1 Y2 Y3 : Type} :
+  forall (b1 : (nat -> (UA) * (UD * (Y2 * Y3))) -> (nat -> Y1))
+         (b2 : (nat -> (UA * Y1) * (UD * Y3)) -> (nat -> Y2))
+         (b3 : (nat -> (UA * (Y1 * Y2)) * (UD)) -> (nat -> Y3))
+         (b123 : (nat -> UA * UD) -> (nat -> (Y1 * Y2) * Y3)),
+    mixed_causal b1 -> mixed_causal b2 -> mixed_causal b3 ->
+    (inhabited (UA * UD)) ->
+    ( exists b12 : (nat -> (UA) * (UD * Y3)) -> (nat -> Y1 * Y2),
+        (is_composed_behaviour (preprocess1 b1) b2 b12) /\ (is_composed_behaviour b12 b3 b123) )
+    <->
+    ( exists b23 : (nat -> (UA * Y1) * (UD)) -> (nat -> Y2 * Y3),
+        (is_composed_behaviour b2 (preprocess3 b3) b23) /\ (is_composed_behaviour b1 b23 (unpostprocess b123)) )
+.
+Proof.
+  intros b1 b2 b3 b123 Hcb1 Hcb2 Hcb3.
+  intro Hu; destruct Hu as [u_default].
+  set (y123_default := b123 (fun n => u_default) 0).
+  destruct y123_default as [[y1_default y2_default] _].
+  set (pb1 := preprocess1 b1). set (pb3 := preprocess3 b3).
+  assert (mixed_causal pb1) as Hcpb1. { apply mixed_causal_preprocess1. exact Hcb1. }
+  assert (mixed_causal pb3) as Hcpb3. { apply mixed_causal_preprocess3. exact Hcb3. }
+  set (b23 := compose_behaviours b2 pb3 y2_default).
+  assert (is_composed_behaviour b2 pb3 b23) as Hb23. {
+    apply mixed_causal_composed. exact Hcb2. exact Hcpb3. }
+  assert (mixed_causal b23) as Hcb23. {
+    apply (behaviour_composition_mixed_causal b2 pb3). exact Hcb2. exact Hcpb3. exact Hb23. }
+  set (b1_23 := compose_behaviours b1 b23 y1_default).
+  assert (is_composed_behaviour b1 b23 b1_23) as Hb1_23. {
+    apply mixed_causal_composed. exact Hcb1. exact Hcb23. }
+  set (b12 := compose_behaviours pb1 b2 y1_default).
+  assert (is_composed_behaviour pb1 b2 b12) as Hb12. {
+    apply mixed_causal_composed. exact Hcpb1. exact Hcb2. }
+  assert (mixed_causal b12) as Hcb12. {
+    apply (behaviour_composition_mixed_causal pb1 b2). exact Hcpb1. exact Hcb2. exact Hb12. }
+  set (b12_3 := compose_behaviours b12 b3 (y1_default,y2_default)).
+  assert (is_composed_behaviour b12 b3 b12_3) as Hb12_3. {
+    apply mixed_causal_composed. exact Hcb12. exact Hcb3. }
+  assert (forall u n, b12_3 u n = postprocess b1_23 u n) as Hb123p. {
+    apply compose_behaviours_associative.
+    exact Hcb1. exact Hcb2. exact Hcb3.
+  }
+  assert (forall u n, unpostprocess b12_3 u n = b1_23 u n) as Hb123up. {
+    intros u n.
+    unfold unpostprocess.
+    rewrite -> Hb123p.
+    unfold postprocess.
+    reflexivity.
+  }
+  split.
+  - intros H.
+    exists b23.
+    split.
+    -- apply mixed_causal_composed. exact Hcb2. exact Hcpb3.
+    -- destruct H as [b12' [Hb12' Hb123']].
+       assert (forall u n, b12 u n = b12' u n) as Hb12e. {
+         exact (composed_mixed_causal_behaviour_unique pb1 b2 b12 b12' Hcpb1 Hcb2 Hb12 Hb12'). }
+       assert (mixed_causal b12') as Hcb12'. {
+         exact (mixed_causal_equivalent_behaviours b12 b12' Hb12e Hcb12). }
+       assert (is_composed_behaviour b12 b3 b123) as Hb123. {
+         apply (is_composed_behaviour_input_extensional b12' b12 b3 b3 b123 Hcb12' Hcb12 Hcb3 Hcb3).
+         intros uy2 n. apply eq_sym. apply Hb12e.
+         reflexivity. exact Hb123'.
+       }
+       assert (forall u n, b123 u n = b12_3 u n) as Hb123e. {
+         exact (composed_mixed_causal_behaviour_unique b12 b3 b123 b12_3 Hcb12 Hcb3 Hb123 Hb12_3). }
+       assert (is_composed_behaviour b1 b23 (unpostprocess b12_3)) as Hb12_3'. {
+         apply (is_composed_behaviour_output_extensional b1 b23 b1_23 (unpostprocess b12_3) Hcb1 Hcb23).
+         intros u n; apply eq_sym; exact (Hb123up u n). exact Hb1_23.
+       }
+       apply (is_composed_behaviour_output_extensional b1 b23 b1_23 (unpostprocess b123) Hcb1 Hcb23).
+       intros u n. rewrite <- Hb123up. unfold unpostprocess. rewrite -> Hb123e. reflexivity.
+       exact Hb1_23.
+  - intros H.
+    exists b12.
+    split.
+    -- apply mixed_causal_composed. exact Hcpb1. exact Hcb2.
+    -- destruct H as [b23' [Hb23' Hb123']].
+       assert (forall u n, b23 u n = b23' u n) as Hb23e. {
+         exact (composed_mixed_causal_behaviour_unique b2 pb3 _ _ Hcb2 Hcpb3 Hb23 Hb23'). }
+       assert (mixed_causal b23') as Hcb23'. {
+         exact (mixed_causal_equivalent_behaviours b23 b23' Hb23e Hcb23). }
+       assert (is_composed_behaviour b1 b23 (unpostprocess b123)) as Hb123. {
+         apply (is_composed_behaviour_input_extensional b1 b1 b23' b23 (unpostprocess b123) Hcb1 Hcb1 Hcb23' Hcb23).
+         reflexivity.
+         apply (composed_mixed_causal_behaviour_unique b2 pb3 b23' b23 Hcb2 Hcpb3 Hb23' Hb23).
+         exact Hb123'.
+       }
+       assert (forall u n, unpostprocess b123 u n = b1_23 u n) as Hb123e'. {
+         exact (composed_mixed_causal_behaviour_unique b1 b23 (unpostprocess b123) b1_23 Hcb1 Hcb23 Hb123 Hb1_23). }
+       assert (forall u n, b12_3 u n = b123 u n) as Hb123e. {
+         intros u n. rewrite -> Hb123p.
+         unfold postprocess.
+         rewrite <- Hb123e'.
+         unfold unpostprocess.
+         simpl.
+         rewrite <- surjective_pairing, <- surjective_pairing.
+         reflexivity.
+       }
+       exact (is_composed_behaviour_output_extensional b12 b3 b12_3 b123 Hcb12 Hcb3 Hb123e Hb12_3).
+Qed.
+
