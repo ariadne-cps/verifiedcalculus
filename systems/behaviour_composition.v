@@ -53,48 +53,50 @@ Check is_composed_behaviour.
 
 
 (* The composition of two mixed causal behaviours should be unique. *)
-Theorem composed_mixed_causal_behaviour_unique
-  {UA UD X1 X2 Y1 Y2 : Type} :
+Proposition composed_mixed_causal_outputs_unique
+  {UA UD Y1 Y2 : Type} :
   forall (b1 : (nat->(UA*(UD*Y2)))->(nat->Y1))
-         (b2 : (nat->((UA*Y1)*UD))->(nat->Y2))
-         (b12 b12' : (nat->UA*UD)->(nat->Y1*Y2)),
+         (b2 : (nat->((UA*Y1)*UD))->(nat->Y2)),
            mixed_causal b1 ->
            mixed_causal b2 ->
-           is_composed_behaviour b1 b2 b12 ->
-           is_composed_behaviour b1 b2 b12'
-             -> forall (u : nat->UA*UD) (n:nat),
-                  b12 u n = b12' u n.
+           forall (u : nat->UA*UD), 
+             forall (y1 y1' : nat -> Y1) (y2 y2': nat -> Y2),
+               (forall n, b1 (fun m => (fst (u m),(snd (u m),y2 m))) n = y1 n) ->
+               (forall n, b1 (fun m => (fst (u m),(snd (u m),y2' m))) n = y1' n) ->
+                 (forall n, b2 (fun m => ((fst (u m),y1 m),snd (u m))) n = y2 n) ->
+                 (forall n, b2 (fun m => ((fst (u m),y1' m),snd (u m))) n = y2' n) ->
+(*
+                   (forall n, y1 n = y1' n /\ y2 n = y2' n).
+*)
+                   (forall n, (y1 n, y2 n) = (y1' n, y2' n)).
 Proof.
-  intros b1 b2 b12 b12' Hmcb1 Hmcb2.
-  unfold is_composed_behaviour.
-  intros HPcompb12 HPcompb12'.
+  intros b1 b2 Hmcb1 Hmcb2.
   intros u.
 
   (* Clear up, isolate inputs and projections from pairs *)
   remember (fun k => fst (u k)) as ua eqn:Eua.
   remember (fun k => snd (u k)) as ud eqn:Eud.
-  remember (fun k => fst (b12 u k)) as py1 eqn:Epy1.
-  remember (fun k => snd (b12 u k)) as py2 eqn:Epy2.
-  remember (fun k => fst (b12' u k)) as py1' eqn:Epy1'.
-  remember (fun k => snd (b12' u k)) as py2' eqn:Epy2'.
+  intros py1 py1' py2 py2'.
+  intros Hpy1 Hpy1' Hpy2 Hpy2'.
 
   (* HPcompb12 after clear up *)
   assert (forall (n:nat),
     py1 n = b1 (fun k => (ua k, (ud k, py2 k))) n /\
     py2 n = b2 (fun k => ((ua k, py1 k), ud k)) n
   ) as HPcompb12_clear.
-  { rewrite Epy1. rewrite Epy2.
-    rewrite Eua. rewrite Eud.
-    apply HPcompb12. }
+  { intros n. split. 
+    apply eq_sym. rewrite <- Hpy1. f_equal. rewrite -> Eua, -> Eud. reflexivity.
+    apply eq_sym. rewrite <- Hpy2. f_equal. rewrite -> Eua, -> Eud. reflexivity. }
+
 
   (* HPcompb12' after clear up *)
   assert (forall (n:nat),
     py1' n = b1 (fun k => (ua k, (ud k, py2' k))) n /\
     py2' n = b2 (fun k => ((ua k, py1' k), ud k)) n
   ) as HPcompb12_clear'.
-  { rewrite Epy1'. rewrite Epy2'.
-    rewrite Eua. rewrite Eud.
-    apply HPcompb12'. }
+  { intros n. split. 
+    apply eq_sym. rewrite <- Hpy1'. f_equal. rewrite -> Eua, -> Eud. reflexivity.
+    apply eq_sym. rewrite <- Hpy2'. f_equal. rewrite -> Eua, -> Eud. reflexivity. }
 
   (* Asserts to jump between perspectives for the
      composed system and the components system
@@ -124,34 +126,22 @@ Proof.
 
   (* ... At composed system full pair level *)
 
+  remember (fun n => (py1 n, py2 n)) as y12 eqn:Ey12.
+  remember (fun n => (py1' n, py2' n)) as y12' eqn:Ey12'.
+  
   assert (forall (n:nat),
-    b12 u n =
-      ( b1 (fun k => (ua k, (ud k, py2 k))) n,
-        b2 (fun k => ((ua k, py1 k), ud k)) n  )
-  ) as Hb12un.
-  { intros n.
-    (* Check (HPcompb12_b1). *)
-    rewrite <- HPcompb12_b1.
-    (* Check (HPcompb12_b2). *)
-    rewrite <- HPcompb12_b2.
-    (* Search (_ = (fst _, snd _)). *)
-    rewrite Epy1. rewrite Epy2.
-    rewrite <- surjective_pairing. reflexivity.
-  }
-
-  assert (forall (n:nat),
-    b12' u n =
+    y12' n =
       ( b1 (fun k => (ua k, (ud k, py2' k))) n,
         b2 (fun k => ((ua k, py1' k), ud k)) n )
   ) as Hb12un'.
   { intros n.
+    rewrite -> Ey12'.
     (* Check (HPcompb12_b1). *)
     rewrite <- HPcompb12_b1'.
     (* Check (HPcompb12_b2). *)
     rewrite <- HPcompb12_b2'.
     (* Search (_ = (fst _, snd _)). *)
-    rewrite Epy1'. rewrite Epy2'.
-    rewrite <- surjective_pairing. reflexivity.
+    reflexivity.
   }
 
   (* Causal on compositions  *)
@@ -402,16 +392,201 @@ Proof.
     - apply Hb12eq' with (n:=n). reflexivity.
   }
 
+  assert (forall (n:nat),
+      b1 (fun k => (fst (u k), (snd (u k), py2 k))) n =
+      b1 (fun k => (fst (u k), (snd (u k), py2' k))) n /\
+      b2 (fun k => ((fst (u k), py1 k), snd (u k))) n =
+      b2 (fun k => ((fst (u k), py1' k), snd (u k))) n
+  ) as Hb12eq'''.
+  { rewrite -> Eua, -> Eud in Hb12eq''. 
+    exact Hb12eq''.
+  }
+  
+
    intros n.
    (* Check (Hb12un). *)
 
    (* Bring it to component behaviour level
       Assertion Hb12eq'' has been set up for that.
    *)
-   rewrite Hb12un. rewrite Hb12un'.
+   rewrite <- Hpy1, <- Hpy2. rewrite <- Hpy1', <- Hpy2'. 
+   apply pair_equal_spec.
+   apply Hb12eq'''.
+Qed.
 
-   rewrite pair_equal_spec. split.
-   - apply Hb12eq''.
-   - apply Hb12eq''.
 
+(* The composition of two mixed causal behaviours should be unique. *)
+
+
+(* The composition of two mixed causal behaviours should be unique. *)
+Theorem composed_mixed_causal_behaviour_unique
+  {UA UD Y1 Y2 : Type} :
+  forall (b1 : (nat->(UA*(UD*Y2)))->(nat->Y1))
+         (b2 : (nat->((UA*Y1)*UD))->(nat->Y2))
+         (b12 b12' : (nat->UA*UD)->(nat->Y1*Y2)),
+           mixed_causal b1 ->
+           mixed_causal b2 ->
+           is_composed_behaviour b1 b2 b12 ->
+           is_composed_behaviour b1 b2 b12'
+             -> forall (u : nat->UA*UD) (n:nat),
+                  b12 u n = b12' u n.
+Proof.
+  intros b1 b2 b12 b12' Hmcb1 Hmcb2.
+  intros HPcompb12 HPcompb12'.
+  intros u.
+  set (y12 := b12 u).
+  set (y1 := fun n => fst (y12 n)).
+  set (y2 := fun n => snd (y12 n)).
+  set (y12' := b12' u).
+  set (y1' := fun n => fst (y12' n)).
+  set (y2' := fun n => snd (y12' n)).
+  assert (forall n, y12 n = (y1 n, y2 n)) as Hy12. {
+    intros n. unfold y1, y2. rewrite <- surjective_pairing. reflexivity. }
+  assert (forall n, y12' n = (y1' n, y2' n)) as Hy12'. {
+    intros n. unfold y1', y2'. rewrite <- surjective_pairing. reflexivity. }
+  intro n. rewrite -> Hy12, -> Hy12'. revert n.
+  unfold is_composed_behaviour in HPcompb12, HPcompb12'.
+  
+  apply (composed_mixed_causal_outputs_unique b1 b2 Hmcb1 Hmcb2 u).
+  - intro n. apply eq_sym. unfold y1, y2, y12. exact (proj1 (HPcompb12 u n)).
+  - intro n. apply eq_sym. unfold y1', y2', y12'. exact (proj1 (HPcompb12' u n)).
+  - intro n. apply eq_sym. unfold y1, y2, y12. exact (proj2 (HPcompb12 u n)).
+  - intro n. apply eq_sym. unfold y1', y2', y12'. exact (proj2 (HPcompb12' u n)).
+Qed.
+
+(*
+Theorem composed_mixed_causal_behaviour_unique'
+  {UA UD Y1 Y2 : Type} :
+  forall (b1 : (nat->(UA*(UD*Y2)))->(nat->Y1))
+         (b2 : (nat->((UA*Y1)*UD))->(nat->Y2))
+         (b12 b12' : (nat->UA*UD)->(nat->Y1*Y2)),
+           mixed_causal b1 ->
+           mixed_causal b2 ->
+           is_composed_behaviour b1 b2 b12 ->
+           is_composed_behaviour b1 b2 b12'
+             -> b12 = b12'.
+Proof.
+  intros b1 b2 b12 b12' Hmcb1 Hmcb2 Hb12 Hb12'.
+  apply functional_extensionality. intro u.
+  apply functional_extensionality. intro n.
+  apply (composed_mixed_causal_behaviour_unique b1 b2 _ _ Hmcb1 Hmcb2 Hb12 Hb12').
+Qed.
+*)
+
+
+Lemma pair_equal_fst_snd T1 T2 : forall (p1 p2 : T1*T2), (fst p1 = fst p2) -> (snd p1 = snd p2) -> p1 = p2.
+Proof.
+  intros p1 p2. intros Hfst Hsnd.
+  destruct p1 as (p1fst,p1snd).
+  destruct p2 as (p2fst,p2snd).
+  f_equal.
+  exact Hfst.
+  exact Hsnd.
+Qed.
+
+Theorem behaviour_composition_mixed_causal {UA UD Y1 Y2} :
+  forall b1 b2 (b12 : (nat->UA*UD)->(nat->Y1*Y2)),
+    (mixed_causal b1) -> (mixed_causal b2) -> (is_composed_behaviour b1 b2 b12) ->
+      (mixed_causal b12).
+Proof.
+  intros b1 b2 b12 Hcb1 Hcb2 Hb12.
+  unfold mixed_causal in *.
+  unfold is_composed_behaviour in *.
+  intros u u'.
+(*
+  specialize (Hb12 u') as Hb12'.
+  specialize (Hb12 u) as Hb12.
+*)
+  induction n.
+  - intros Hua _. intros m Hm.
+    assert (m=0) as Hm0; [apply Nat.le_0_r; exact Hm|].
+    rewrite -> Hm0.
+    destruct (Hb12 u 0) as (Hy1,Hy2).
+    destruct (Hb12 u' 0) as (Hy1',Hy2').
+    assert (fst (b12 u 0) = fst (b12 u' 0)) as Hbu1. {
+      rewrite -> Hy1. rewrite -> Hy1'.
+      apply Hcb1 with (n:=0).
+      - intros m0 Hm0le0.
+        assert (m0=0) as Hm0eq0; [apply Nat.le_0_r; exact Hm0le0|].
+        rewrite -> Hm0eq0.
+        simpl.
+        apply Hua.
+        exact (Nat.le_refl 0).
+      - intros m0 Hm0lt0.
+        apply Nat.nlt_0_r in Hm0lt0.
+        contradiction.
+      - exact (Nat.le_refl 0).
+    }
+    assert (snd (b12 u 0) = snd (b12 u' 0)) as Hbu2. {
+      rewrite -> Hy2. rewrite -> Hy2'.
+      apply Hcb2 with (n:=0).
+      - intros m0 Hm0le0.
+        assert (m0=0) as Hm0eq0; [apply Nat.le_0_r; exact Hm0le0|].
+        rewrite -> Hm0eq0.
+        simpl.
+        f_equal.
+        apply Hua.
+        exact (Nat.le_refl 0).
+        exact Hbu1.
+      - intros m0 Hm0lt0.
+        apply Nat.nlt_0_r in Hm0lt0.
+        contradiction.
+      - exact (Nat.le_refl 0).
+    }
+    apply pair_equal_fst_snd.
+    exact Hbu1.
+    exact Hbu2.
+  - intros HuaSn HudSn.
+    assert (forall m0, m0 <= n -> fst (u m0) = fst (u' m0)) as Huan. {
+      intros m0 Hm0len. apply HuaSn. apply Nat.le_le_succ_r. exact Hm0len.
+    }
+    assert (forall m0, m0 < n -> snd (u m0) = snd (u' m0)) as Hudn. {
+      intros m0 Hm0ltn. apply HudSn. apply Nat.lt_lt_succ_r. exact Hm0ltn.
+    }
+    specialize (IHn Huan Hudn) as Hy12n.
+    destruct (Hb12 u (S n)) as (Hy1,Hy2).
+    destruct (Hb12 u' (S n)) as (Hy1',Hy2').
+    assert (fst (b12 u (S n)) = fst (b12 u' (S n))) as Hbu1. {
+      rewrite -> Hy1. rewrite -> Hy1'.
+      apply Hcb1 with (n:=(S n)).
+      - simpl.
+        exact HuaSn.
+      - simpl.
+        intros m0 Hm0ltSn.
+        f_equal.
+        exact (HudSn m0 Hm0ltSn).
+        f_equal.
+        apply Hy12n.
+        apply Nat.lt_succ_r.
+        exact Hm0ltSn.
+      - exact (Nat.le_refl (S n)).
+    }
+    assert (snd (b12 u (S n)) = snd (b12 u' (S n))) as Hbu2. {
+      rewrite -> Hy2. rewrite -> Hy2'.
+      apply Hcb2 with (n:=(S n)).
+      - simpl.
+        intros m0 Hm0leSn.
+        f_equal.
+        exact (HuaSn m0 Hm0leSn).
+
+        apply Nat.le_succ_r in Hm0leSn.
+        destruct Hm0leSn as [Hm0len|Hm0eqSn].
+        -- f_equal.
+           exact (Hy12n m0 Hm0len).
+        -- rewrite -> Hm0eqSn.
+           exact Hbu1.
+      - simpl.
+        exact HudSn.
+      - exact (Nat.le_refl (S n)).
+    }
+    assert (b12 u (S n) = b12 u' (S n)) as Hy12Sn. {
+      apply pair_equal_fst_snd.
+      exact Hbu1. exact Hbu2.
+    }
+    intros m0 Hm0leSn.
+    apply Nat.le_succ_r in Hm0leSn.
+    destruct Hm0leSn as [Hm0len|Hm0eqSn].
+    -- exact (Hy12n m0 Hm0len).
+    -- rewrite -> Hm0eqSn.
+       exact Hy12Sn.
 Qed.

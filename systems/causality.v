@@ -100,7 +100,7 @@ Proof.
 Qed.
 
 (* A behaviour is causal if the output up to time n depends only on the input up to time n. *)
-Definition mixed_causal {UA UD Y : Type}
+Definition old_mixed_causal {UA UD Y : Type}
   (b : (nat->UA*UD)->(nat->Y))
   : Prop :=
     forall (ua ua':nat->UA) (ud ud':nat->UD) (n:nat),
@@ -111,10 +111,20 @@ Definition mixed_causal {UA UD Y : Type}
         (b (fun k => (ua' k, ud' k))) m0)
 .
 
+Definition mixed_causal {UA UD Y : Type}
+  (b : (nat->UA*UD)->(nat->Y))
+  : Prop :=
+    forall (u u':nat->UA*UD) (n:nat),
+      (forall m0:nat, m0 <= n -> fst (u m0) = fst (u' m0)) ->
+      (forall m1:nat, m1 < n -> snd (u m1) = snd (u' m1)) ->
+      (forall m0:nat, m0 <= n ->
+        (b u m0 = b u' m0))
+.
+
 Check mixed_causal.
 
 (* Weaker definition *)
-Definition mixed_causal' {UA UD Y : Type}
+Definition old_mixed_causal' {UA UD Y : Type}
   (b : (nat->UA*UD)->(nat->Y))
   : Prop :=
     forall (ua ua':nat->UA) (ud ud':nat->UD) (n:nat),
@@ -122,6 +132,15 @@ Definition mixed_causal' {UA UD Y : Type}
       (forall m1:nat, m1 < n -> ud m1 = ud' m1) ->
       (b (fun k => (ua k, ud k))) n =
       (b (fun k => (ua' k, ud' k))) n
+.
+
+Definition mixed_causal' {UA UD Y : Type}
+  (b : (nat->UA*UD)->(nat->Y))
+  : Prop :=
+    forall (u u':nat->UA*UD) (n:nat),
+      (forall m0:nat, m0 <= n -> fst (u m0) = fst (u' m0)) ->
+      (forall m1:nat, m1 < n -> snd (u m1) = snd (u' m1)) ->
+      (b u n = b u' n)
 .
 
 (* Show that the two definitions of causality are actually equivalent. *)
@@ -135,7 +154,7 @@ Proof.
   split.
   - (* Case: causal' b -> causal b *)
     intro Hscb'.
-    intros ua ua' ud ud'. intro n.
+    intros u u'. intro n.
     intros Hmlen0 Hmltn.
     intro m0. intro Hmlen1.
     apply Hscb'.
@@ -147,7 +166,7 @@ Proof.
       apply H. assumption. assumption.
   - (* Case: causal b -> causal b *)
     intro Hscb.
-    intros ua ua' ud ud'. intro n.
+    intros u u'. intro n.
     intros Hmlen Hmltn.
     apply Hscb with (n:=n).
     + exact Hmlen.

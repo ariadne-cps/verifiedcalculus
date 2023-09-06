@@ -108,31 +108,33 @@ Lemma behaviour_mixed_causal' :
       mixed_causal' (behaviour s).
 Proof.
   intros UA UD X Y. intro s. unfold mixed_causal'.
-  intros ua ua' ud ud'. intro n.
+  intros u u'. intro n.
   intros H0 H1.
   destruct s as (f,h,e).
   unfold behaviour. unfold signal.
   f_equal.
   - induction n.
     + unfold trajectory. reflexivity.
-    + assert (forall m0: nat, m0 <= n  -> ua m0 = ua' m0) as Hlen. { auto. }
-      assert (forall m1: nat, m1 < n  -> ud m1 = ud' m1) as Hltn. { auto. }
-      assert (ua n = ua' n) as Heqn0. { auto. }
-      assert (ud n = ud' n) as Heqn1. { auto. }
+    + assert (forall m0: nat, m0 <= n  -> fst (u m0) = fst (u' m0)) as Hlen. { auto. }
+      assert (forall m1: nat, m1 < n  -> snd (u m1) = snd (u' m1)) as Hltn. { auto. }
+      assert (fst (u n) = fst (u' n)) as Heqn0. { auto. }
+      assert (snd (u n) = snd (u' n)) as Heqn1. { auto. }
 
-      assert (trajectory f e (fun k => (ua k, ud k)) n = trajectory f e (fun k => (ua' k, ud' k)) n).
+      assert (trajectory f e u n = trajectory f e u' n).
       { apply IHn. assumption. assumption. }
-      remember (trajectory f e (fun k => (ua k, ud k)) n) as x eqn:Ex.
-      remember (trajectory f e (fun k => (ua' k, ud' k)) n) as x' eqn:Ex'.
-      assert (trajectory f e (fun k => (ua k, ud k)) (S n) = f (trajectory f e (fun k => (ua k, ud k)) n) (ua n, ud n)) as Hn.
+      remember (trajectory f e u n) as x eqn:Ex.
+      remember (trajectory f e u' n) as x' eqn:Ex'.
+      assert (trajectory f e u (S n) = f (trajectory f e u n) (u n)) as Hn.
       { simpl. reflexivity. }
-      assert (trajectory f e (fun k => (ua' k, ud' k)) (S n) = f (trajectory f e (fun k => (ua' k, ud' k)) n) (ua' n, ud' n)) as Hn'.
+      assert (trajectory f e u' (S n) = f (trajectory f e u' n) (u' n)) as Hn'.
       { simpl. reflexivity. }
       rewrite -> Hn. rewrite <- Ex.
       rewrite -> Hn'. rewrite <- Ex'.
       f_equal.
       * assumption.
-      * rewrite pair_equal_spec. split.
+      * destruct (u n) as [uan udn].
+        destruct (u' n) as [uan' udn'].
+        apply pair_equal_spec. split.
         -- apply Heqn0.
         -- apply Heqn1.
   - rewrite <- H0.
@@ -306,7 +308,7 @@ Lemma Hb12eqbehav {UA UD X1 X2 Y1 Y2 : Type} :
       -> forall (u : nat->UA*UD) (n:nat),
         b12 u n = behaviour (compose_systems s1 s2) u n.
 Proof.
-   intros s1 s2 b12 H0 H1.
+   intros s1 s2 b12 Hb12 Hb12'.
    remember (behaviour (compose_systems s1 s2)) as b12' eqn:Eb12'.
    remember (behaviour s1) as b1 eqn:Eb1.
    remember (behaviour s2) as b2 eqn:Eb2.
@@ -314,13 +316,10 @@ Proof.
    (* Check composed_mixed_causal_system_behaviour_unique. *)
    apply @composed_mixed_causal_behaviour_unique
      with (b1:=b1) (b2:=b2) (b12':=b12').
-
-   - apply X1. (* ? *)
-   - apply X2. (* ? *)
    - rewrite Eb1. apply behaviour_mixed_causal.
    - rewrite Eb2. apply behaviour_mixed_causal.
-   - exact H0.
-   - exact H1.
+   - exact Hb12.
+   - exact Hb12'.
 Qed.
 
 (* The composed behaviour of two systems should be unique. *)

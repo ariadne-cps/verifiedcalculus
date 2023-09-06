@@ -21,7 +21,6 @@
 (*                  <http://www.gnu.org/licenses/gpl.txt>               *)
 (************************************************************************)
 
-
 Require Import Coq.Arith.PeanoNat.
 
 Require Export causality.
@@ -34,7 +33,9 @@ Notation strictly_causal' := causality.strictly_causal'.
 Notation strictly_causal_equivalent := causality.strictly_causal_equivalent.
 Notation mixed_causal := causality.mixed_causal.
 Notation extensional := causality.extensional.
-Notation strictly_causal_extensional := causality.strictly_causal_extensional.
+Notation strictly_causal_behaviour_extensional := causality.strictly_causal_behaviour_extensional.
+Notation mixed_causal_behaviour_extensional := causality.mixed_causal_behaviour_extensional.
+Notation mixed_causal_equivalent_behaviours := causality.mixed_causal_equivalent_behaviours.
 Notation is_composed_behaviour := behaviour_composition.is_composed_behaviour.
 
 (* Think of a better name than 'combine', maybe 'function_compose' *)
@@ -423,7 +424,7 @@ Admitted.
 
 
 Definition compose_behaviours
-    {UA UD Y1 Y2 : Type} 
+    {UA UD Y1 Y2 : Type}
     (b1 : (nat -> UA*(UD*Y2)) -> (nat -> Y1))
     (b2 : (nat -> (UA*Y1)*UD) -> (nat -> Y2))
     (y_default : Y1)
@@ -452,20 +453,20 @@ Proof.
   intro n.
   intros ua ud.
   remember (fun (y2 : nat -> Y2) => b1 (fun n => (ua n, (ud n, y2 n)))) as b1'.
-  remember (fun (y1 : nat -> Y1) => b2 (fun n => ((ua n, y1 n), ud n))) as b2'.  
+  remember (fun (y1 : nat -> Y1) => b2 (fun n => ((ua n, y1 n), ud n))) as b2'.
   intros py1 py2 gy1 gy2.
   assert (strictly_causal b1') as Hb1'. {
     unfold strictly_causal. unfold mixed_causal in Hb1.
-    intros u u' n' Hsc. rewrite -> Heqb1'. apply Hb1. trivial.
-    intros m' Hm'. f_equal. apply Hsc. exact Hm'. 
+    intros y2 y2' n' Hsc. rewrite -> Heqb1'. apply Hb1. trivial.
+    intros m' Hm'. f_equal. f_equal. f_equal. apply Hsc. exact Hm'.
   }
   assert (causal b2') as Hb2'. {
     unfold causal. unfold mixed_causal in Hb2.
-    intros u u' n' Hc. rewrite -> Heqb2'. apply Hb2. 
-    intros m' Hm'. f_equal. apply Hc. exact Hm'. trivial. 
+    intros y1 y1' n' Hc. rewrite -> Heqb2'. apply Hb2.
+    intros m' Hm'. f_equal. f_equal. f_equal. apply Hc. exact Hm'. trivial.
   }
-  assert (extensional b1') as Heb1'. { 
-    apply strictly_causal_extensional. exact Hb1'. 
+  assert (extensional b1') as Heb1'. {
+    apply strictly_causal_behaviour_extensional. exact Hb1'.
   }
   assert (is_composed_behaviour_noinputs b1' b2' (compose_behaviours_noinputs b1' b2' y_default)). {
     pose (@causal_composed_noinputs Y1 Y2) as Hni.
@@ -476,8 +477,8 @@ Proof.
   }
   assert (forall k, compose_behaviours b1 b2 y_default uad k
             = compose_behaviours_noinputs b1' b2' y_default k) as Hcni. {
-    intros k. unfold compose_behaviours. rewrite -> Heqb1', Heqb2'. trivial. 
-  } 
+    intros k. unfold compose_behaviours. rewrite -> Heqb1', Heqb2'. trivial.
+  }
   assert (forall k, py1 k = fst (compose_behaviours_noinputs b1' b2' y_default k)) as Hpy1.  {
     intro k. unfold py1. rewrite <- Hcni. reflexivity. }
   assert (forall k, py2 k = snd (compose_behaviours_noinputs b1' b2' y_default k)) as Hpy2. {
@@ -492,11 +493,12 @@ Proof.
   rewrite <- Hpy2 in H2.
   rewrite -> Hgy1, -> Hgy2.
   split.
-  - rewrite <- H1. 
+  - rewrite <- H1.
     apply Heb1'.
     intros n'.
-    rewrite <- Hpy2. 
+    rewrite <- Hpy2.
     reflexivity.
-  - rewrite <- Hgy2. 
+  - rewrite <- Hgy2.
     reflexivity.
 Qed.
+
