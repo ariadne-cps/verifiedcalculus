@@ -178,7 +178,7 @@ Qed.
 Definition extensional {U Y : Type} (b : (nat -> U) -> (nat -> Y)) :=
   forall u u', (forall n, u n = u' n) -> (forall n, (b u) n = (b u') n).
 
-Lemma strictly_causal_extensional {U Y} : forall (b:(nat->U)->(nat->Y)),
+Lemma strictly_causal_behaviour_extensional {U Y} : forall (b:(nat->U)->(nat->Y)),
   strictly_causal b -> extensional b.
 Proof.
   unfold strictly_causal, extensional.
@@ -186,6 +186,28 @@ Proof.
   intros m Hm. apply Hu. apply Nat.le_refl.
 Qed.
 
+
+Lemma mixed_causal_behaviour_extensional {UA UD Y} : forall (b:(nat->(UA*UD))->(nat->Y)),
+  mixed_causal b -> extensional b.
+Proof.
+  unfold mixed_causal, extensional.
+  intros b Hc. intros u u' Hu n. apply (Hc u u' n).
+  intros m Hm. rewrite <- Hu. reflexivity.
+  intros m Hm. rewrite <- Hu. reflexivity.
+  apply Nat.le_refl.
+Qed.
+
+Lemma mixed_causal_equivalent_behaviours {UA UD Y} : forall (b b' :(nat->(UA*UD))->(nat->Y)),
+  (forall u n, b u n = b' u n) -> mixed_causal b -> mixed_causal b'.
+Proof.
+  intros b b' He Hcb.
+  unfold mixed_causal in *.
+  intros u u' n Hua Hud.
+  specialize (Hcb u u' n Hua Hud).
+  intros m Hm.
+  rewrite <- He, <- He.
+  exact (Hcb m Hm).
+Qed.
 
 
 
