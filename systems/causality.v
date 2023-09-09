@@ -17,16 +17,19 @@ Require Import Coq.Arith.PeanoNat.
 
 Module causality.
 
+(* A behaviour is a function from input sequences to output sequences. *)
+Definition Behaviour {U:Type} {Y:Type} : Type := (nat -> U) -> (nat -> Y).
+
 (* A behaviour is causal if the output up to time n depends only on the input up to time n. *)
 Definition causal {U:Type} {Y:Type}
-  (b : (nat -> U) -> (nat -> Y)) : Prop :=
+  (b : @Behaviour U Y) : Prop :=
    forall u u' : nat -> U, forall n:nat, (forall m:nat, m <= n -> u m = u' m)
        -> (forall m:nat, m <= n -> (b u) m = (b u') m)
 .
 
 (* A weaker definition of causality which turns out to be equivalent. *)
 Definition causal' {U:Type} {Y:Type}
-  (b : (nat -> U) -> (nat -> Y)) : Prop :=
+  (b : @Behaviour U Y) : Prop :=
    forall u u' : nat -> U, forall n:nat, (forall m:nat, m <= n -> u m = u' m)
        -> (b u) n = (b u') n
 .
@@ -34,7 +37,7 @@ Definition causal' {U:Type} {Y:Type}
 
 (* A behaviour is strictly causal if the output up to time n depends only on the input before time n. *)
 Definition strictly_causal {U:Type} {Y:Type}
-  (b : (nat -> U) -> (nat -> Y)) : Prop :=
+  (b : @Behaviour U Y) : Prop :=
    forall u u' : nat -> U, forall n:nat, (forall m:nat, m < n -> u m = u' m)
        -> (forall m:nat, m <= n -> (b u) m = (b u') m)
 .
@@ -42,14 +45,14 @@ Definition strictly_causal {U:Type} {Y:Type}
 (* A weaker definition of strict causality which turns out to be equivalent. *)
 (* A behaviour is struct causal if the output at time n depends only on the input up to time n. *)
 Definition strictly_causal' {U:Type} {Y:Type}
-  (b : (nat -> U) -> (nat -> Y)) : Prop :=
+  (b : @Behaviour U Y) : Prop :=
    forall u u' : nat -> U, forall n:nat, (forall m:nat, m < n -> u m = u' m)
        -> (b u) n = (b u') n
 .
 
 (* Show that the two definitions of causality are actually equivalent. *)
 Lemma strictly_causal_equivalent : forall {U:Type} {Y:Type}
-  (b : (nat -> U) -> (nat -> Y)), strictly_causal' b <-> strictly_causal b.
+  (b : @Behaviour U Y), strictly_causal' b <-> strictly_causal b.
 Proof.
   intros U Y. intro b.
   unfold strictly_causal. unfold strictly_causal'.
@@ -75,7 +78,7 @@ Qed.
 
 (* Show that the two definitions of causality are actually equivalent. *)
 Lemma causal_equivalent : forall {U:Type} {Y:Type}
-  (b : (nat -> U) -> (nat -> Y)), causal' b <-> causal b.
+  (b : @Behaviour U Y), causal' b <-> causal b.
 Proof.
   intros U Y. intro b.
   unfold causal. unfold causal'.
@@ -101,7 +104,7 @@ Qed.
 
 (* A behaviour is causal if the output up to time n depends only on the input up to time n. *)
 Definition old_mixed_causal {UA UD Y : Type}
-  (b : (nat->UA*UD)->(nat->Y))
+  (b : @Behaviour (UA*UD) Y)
   : Prop :=
     forall (ua ua':nat->UA) (ud ud':nat->UD) (n:nat),
       (forall m0:nat, m0 <= n -> ua m0 = ua' m0) ->
@@ -112,7 +115,7 @@ Definition old_mixed_causal {UA UD Y : Type}
 .
 
 Definition mixed_causal {UA UD Y : Type}
-  (b : (nat->UA*UD)->(nat->Y))
+  (b : @Behaviour (UA*UD) Y)
   : Prop :=
     forall (u u':nat->UA*UD) (n:nat),
       (forall m0:nat, m0 <= n -> fst (u m0) = fst (u' m0)) ->
@@ -125,7 +128,7 @@ Check mixed_causal.
 
 (* Weaker definition *)
 Definition old_mixed_causal' {UA UD Y : Type}
-  (b : (nat->UA*UD)->(nat->Y))
+  (b : @Behaviour (UA*UD) Y)
   : Prop :=
     forall (ua ua':nat->UA) (ud ud':nat->UD) (n:nat),
       (forall m0:nat, m0 <= n -> ua m0 = ua' m0) ->
@@ -135,7 +138,7 @@ Definition old_mixed_causal' {UA UD Y : Type}
 .
 
 Definition mixed_causal' {UA UD Y : Type}
-  (b : (nat->UA*UD)->(nat->Y))
+  (b : @Behaviour (UA*UD) Y)
   : Prop :=
     forall (u u':nat->UA*UD) (n:nat),
       (forall m0:nat, m0 <= n -> fst (u m0) = fst (u' m0)) ->
@@ -146,7 +149,7 @@ Definition mixed_causal' {UA UD Y : Type}
 (* Show that the two definitions of causality are actually equivalent. *)
 Lemma mixed_causal_equivalent :
   forall  {UA UD Y : Type}
-    (b : (nat->UA*UD) -> (nat -> Y)),
+    (b : @Behaviour (UA*UD) Y),
       mixed_causal' b <-> mixed_causal b.
 Proof.
   intros UA UD Y. intro b.
@@ -175,10 +178,10 @@ Proof.
 Qed.
 
 
-Definition extensional {U Y : Type} (b : (nat -> U) -> (nat -> Y)) :=
+Definition extensional {U Y : Type} (b : @Behaviour U Y) :=
   forall u u', (forall n, u n = u' n) -> (forall n, (b u) n = (b u') n).
 
-Lemma strictly_causal_behaviour_extensional {U Y} : forall (b:(nat->U)->(nat->Y)),
+Lemma strictly_causal_behaviour_extensional {U Y} : forall (b :@Behaviour U Y),
   strictly_causal b -> extensional b.
 Proof.
   unfold strictly_causal, extensional.
@@ -187,7 +190,7 @@ Proof.
 Qed.
 
 
-Lemma mixed_causal_behaviour_extensional {UA UD Y} : forall (b:(nat->(UA*UD))->(nat->Y)),
+Lemma mixed_causal_behaviour_extensional {UA UD Y} : forall (b : @Behaviour (UA*UD) Y),
   mixed_causal b -> extensional b.
 Proof.
   unfold mixed_causal, extensional.
@@ -197,7 +200,7 @@ Proof.
   apply Nat.le_refl.
 Qed.
 
-Lemma mixed_causal_equivalent_behaviours {UA UD Y} : forall (b b' :(nat->(UA*UD))->(nat->Y)),
+Lemma mixed_causal_equivalent_behaviours {UA UD Y} : forall (b b' : @Behaviour (UA*UD) Y),
   (forall u n, b u n = b' u n) -> mixed_causal b -> mixed_causal b'.
 Proof.
   intros b b' He Hcb.

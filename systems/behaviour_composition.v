@@ -16,6 +16,7 @@ Require Import Coq.Arith.PeanoNat.
 
 Require Export causality.
 
+Notation Behaviour := causality.Behaviour.
 Notation mixed_causal := causality.mixed_causal.
 Notation mixed_causal' := causality.mixed_causal'.
 Notation mixed_causal_equivalent :=  causality.mixed_causal_equivalent.
@@ -27,9 +28,9 @@ Notation mixed_causal_equivalent :=  causality.mixed_causal_equivalent.
    of the component systems b1 and b2 give the component behaviour.
    For non-strictly-causal systems, composed behaviours need not be unique. *)
 Definition is_composed_behaviour {UA UD Y1 Y2 : Type}
-  (b1 : (nat->(UA*(UD*Y2)))->(nat->Y1))
-  (b2 : (nat->((UA*Y1)*UD))->(nat->Y2))
-  (b12 : (nat->UA*UD)->(nat->Y1*Y2))
+  (b1 : @Behaviour (UA*(UD*Y2)) Y1)
+  (b2 : @Behaviour ((UA*Y1)*UD) Y2)
+  (b12 : @Behaviour (UA*UD) (Y1*Y2))
   : Prop :=
   forall (u:nat->UA*UD) (n:nat),
 
@@ -50,9 +51,9 @@ Definition is_composed_behaviour {UA UD Y1 Y2 : Type}
 .
 
 Lemma is_composed_behaviour_output_extensional {UA UD Y1 Y2 : Type} :
-  forall (b1 : (nat->(UA*(UD*Y2)))->(nat->Y1))
-         (b2 : (nat->((UA*Y1)*UD))->(nat->Y2))
-         (b12 b12' : (nat->UA*UD)->(nat->Y1*Y2)),
+  forall (b1 : @Behaviour (UA*(UD*Y2)) Y1)
+         (b2 : @Behaviour ((UA*Y1)*UD) Y2)
+         (b12 b12' : @Behaviour (UA*UD) (Y1*Y2)),
     mixed_causal b1 -> mixed_causal b2 ->
       (forall (u:nat->UA*UD) (n:nat), b12 u n = b12' u n) -> 
         (is_composed_behaviour b1 b2 b12 -> is_composed_behaviour b1 b2 b12').
@@ -70,9 +71,9 @@ Proof.
 Qed.
 
 Lemma is_composed_behaviour_input_extensional {UA UD Y1 Y2 : Type} :
-  forall (b1 b1' : (nat->(UA*(UD*Y2)))->(nat->Y1))
-         (b2 b2' : (nat->((UA*Y1)*UD))->(nat->Y2))
-         (b12 : (nat->UA*UD)->(nat->Y1*Y2)),
+  forall (b1 b1' : @Behaviour (UA*(UD*Y2)) Y1)
+         (b2 b2' : @Behaviour ((UA*Y1)*UD) Y2)
+         (b12 : @Behaviour (UA*UD) (Y1*Y2)),
     mixed_causal b1 -> mixed_causal b1' -> mixed_causal b2 -> mixed_causal b2' ->
       (forall (uy2:nat->UA*(UD*Y2)) (n:nat), b1 uy2 n = b1' uy2 n) -> 
         (forall (uy1:nat->(UA*Y1)*UD) (n:nat), b2 uy1 n = b2' uy1 n) -> 
@@ -92,8 +93,8 @@ Qed.
 (* The composition of two mixed causal behaviours should be unique. *)
 Proposition composed_mixed_causal_outputs_unique
   {UA UD Y1 Y2 : Type} :
-  forall (b1 : (nat->(UA*(UD*Y2)))->(nat->Y1))
-         (b2 : (nat->((UA*Y1)*UD))->(nat->Y2)),
+  forall (b1 : @Behaviour (UA*(UD*Y2)) Y1)
+         (b2 : @Behaviour ((UA*Y1)*UD) Y2),
            mixed_causal b1 ->
            mixed_causal b2 ->
            forall (u : nat->UA*UD), 
@@ -458,9 +459,9 @@ Qed.
 (* The composition of two mixed causal behaviours should be unique. *)
 Theorem composed_mixed_causal_behaviour_unique
   {UA UD Y1 Y2 : Type} :
-  forall (b1 : (nat->(UA*(UD*Y2)))->(nat->Y1))
-         (b2 : (nat->((UA*Y1)*UD))->(nat->Y2))
-         (b12 b12' : (nat->UA*UD)->(nat->Y1*Y2)),
+  forall (b1 : @Behaviour (UA*(UD*Y2)) Y1)
+         (b2 : @Behaviour ((UA*Y1)*UD) Y2)
+         (b12 b12' : @Behaviour (UA*UD) (Y1*Y2)),
            mixed_causal b1 ->
            mixed_causal b2 ->
            is_composed_behaviour b1 b2 b12 ->
@@ -494,9 +495,9 @@ Qed.
 (*
 Theorem composed_mixed_causal_behaviour_unique'
   {UA UD Y1 Y2 : Type} :
-  forall (b1 : (nat->(UA*(UD*Y2)))->(nat->Y1))
-         (b2 : (nat->((UA*Y1)*UD))->(nat->Y2))
-         (b12 b12' : (nat->UA*UD)->(nat->Y1*Y2)),
+  forall (b1 : @Behaviour ((UA*(UD*Y2))) Y1)
+         (b2 : @Behaviour (((UA*Y1)*UD)) Y2)
+         (b12 b12' : @Behaviour (UA*UD) (Y1*Y2)),
            mixed_causal b1 ->
            mixed_causal b2 ->
            is_composed_behaviour b1 b2 b12 ->
@@ -522,7 +523,7 @@ Proof.
 Qed.
 
 Theorem behaviour_composition_mixed_causal {UA UD Y1 Y2} :
-  forall b1 b2 (b12 : (nat->UA*UD)->(nat->Y1*Y2)),
+  forall b1 b2 (b12 : @Behaviour (UA*UD) (Y1*Y2)),
     (mixed_causal b1) -> (mixed_causal b2) -> (is_composed_behaviour b1 b2 b12) ->
       (mixed_causal b12).
 Proof.

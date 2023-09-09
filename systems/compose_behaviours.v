@@ -41,14 +41,14 @@ Notation is_composed_behaviour := behaviour_composition.is_composed_behaviour.
 (* Think of a better name than 'combine', maybe 'function_compose' *)
 Definition combine_behaviours_noinputs
   {Y1 Y2 : Type}
-  (b1 : (nat->Y2)->(nat->Y1))
-  (b2 : (nat->Y1)->(nat->Y2))
-  : (nat->Y1) -> (nat->Y1) := fun y1s => b1 (b2 y1s) .
+  (b1 : @Behaviour Y2 Y1)
+  (b2 : @Behaviour Y1 Y2)
+  : @Behaviour Y1 Y1 := fun y1s => b1 (b2 y1s) .
 
 
 Fixpoint iterated_behaviours_noinputs
   {Y : Type}
-  (b : (nat->Y)->(nat->Y))
+  (b : @Behaviour Y Y)
   (y_default : Y)
   (n : nat)
   : (nat->Y) :=
@@ -59,7 +59,7 @@ Fixpoint iterated_behaviours_noinputs
 
 Definition fixed_behaviour_noinputs
   {Y : Type}
-  (b : (nat->Y)->(nat->Y))
+  (b : @Behaviour Y Y)
   (y_default : Y)
   : (nat->Y) := fun n => (iterated_behaviours_noinputs b y_default (S n)) n.
 
@@ -69,15 +69,15 @@ Definition zip {Y1 Y2 : Type} (y1s : nat->Y1) (y2s : nat->Y2) : nat->(Y1*Y2)
 Definition extend_behaviour_noinputs
   {Y1 Y2 : Type}
   (y1s : (nat->Y1))
-  (b2 : (nat->Y1)->(nat->Y2))
+  (b2 : @Behaviour Y1 Y2)
   : (nat->(Y1*Y2)) := zip y1s (b2 y1s).
 (*  let y2s := b2 y1s in (y1s n, y2s n). *)
 
 (* Maybe call 'parallel_compose_behaviours_noinputs' *)
 Definition compose_behaviours_noinputs
   {Y1 Y2 : Type}
-  (b1 : (nat->Y2)->(nat->Y1))
-  (b2 : (nat->Y1)->(nat->Y2))
+  (b1 : @Behaviour Y2 Y1)
+  (b2 : @Behaviour Y1 Y2)
   (y_default : Y1)
   : (nat->Y1*Y2) :=
     let b := combine_behaviours_noinputs b1 b2 in
@@ -86,8 +86,8 @@ Definition compose_behaviours_noinputs
 .
 
 Definition is_composed_behaviour_noinputs {Y1 Y2 : Type}
-  (b1 : (nat->Y2) -> (nat->Y1))
-  (b2 : (nat->Y1) -> (nat->Y2))
+  (b1 : @Behaviour Y2 Y1)
+  (b2 : @Behaviour Y1 Y2)
   (b12 : (nat->Y1*Y2))
   : Prop :=
   forall (n:nat),
@@ -95,13 +95,13 @@ Definition is_composed_behaviour_noinputs {Y1 Y2 : Type}
      ( b2 (fun k => fst (b12 k)) n = snd (b12 n) )
 .
 
-Definition is_fixed_behaviour_noinputs {Y : Type} (b : (nat->Y)->(nat->Y)) (ys : nat->Y) : Prop
+Definition is_fixed_behaviour_noinputs {Y : Type} (b : @Behaviour Y Y) (ys : nat->Y) : Prop
   := forall (n:nat), (b ys) n = ys n.
 
 (* Show that the fixed behaviour of the combined behaviour extends to the composed behaviour. *)
 Lemma combined_behaviour_causal_noinputs {Y1 Y2 : Type} :
-  forall (b1 : (nat->Y2) -> (nat->Y1))
-         (b2 : (nat->Y1) -> (nat->Y2)),
+  forall (b1 : @Behaviour Y2 Y1)
+         (b2 : @Behaviour Y1 Y2),
          (strictly_causal b1) -> (causal b2) ->
          (strictly_causal (combine_behaviours_noinputs b1 b2))
 .
@@ -145,7 +145,7 @@ Proof.
 Qed.
 
 Lemma causal_fixed_noinputs_zero {Y : Type} :
-  forall (b : (nat->Y) -> (nat->Y))
+  forall (b : @Behaviour Y Y)
          (u u' : nat -> Y),
          (strictly_causal b) -> b u 0 = b u' 0.
 Proof.
@@ -161,7 +161,7 @@ Proof.
 Qed.
 
 Lemma causal_fixed_noinputs_succ {Y : Type} :
-  forall (b : (nat->Y) -> (nat->Y))
+  forall (b : @Behaviour Y Y)
          (u u' : nat -> Y) (n : nat),
          (strictly_causal b) -> (forall m:nat, m<=n -> u m = u' m) -> b u (S n) = b u' (S n).
 Proof.
@@ -270,7 +270,7 @@ Lemma table {Y : Type} (B:nat->nat->Y) :
    forall n m, m<n -> B n m = B (S m) m.
 *)
 
-Lemma causal_iterated_behaviours_noinputs {Y : Type} (b:(nat->Y)->(nat->Y)) (y_default:Y) :
+Lemma causal_iterated_behaviours_noinputs {Y : Type} (b : @Behaviour Y Y) (y_default : Y) :
   (strictly_causal b) -> (forall n, forall m, m<n ->
     iterated_behaviours_noinputs b y_default n m =
     iterated_behaviours_noinputs b y_default (S m) m).
@@ -319,7 +319,7 @@ Qed.
 
 (* Show that the fixed behaviour is indeed a fixed-point. *)
 Proposition causal_fixed_noinputs {Y : Type} :
-  forall (b : (nat->Y) -> (nat->Y))
+  forall (b : @Behaviour Y Y)
          (y_default : Y),
          (strictly_causal b) ->
          is_fixed_behaviour_noinputs b (fixed_behaviour_noinputs b y_default)
@@ -363,8 +363,8 @@ Qed.
 
 (* Show that the fixed behaviour of the combined behaviour extends to the composed behaviour. *)
 Lemma causal_fixed_is_composed_noinputs {Y1 Y2 : Type} :
-  forall (b1 : (nat->Y2) -> (nat->Y1))
-         (b2 : (nat->Y1) -> (nat->Y2))
+  forall (b1 : @Behaviour Y2 Y1)
+         (b2 : @Behaviour Y1 Y2)
          (y1s : nat->Y1),
          (strictly_causal b1) -> (causal b2) ->
          is_fixed_behaviour_noinputs (combine_behaviours_noinputs b1 b2) y1s ->
@@ -382,8 +382,8 @@ Qed.
 
 (* Show that composition of behaviours is composed *)
 Theorem causal_composed_noinputs {Y1 Y2 : Type} :
-  forall (b1 : (nat->Y2) -> (nat->Y1))
-         (b2 : (nat->Y1)->(nat->Y2))
+  forall (b1 : @Behaviour Y2 Y1)
+         (b2 : @Behaviour Y1 Y2)
          (y_default : Y1) ,
          (strictly_causal b1) -> (causal b2) ->
            is_composed_behaviour_noinputs b1 b2
@@ -408,8 +408,8 @@ Qed.
    Sacha: Omit for now. Write report.
 *)
 Proposition causal_composed_unique_noinputs {Y1 Y2 : Type} :
-  forall (b1 : (nat->Y2) -> (nat->Y1))
-         (b2 : (nat->Y1)->(nat->Y2))
+  forall (b1 : @Behaviour Y2 Y1)
+         (b2 : @Behaviour Y1 Y2)
          (b12 : nat->Y1*Y2)
          (b12' : nat->Y1*Y2)
          (y_default : Y1) ,
@@ -425,10 +425,10 @@ Admitted.
 
 Definition compose_behaviours
     {UA UD Y1 Y2 : Type}
-    (b1 : (nat -> UA*(UD*Y2)) -> (nat -> Y1))
-    (b2 : (nat -> (UA*Y1)*UD) -> (nat -> Y2))
+    (b1 : @Behaviour (UA*(UD*Y2)) Y1)
+    (b2 : @Behaviour ((UA*Y1)*UD) Y2)
     (y_default : Y1)
-      : (nat -> (UA*UD)) -> (nat -> (Y1*Y2)) :=
+      : @Behaviour (UA*UD) (Y1*Y2) :=
   fun (uad : nat -> UA*UD) =>
     let ua := fun n => fst (uad n) in
     let ud := fun n => snd (uad n) in
@@ -440,8 +440,8 @@ Definition compose_behaviours
 
 
 Theorem mixed_causal_composed {UA UD Y1 Y2 : Type} :
-  forall (b1 : (nat->UA*(UD*Y2)) -> (nat->Y1))
-         (b2 : (nat->(UA*Y1)*UD) -> (nat->Y2))
+  forall (b1 : @Behaviour (UA*(UD*Y2)) Y1)
+         (b2 : @Behaviour ((UA*Y1)*UD) Y2)
          (y_default : Y1),
          (mixed_causal b1) -> (mixed_causal b2) ->
            is_composed_behaviour b1 b2
@@ -503,18 +503,18 @@ Proof.
 Qed.
 
 
-Definition preprocess1 {UA UD Y1 Y2 Y3} ( b1 : (nat->UA*(UD*(Y2*Y3)))->(nat->Y1) ) :=
+Definition preprocess1 {UA UD Y1 Y2 Y3} ( b1 : @Behaviour (UA * (UD*(Y2*Y3))) Y1 ) :=
   fun (v : nat->UA*((UD*Y3)*Y2)) => b1 (fun k => let vk:=v k in (fst vk,(fst (fst (snd vk)),(snd (snd vk),snd (fst (snd vk)))))).
-Definition preprocess3 {UA UD Y1 Y2 Y3} ( b3 : (nat->(UA*(Y1*Y2))*UD)->(nat->Y3) ) :=
+Definition preprocess3 {UA UD Y1 Y2 Y3} ( b3 : @Behaviour ((UA*(Y1*Y2)) * UD) Y3 ) :=
   fun (v : nat->((UA*Y1)*Y2)*UD) => b3 (fun k => let vk:=v k in ((fst (fst (fst vk)),(snd (fst (fst vk)),snd (fst vk))),snd vk)).
-Definition postprocess {UA UD Y1 Y2 Y3} ( b123 : (nat->(UA*UD))->(nat->Y1*(Y2*Y3)) ) :=
+Definition postprocess {UA UD Y1 Y2 Y3} ( b123 : @Behaviour (UA * UD) (Y1*(Y2*Y3)) ) :=
   fun (u : nat->UA*UD) => (fun k => let wk := b123 u k in ((fst wk,fst (snd wk)),snd (snd wk))).
-Definition unpostprocess {UA UD Y1 Y2 Y3} ( b123 : (nat->(UA*UD))->(nat->(Y1*Y2)*Y3) ) :=
+Definition unpostprocess {UA UD Y1 Y2 Y3} ( b123 : @Behaviour (UA * UD) ((Y1*Y2)*Y3) ) :=
   fun (u : nat->UA*UD) => (fun k => let wk := b123 u k in (fst (fst wk),(snd (fst wk),snd wk))).
 
 
 Lemma mixed_causal_preprocess1  {UA UD Y1 Y2 Y3} :
-  forall (b1 : (nat->UA*(UD*(Y2*Y3)))->(nat->Y1)),
+  forall (b1 : @Behaviour(UA*(UD*(Y2*Y3))) Y1),
     mixed_causal b1 -> mixed_causal (preprocess1 b1).
 Proof.
   intros b1 Hc1.
@@ -545,7 +545,7 @@ Proof.
 Qed.
 
 Lemma mixed_causal_preprocess3  {UA UD Y1 Y2 Y3} :
-  forall (b3 : (nat->(UA*(Y1*Y2))*UD)->(nat->Y3)),
+  forall (b3 : @Behaviour ((UA*(Y1*Y2))*UD) Y3),
     mixed_causal b3 -> mixed_causal (preprocess3 b3).
 Proof.
   intros b3 Hc3.
@@ -577,9 +577,9 @@ Qed.
 
 
 Theorem compose_behaviours_associative {UA UD Y1 Y2 Y3} :
-  forall (b1 : (nat->UA*(UD*(Y2*Y3)))->(nat->Y1))
-         (b2 : (nat->(UA*Y1)*(UD*Y3))->(nat->Y2))
-         (b3 : (nat->(UA*(Y1*Y2))*UD)->(nat->Y3))
+  forall (b1 : @Behaviour (UA*(UD*(Y2*Y3))) Y1)
+         (b2 : @Behaviour ((UA*Y1)*(UD*Y3)) Y2)
+         (b3 : @Behaviour ((UA*(Y1*Y2))*UD) Y3)
          (y1_default : Y1) (y2_default : Y2),
     let pb1 := (preprocess1 b1) in
     let pb3 := (preprocess3 b3) in
@@ -726,16 +726,16 @@ Qed.
 
 
 Theorem behaviour_composition_associative {UA UD Y1 Y2 Y3 : Type} :
-  forall (b1 : (nat -> (UA) * (UD * (Y2 * Y3))) -> (nat -> Y1))
-         (b2 : (nat -> (UA * Y1) * (UD * Y3)) -> (nat -> Y2))
-         (b3 : (nat -> (UA * (Y1 * Y2)) * (UD)) -> (nat -> Y3))
-         (b123 : (nat -> UA * UD) -> (nat -> (Y1 * Y2) * Y3)),
+  forall (b1 : @Behaviour (UA * (UD*(Y2*Y3))) Y1)
+         (b2 : @Behaviour ((UA*Y1) * (UD*Y3)) Y2)
+         (b3 : @Behaviour ((UA*(Y1*Y2)) * UD) Y3)
+         (b123 : @Behaviour (UA * UD) ((Y1*Y2)*Y3)),
     mixed_causal b1 -> mixed_causal b2 -> mixed_causal b3 ->
     (inhabited (UA * UD)) ->
-    ( exists b12 : (nat -> (UA) * (UD * Y3)) -> (nat -> Y1 * Y2),
+    ( exists b12 : @Behaviour (UA * (UD*Y3)) (Y1*Y2),
         (is_composed_behaviour (preprocess1 b1) b2 b12) /\ (is_composed_behaviour b12 b3 b123) )
     <->
-    ( exists b23 : (nat -> (UA * Y1) * (UD)) -> (nat -> Y2 * Y3),
+    ( exists b23 : @Behaviour ((UA*Y1) * UD) (Y2*Y3),
         (is_composed_behaviour b2 (preprocess3 b3) b23) /\ (is_composed_behaviour b1 b23 (unpostprocess b123)) )
 .
 Proof.

@@ -302,7 +302,7 @@ Theorem composed_system_behaviour {UA UD X1 X2 Y1 Y2 : Type} :
 Lemma Hb12eqbehav {UA UD X1 X2 Y1 Y2 : Type} :
   forall (s1 : @system UA (UD*Y2) X1 Y1)
          (s2 : @system (UA*Y1) UD X2 Y2)
-         (b12 : (nat->UA*UD)->(nat->Y1*Y2)),
+         (b12 : @Behaviour (UA*UD) (Y1*Y2)),
     is_composed_behaviour (behaviour s1) (behaviour s2) b12 ->
     is_composed_behaviour (behaviour s1) (behaviour s2) (behaviour (compose_systems s1 s2))
       -> forall (u : nat->UA*UD) (n:nat),
@@ -327,7 +327,7 @@ Qed.
 Theorem composed_system_behaviour_unique {UA UD X1 X2 Y1 Y2 : Type} :
   forall (s1 : @system UA (UD*Y2) X1 Y1)
          (s2 : @system (UA*Y1) UD X2 Y2)
-         (b12 : (nat->UA*UD)->(nat->Y1*Y2)),
+         (b12 : @Behaviour (UA*UD) (Y1*Y2)),
     is_composed_behaviour (behaviour s1) (behaviour s2) b12
       -> forall (u : nat->UA*UD) (n:nat),
         b12 u n = behaviour (compose_systems s1 s2) u n.
