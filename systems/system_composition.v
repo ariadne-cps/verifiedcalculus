@@ -24,7 +24,7 @@ Notation mixed_causal_equivalent :=  causality.mixed_causal_equivalent.
 (* System theory using functions to represent infinite signals. *)
 
 (* The only systems we consider now are state-space models of the given form. *)
-Inductive system {UA UD X Y : Type} : Type :=
+Inductive System {UA UD X Y : Type} : Type :=
   | state_space_model (f:X->UA*UD->X) (h:X->UA->Y) (e:X)
 .
 
@@ -69,7 +69,7 @@ Check signal.
 (* The behaviour of a system is the input-output map
    taking input signals ℕ→U to the corresponding output ℕ→Y. *)
 Definition behaviour {UA UD Y X : Type}
-  (s:@system UA UD X Y)
+  (s:@System UA UD X Y)
   (u:nat->UA*UD)
   (n:nat)
   : Y :=
@@ -81,7 +81,7 @@ Definition behaviour {UA UD Y X : Type}
 
  (* By Currying, behaviour' and behaviour'' below are equivalent to behaviour above. *)
 Definition behaviour' {UA UD Y X : Type}
-  (s : @system UA UD X Y)
+  (s : @System UA UD X Y)
   (u:nat->UA*UD)
   : (nat->Y) :=
     match s with
@@ -91,7 +91,7 @@ Definition behaviour' {UA UD Y X : Type}
 .
 
 Definition behaviour'' {UA UD Y X : Type}
-   (s : @system UA UD X Y) :
+   (s : @System UA UD X Y) :
    (nat->UA*UD) -> (nat->Y) :=
    match s with
    | state_space_model f h e => (fun u => (fun n =>
@@ -104,7 +104,7 @@ Check behaviour.
 (* Show that the behaviour of a system satisfies the weaker definition of causal. *)
 Lemma behaviour_mixed_causal' :
   forall {UA UD X Y : Type}
-    (s : @system UA UD X Y),
+    (s : @System UA UD X Y),
       mixed_causal' (behaviour s).
 Proof.
   intros UA UD X Y. intro s. unfold mixed_causal'.
@@ -145,7 +145,7 @@ Qed.
 (* Show that the behaviour of a system (usplit) is causal. *)
 Theorem behaviour_mixed_causal :
   forall {UA UD X Y : Type}
-    (s : @system UA UD X Y),
+    (s : @System UA UD X Y),
       mixed_causal (behaviour s).
 Proof.
   intros UA UD X Y s.
@@ -156,9 +156,9 @@ Qed.
 
 (* Define the composition of state space models. *)
 Definition compose_systems {UA UD X1 X2 Y1 Y2 : Type}
-  (s1 : @system UA      (UD*Y2) X1 Y1)
-  (s2 : @system (UA*Y1)      UD X2 Y2)
-  : (@system UA UD (X1*X2) (Y1*Y2)) :=
+  (s1 : @System UA (UD*Y2) X1 Y1)
+  (s2 : @System (UA*Y1) UD X2 Y2)
+  : (@System UA UD (X1*X2) (Y1*Y2)) :=
     match s1 with
     | state_space_model f1 h1 e1 =>
       match s2 with
@@ -187,8 +187,8 @@ Definition compose_systems {UA UD X1 X2 Y1 Y2 : Type}
 (* Show that the behaviour of the composition of two systems
    is a composition of the behaviours of the components. *)
 Theorem composed_system_behaviour {UA UD X1 X2 Y1 Y2 : Type} :
-   forall (s1 : @system UA (UD*Y2) X1 Y1)
-          (s2 : @system (UA*Y1) UD X2 Y2),
+   forall (s1 : @System UA (UD*Y2) X1 Y1)
+          (s2 : @System (UA*Y1) UD X2 Y2),
           is_composed_behaviour
             (behaviour s1)
             (behaviour s2)
@@ -300,8 +300,8 @@ Theorem composed_system_behaviour {UA UD X1 X2 Y1 Y2 : Type} :
 *)
 
 Lemma Hb12eqbehav {UA UD X1 X2 Y1 Y2 : Type} :
-  forall (s1 : @system UA (UD*Y2) X1 Y1)
-         (s2 : @system (UA*Y1) UD X2 Y2)
+  forall (s1 : @System UA (UD*Y2) X1 Y1)
+         (s2 : @System (UA*Y1) UD X2 Y2)
          (b12 : @Behaviour (UA*UD) (Y1*Y2)),
     is_composed_behaviour (behaviour s1) (behaviour s2) b12 ->
     is_composed_behaviour (behaviour s1) (behaviour s2) (behaviour (compose_systems s1 s2))
@@ -325,8 +325,8 @@ Qed.
 (* The composed behaviour of two systems should be unique. *)
 (* One condition can go, because it is already proven to be true *)
 Theorem composed_system_behaviour_unique {UA UD X1 X2 Y1 Y2 : Type} :
-  forall (s1 : @system UA (UD*Y2) X1 Y1)
-         (s2 : @system (UA*Y1) UD X2 Y2)
+  forall (s1 : @System UA (UD*Y2) X1 Y1)
+         (s2 : @System (UA*Y1) UD X2 Y2)
          (b12 : @Behaviour (UA*UD) (Y1*Y2)),
     is_composed_behaviour (behaviour s1) (behaviour s2) b12
       -> forall (u : nat->UA*UD) (n:nat),
