@@ -174,11 +174,8 @@ Proof.
   ) as Hb12un'.
   { intros n.
     rewrite -> Ey12'.
-    (* Check (HPcompb12_b1). *)
     rewrite <- HPcompb12_b1'.
-    (* Check (HPcompb12_b2). *)
     rewrite <- HPcompb12_b2'.
-    (* Search (_ = (fst _, snd _)). *)
     reflexivity.
   }
 
@@ -312,8 +309,6 @@ Proof.
   ) as Hb2eq'''.
   { intros n H0.
     apply Hb2eq''. intros m H1.
-    (* Check HPcompb12_b1. *)
-
     rewrite HPcompb12_b1. rewrite HPcompb12_b1'.
     apply H0. exact H1.
   }
@@ -365,12 +360,9 @@ Proof.
     b1 (fun k =>  (ua k, (ud k, py2 k))) 0 =
     b1 (fun k => (ua k, (ud k, py2' k))) 0
   ) as Hb1zero.
-  { (* Check Hb1eq'''. *)
-    rewrite Hb1eq''' with (n:=0).
+  { rewrite Hb1eq''' with (n:=0).
     - reflexivity.
-    - (* Search ( _ < 0 ).
-         Nat.nlt_0_r: forall n : nat, ¬ n < 0 *)
-         intros m H0.
+    -    intros m H0.
          apply Nat.nlt_0_r in H0.
          exfalso. exact H0.
 
@@ -392,8 +384,7 @@ Proof.
       intros m H0. apply Nat.le_0_r in H0. rewrite H0. split.
 
       + apply Hb1zero.
-      + (* Check Hb2eq'''. *)
-        rewrite Hb2eq''' with (n:=0). (* split. *)
+      + rewrite Hb2eq''' with (n:=0). (* split. *)
         * reflexivity.
         * intros m0 H1.
           apply Nat.le_0_r in H1. rewrite H1. exact Hb1zero.
@@ -405,7 +396,6 @@ Proof.
         apply (Nat.lt_succ_r m n') in H0.
         apply IHn'. exact H0.
       + intros m H0.
-        (* Check Hb1eq'''. *)
         apply Hb1eq''' with (n:=S n').
         (* Same as just above *)
         * intros m0 H1.
@@ -442,7 +432,6 @@ Proof.
   
 
    intros n.
-   (* Check (Hb12un). *)
 
    (* Bring it to component behaviour level
       Assertion Hb12eq'' has been set up for that.

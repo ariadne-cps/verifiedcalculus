@@ -124,7 +124,6 @@ Definition mixed_causal {UA UD Y : Type}
         (b u m0 = b u' m0))
 .
 
-Check mixed_causal.
 
 (* Weaker definition *)
 Definition old_mixed_causal' {UA UD Y : Type}

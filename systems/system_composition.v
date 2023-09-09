@@ -43,9 +43,6 @@ Fixpoint trajectory {U X : Type}
 .
 
 
-
-Check trajectory.
-
 (* Output signal y:ℕ→Y is defined by y[n] = h(x[n], u[n]) *)
 (* Definition signal {X:Type } {U:Type} {Y:Type} *)
 Definition signal {X U Y : Type }
@@ -64,7 +61,6 @@ Definition signal' {Y:Type} {X:Type} {U:Type}
   : (nat->Y) := fun n:nat => h (x n) (u n)
 .
 
-Check signal.
 
 (* The behaviour of a system is the input-output map
    taking input signals ℕ→U to the corresponding output ℕ→Y. *)
@@ -99,7 +95,6 @@ Definition behaviour'' {UA UD Y X : Type}
    end
  .
 
-Check behaviour.
  
 (* Show that the behaviour of a system satisfies the weaker definition of causal. *)
 Lemma behaviour_mixed_causal' :

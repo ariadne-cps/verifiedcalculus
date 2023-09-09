@@ -120,8 +120,7 @@ Proof.
   ) as Hcb2short.
   { intros n0 H2.
     induction n0 as [|n' IHn' ].
-    - (* Search (_ < 0). *)
-      intros m1 H3.
+    - intros m1 H3.
       apply Nat.nlt_0_r in H3.
       exfalso. apply H3.
     - intros m1 H3.
@@ -154,7 +153,6 @@ Proof.
   intros Hscb.
   apply Hscb with (n:=0).
   - intros m H0.
-    (* Search (_ < 0). *)
     apply Nat.nlt_0_r in H0.
     exfalso. apply H0.
   - reflexivity.
@@ -170,7 +168,6 @@ Proof.
   intros Hscb H0.
   apply Hscb with (n:= S n).
   - intros m H1.
-    (* Search (_ < S _). *)
     apply (Nat.lt_succ_r m n) in H1.
     apply H0. apply H1.
   - reflexivity.
@@ -215,7 +212,6 @@ Proof.
        assert ((n + S k) = S (n+k)) as HS. auto.
        rewrite -> HS. rewrite <- IHk.
        + apply H0.
-         (* Search (_ < _ + _). *)
          apply Nat.lt_le_trans with n; [exact Hmltn|].
          apply Nat.le_add_r.
        + exact Hmltn.
@@ -229,11 +225,7 @@ Proof.
     - assert (n'=n+k) as H3.
       { rewrite Heqk.
         rewrite Nat.add_comm.
-        (* Search (_+_). *)
         symmetry.
-        (* Check Nat.sub_add.
-              : ∀ n m : nat, n ≤ m → m - n + n = m
-        *)
         apply Nat.sub_add with (m:=n') (n:=n).
         exact Hnltn'.
       }
@@ -245,20 +237,16 @@ Proof.
   assert(forall n m, m<=n -> B (S n) m = B (S m) m ) as H3. (* [n1=S m, n2=S n] *)
   { intros n m H4.
     apply H2 with (n2:=S n) (n1:=S m).
-    - (* Search (_ < S _). *)
-      apply Nat.lt_succ_diag_r.
-    - (* Search (_ <= S _). *)
-      rewrite <- Nat.succ_le_mono.
+    - apply Nat.lt_succ_diag_r.
+    - rewrite <- Nat.succ_le_mono.
       apply H4.
   }
 
   intros n m H4.
   induction n as [|n' IHn'].
-  - (* Search (_<0). *)
-    apply Nat.nlt_0_r in H4.
+  - apply Nat.nlt_0_r in H4.
     exfalso. exact H4.
   - apply H3.
-    (* Search (_ < S _). *)
     apply (Nat.lt_succ_r m n') in H4.
     exact H4.
 Qed.
@@ -315,8 +303,6 @@ Qed.
 
 (*----------------------------------------------------------------------------*)
 
-(* Check strong_induction. *)
-
 (* Show that the fixed behaviour is indeed a fixed-point. *)
 Proposition causal_fixed_noinputs {Y : Type} :
   forall (b : @Behaviour Y Y)
@@ -355,8 +341,7 @@ Proof.
 
       * reflexivity.
       * exact Hscb.
-      * (* Search (_ < S _ <-> _ ≤ _). *)
-        rewrite Nat.lt_succ_r.
+      * rewrite Nat.lt_succ_r.
         exact H0.
 Qed.
 
