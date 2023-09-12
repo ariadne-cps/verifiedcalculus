@@ -55,3 +55,14 @@ systems/causality.v
 systems/behaviour_composition.v
 systems/system_composition.v
 systems/compose_behaviours.v
+
+#-arg -w -arg -notation-overridden
+#-Q ./timedevent TimedEvent
+-R ./timedevent TimedEvent
+timedevent/BoolSet.v
+timedevent/Definitions.v
+timedevent/Composition.v
+timedevent/Prefix.v
+timedevent/IO.v
+timedevent/IOComposition.v
+timedevent/InputEnabling.v
