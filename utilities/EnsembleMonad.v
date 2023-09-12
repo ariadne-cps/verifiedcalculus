@@ -1,3 +1,23 @@
+(******************************************************************************
+ * Copyright 2023 Pieter Collins
+ *
+ * This file is part of the Verified Calculus Library.
+ *
+ * The Verified Calculus Library is free software: you can redistribute it
+ * and/or modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation, either version 3 of the License,
+ * or (at your option) any later version.
+ *
+ * The Verified Calculus Library is distributed in the hope that it will be
+ * useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+ * Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * the Verified Calculus Library. If not, see <https://www.gnu.org/licenses/>.
+ ******************************************************************************)
+
+
 Require Import Coq.Logic.FunctionalExtensionality.
 Require Import Coq.Logic.PropExtensionality.
 
@@ -192,7 +212,7 @@ Proof.
 Qed.
 
 
-Definition ensemble_right_skew {X Y : Type} (xs : Ensemble X) (fs : X -> Ensemble Y) := 
+Definition ensemble_right_skew {X Y : Type} (xs : Ensemble X) (fs : X -> Ensemble Y) :=
   fun xy => xs (fst xy) /\ fs (fst xy) (snd xy).
 
 Theorem ensemble_monad_right_skew : forall {X Y : Type},
@@ -302,7 +322,7 @@ Qed.
 
 #[local]
 Lemma proj2_eq {M} {Monad_M : Monad M} : forall {X : Type} (F : list X -> M X) (Finf : M (nat -> X)),
-  is_infinite_skew_product F Finf -> 
+  is_infinite_skew_product F Finf ->
     (Mlift (proj 2) Finf = Mlift lcons (Mright_skew (Mlift (fun x => cons x nil) (F nil)) F)).
 Proof.
   intros X F Finf H.
@@ -390,7 +410,7 @@ Proof.
       -- simpl.
          exact Hxl.
     }
-    assert (Mlift (@tl bool) (Mlift (proj 2) Finf) = Mlift (proj 1) Finf) as Hx21. { 
+    assert (Mlift (@tl bool) (Mlift (proj 2) Finf) = Mlift (proj 1) Finf) as Hx21. {
       apply Mlift_compose. }
     revert Hx21.
     rewrite -> Hs1.

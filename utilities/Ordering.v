@@ -1,11 +1,23 @@
-(************************************************************************)
-(* Copyright 2010 Milad Niqui                                           *)
-(*           2023 Pieter Collins                                        *)
-(* This file is distributed under the terms of the                      *)
-(* GNU General Public License Version 2                                 *)
-(* A copy of the license can be found at                                *)
-(*                  <http://www.gnu.org/licenses/gpl.txt>               *)
-(************************************************************************)
+(******************************************************************************
+ * Copyright 2010 Milad Niqui
+ *           2023 Pieter Collins
+ *
+ * This file is part of the Verified Calculus Library.
+ *
+ * The Verified Calculus Library is free software: you can redistribute it
+ * and/or modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation, either version 3 of the License,
+ * or (at your option) any later version.
+ *
+ * The Verified Calculus Library is distributed in the hope that it will be
+ * useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+ * Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * the Verified Calculus Library. If not, see <https://www.gnu.org/licenses/>.
+ ******************************************************************************)
+
 
 Require Import PeanoNat.
 Require Import Coq.Arith.Compare_dec.
@@ -18,7 +30,7 @@ Delimit Scope WSO_scope with WSO.
 
 Section Ordering.
 
-Lemma asymmetric_irreflexive {A} (R : A -> A -> Prop) : 
+Lemma asymmetric_irreflexive {A} (R : A -> A -> Prop) :
   (Asymmetric R) -> (Irreflexive R).
 Proof.
   intros H x Rx.
@@ -27,7 +39,7 @@ Proof.
 Qed.
 
 
-Definition Incomparible {A : Type} (R : A -> A -> Prop) := 
+Definition Incomparible {A : Type} (R : A -> A -> Prop) :=
   fun x y => (R x y -> False) /\ (R y x -> False).
 
 
@@ -36,7 +48,7 @@ Class WeakStrictOrder { A : Type} ( R : A -> A -> Prop ) := {
   WSO_Transitive : Transitive R;
   WSO_Irreflexive : Irreflexive R := (asymmetric_irreflexive R WSO_Asymmetric);
   WSO_Incomparible : Transitive (Incomparible R);
-  WSO_Decidable : forall x y, { R x y } + { Incomparible R x y } + { R y x }; 
+  WSO_Decidable : forall x y, { R x y } + { Incomparible R x y } + { R y x };
 }.
 
 
@@ -46,9 +58,9 @@ Definition WSOlt a1 a2 := R a1 a2.
 Definition WSOeqv a1 a2 := (Incomparible R) a1 a2.
 Definition WSOle a1 a2 := R a1 a2 \/ (Incomparible R) a1 a2.
 
-Infix "<" := WSOlt : WSO_scope. 
-Infix "==" := WSOeqv (at level 70, no associativity) : WSO_scope. 
-Infix "<=" := WSOle (at level 70, no associativity) : WSO_scope. 
+Infix "<" := WSOlt : WSO_scope.
+Infix "==" := WSOeqv (at level 70, no associativity) : WSO_scope.
+Infix "<=" := WSOle (at level 70, no associativity) : WSO_scope.
 
 
 Global Open Scope WSO_scope.
@@ -65,7 +77,7 @@ Qed.
 
 Lemma WSOeqv_trans : forall a1 a2 a3, (a1==a2) -> (a2==a3) -> (a1==a3).
 Proof.
-  intros a1 a2 a3. apply (WSO_Incomparible a1 a2 a3). 
+  intros a1 a2 a3. apply (WSO_Incomparible a1 a2 a3).
 Qed.
 
 
@@ -91,10 +103,10 @@ Proof.
   - exact (WSO_Transitive a1 a2 a3 Hlt12 Hlt23).
   - destruct (WSO_Decidable a1 a3) as [[Hlt13|Heq13]|Hlt31].
     -- assumption.
-    -- apply WSOeqv_symm in Heq12 as Heq21. 
+    -- apply WSOeqv_symm in Heq12 as Heq21.
        assert (a2==a3) as Heq23 by (apply WSOeqv_trans with a1; [exact Heq21|exact Heq13]).
        destruct Heq23 as [Hnlt23 Hnlt32]. contradiction.
-    -- assert (a2<a1) as Hlt21 by (apply (WSO_Transitive a2 a3 a1 Hlt23 Hlt31)).        
+    -- assert (a2<a1) as Hlt21 by (apply (WSO_Transitive a2 a3 a1 Hlt23 Hlt31)).
        apply (WSOgt_neq a1 a2 Hlt21) in Heq12. contradiction.
 Qed.
 
@@ -107,18 +119,18 @@ Proof.
   - exact (WSO_Transitive a1 a2 a3 Hlt12 Hlt23).
   - destruct (WSO_Decidable a1 a3) as [[Hlt13|Heq13]|Hlt31].
     -- assumption.
-    -- apply WSOeqv_symm in Heq23 as Heq32. 
+    -- apply WSOeqv_symm in Heq23 as Heq32.
        assert (a1==a2) as Heq12 by (apply WSOeqv_trans with a3; [exact Heq13|exact Heq32]).
        destruct Heq12 as [Hnlt12 Hnlt21]. contradiction.
-    -- assert (a3<a2) as Hlt32 by (apply (WSO_Transitive a3 a1 a2 Hlt31 Hlt12)).        
+    -- assert (a3<a2) as Hlt32 by (apply (WSO_Transitive a3 a1 a2 Hlt31 Hlt12)).
        apply (WSOgt_neq a2 a3 Hlt32) in Heq23. contradiction.
 Qed.
 
 (*
-Definition cmb_equiv cmb := 
+Definition cmb_equiv cmb :=
   forall x1 x2, x1==x2 -> cmb x1 x2 == x1 /\ cmb x1 x2 == x2.
-  
-Definition cmb_min cmb a1 a2 := 
+
+Definition cmb_min cmb a1 a2 :=
   match WSO_Decidable a1 a2 with
   | inleft (left _) => a1
   | inleft (right _) => (cmb a1 a2)
@@ -128,22 +140,22 @@ Definition cmb_min cmb a1 a2 :=
 Lemma WSOcmb_min_le_l cmb (Hcmb : cmb_equiv cmb) :
   forall a1 a2, cmb_min cmb a1 a2 <= a1.
 Proof.
-  intros. unfold cmb_min. 
+  intros. unfold cmb_min.
   destruct (WSO_Decidable a1 a2) as [[Hlt|Heq]|Hgt].
   - right. apply WSOeqv_refl.
-  - right. apply Hcmb. exact Heq.  
+  - right. apply Hcmb. exact Heq.
   - left. exact Hgt.
-Qed.  
+Qed.
 
 Lemma WSOcmb_min_le_r cmb (Hcmb : cmb_equiv cmb) :
   forall a1 a2, cmb_min cmb a1 a2 <= a2.
 Proof.
-  intros. unfold cmb_min. 
+  intros. unfold cmb_min.
   destruct (WSO_Decidable a1 a2) as [[Hlt|Heq]|Hgt].
   - left. exact Hlt.
-  - right. apply Hcmb. exact Heq.  
+  - right. apply Hcmb. exact Heq.
   - right. apply WSOeqv_refl.
-Qed.  
+Qed.
 
 Lemma WSOmin_glb_lt cmb (Hcmb : cmb_equiv cmb) :
   forall a1 a2 a3, a1<a2 -> a1<a3 -> a1 < (cmb_min cmb a2 a3).
@@ -168,7 +180,7 @@ Section NatOrdering.
 
 Open Scope nat_scope.
 
-Definition ic (x y : nat) := 
+Definition ic (x y : nat) :=
   (x < y -> False) /\ (y < x -> False).
 
 Lemma ic_eq : forall (m1 m2 : nat),
@@ -183,8 +195,8 @@ Qed.
 
 Lemma eq_ic : forall (m1 m2 : nat),
   eq m1 m2 -> ic m1 m2.
-Proof. 
-  intros m1 m2 Heq. unfold ic.  
+Proof.
+  intros m1 m2 Heq. unfold ic.
   split.
   intros Hlt; revert Heq; apply Nat.lt_neq; exact Hlt.
   intros Hlt. apply eq_sym in Heq. revert Heq. apply Nat.lt_neq. exact Hlt.
@@ -221,7 +233,7 @@ Proof.
   intros m1 m2.
   assert ({m1<m2}+{~(m1<m2)}) as H1 by (apply lt_dec).
   assert ({m2<m1}+{~(m2<m1)}) as H2 by (apply lt_dec).
-  destruct H1 as [Hl1|Hn1].  
+  destruct H1 as [Hl1|Hn1].
   - left; left. exact Hl1.
   - destruct H2 as [Hl2|Hn2].
     -- right. exact Hl2.
@@ -232,11 +244,11 @@ Definition fst_eq {X} (a1 a2 : nat * X) := (fst a1) = (fst a2).
 Definition fst_lt {X} (a1 a2 : nat * X) := (fst a1) < (fst a2).
 Definition fst_ic {X} (a1 a2 : nat * X) := ic (fst a1) (fst a2).
 
-Lemma fst_lt_asymm {X} : forall (a1 a2 : nat * X), 
+Lemma fst_lt_asymm {X} : forall (a1 a2 : nat * X),
   (fst_lt a1 a2) -> (fst_lt a2 a1) -> False.
 Proof. unfold fst_lt. intros a1 a2. apply Nat.lt_asymm. Qed.
 
-Lemma fst_lt_trans {X} : forall (a1 a2 a3 : nat * X), 
+Lemma fst_lt_trans {X} : forall (a1 a2 a3 : nat * X),
   (fst_lt a1 a2) -> (fst_lt a2 a3) -> (fst_lt a1 a3).
 Proof. unfold fst_lt. intros a1 a2 a3. apply Nat.lt_trans. Qed.
 

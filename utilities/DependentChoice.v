@@ -1,3 +1,23 @@
+(******************************************************************************
+ * Copyright 2023 Pieter Collins
+ *
+ * This file is part of the Verified Calculus Library.
+ *
+ * The Verified Calculus Library is free software: you can redistribute it
+ * and/or modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation, either version 3 of the License,
+ * or (at your option) any later version.
+ *
+ * The Verified Calculus Library is distributed in the hope that it will be
+ * useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+ * Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * the Verified Calculus Library. If not, see <https://www.gnu.org/licenses/>.
+ ******************************************************************************)
+
+
 Require Import List.
 Require Import Arith_base.
 
@@ -42,7 +62,7 @@ Fixpoint is_choice_list {X : Type} (f : list X -> X -> Prop) (xl : list X) :=
 
 
 
-Proposition list_dependent_choice : forall {X:Type} (f : list X -> X -> Prop), 
+Proposition list_dependent_choice : forall {X:Type} (f : list X -> X -> Prop),
   (is_chosable f) -> (exists xs : nat -> X, is_choice_sequence f xs).
 Proof.
   intros X f Hf.
@@ -58,7 +78,7 @@ Proof.
     simpl.
     split.
     - exact Hfx'.
-    - reflexivity. 
+    - reflexivity.
   }
   assert (exists x0, f nil x0) as Hfx0. { apply Hf. }
   destruct Hfx0 as [x0 Hx0].
@@ -69,11 +89,11 @@ Proof.
   set (xls := fun n => fst (xlxs n)).
   set (xs := fun n => snd (xlxs n)).
   exists xs.
-  assert (forall m, fst (xlxs m) = xls m) as Hxls. { 
+  assert (forall m, fst (xlxs m) = xls m) as Hxls. {
     intro m. unfold xls. reflexivity. }
-  assert (forall m, snd (xlxs m) = xs m) as Hxs. { 
+  assert (forall m, snd (xlxs m) = xs m) as Hxs. {
     intro m. unfold xs. reflexivity. }
-  assert (forall n, proj n xs = xls n) as Hp. { 
+  assert (forall n, proj n xs = xls n) as Hp. {
     induction n.
     unfold proj, xs, xls. rewrite -> Hxlxs0. simpl. reflexivity.
     rewrite -> proj_succ.
@@ -83,7 +103,7 @@ Proof.
     unfold R in Hxlxs.
     destruct Hxlxs as [_ Hxlxs].
     apply eq_sym.
-    exact Hxlxs. 
+    exact Hxlxs.
   }
   intro n.
   rewrite -> Hp.
