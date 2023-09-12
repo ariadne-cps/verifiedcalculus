@@ -1,3 +1,28 @@
+(******************************************************************************
+ *  utilities/Monads.v
+ *
+ *  Copyright 2023 Pieter Collins
+ *
+ ******************************************************************************)
+
+(*
+ * This file is part of the Verified Calculus Library.
+ *
+ * The Verified Calculus Library is free software: you can redistribute it
+ * and/or modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation, either version 3 of the License,
+ * or (at your option) any later version.
+ *
+ * The Verified Calculus Library is distributed in the hope that it will be
+ * useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+ * Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * the Verified Calculus Library. If not, see <https://www.gnu.org/licenses/>.
+ *)
+
+
 Require Import Coq.Logic.FunctionalExtensionality.
 Require Import Coq.Logic.ProofIrrelevance.
 
@@ -10,15 +35,15 @@ Class Monad (M : Type -> Type) :=
     (* monad has pure and bind *)
     Mpure : forall {A : Type}, A -> M A;
     Mbind : forall {A B : Type}, (A -> M B) -> M A -> M B;
-    
+
     (* coherence conditions *)
     Mleft_identity : forall {A B} (f:A->M B) (a:A), Mbind f (Mpure a) = f a;
     Mright_identity : forall {A} (x : M A), Mbind (@Mpure A) x = x;
-    Massociativity : forall {A B C} (x : M A) (f : A -> M B) (g : B -> M C), 
+    Massociativity : forall {A B C} (x : M A) (f : A -> M B) (g : B -> M C),
         Mbind g (Mbind f x) = Mbind (fun a => Mbind g (f a)) x;
 
     (* Mfunctor_map : forall {A B : Type}, (A -> B) -> M A -> M B; *)
-    Mfunctor_map {A B : Type} : (A -> B) -> M A -> M B 
+    Mfunctor_map {A B : Type} : (A -> B) -> M A -> M B
       := fun (f : A -> B) (x : M A) => Mbind (fun x' => Mpure (f x')) x;
     Mlift {A B : Type} (f : A -> B) (a : M A) : M B
       := Mbind (fun a' => Mpure (f a')) a;
@@ -30,7 +55,7 @@ Class Monad (M : Type -> Type) :=
 }.
 
 
-Definition compose {A B C : Type} (g : B -> C) (f : A -> B) : A -> C 
+Definition compose {A B C : Type} (g : B -> C) (f : A -> B) : A -> C
   := fun (a:A) => g (f a).
 
 Theorem Mlift_associative : forall {M} {MonadM : Monad M} {A:Type} {B:Type} {C:Type} (a : M A) (f:A->B) (g:B->C),
@@ -47,9 +72,9 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma Mlift_identity {M} {_ : Monad M}: forall {A : Type}, 
+Lemma Mlift_identity {M} {_ : Monad M}: forall {A : Type},
   Mlift (fun (x : A) => x) = (fun (x : M A) => x).
-Proof. 
+Proof.
   intros A.
   unfold Mlift.
   apply functional_extensionality. intros al.
@@ -60,7 +85,7 @@ Qed.
 Lemma Mfunctorial_compose {M} {_ : Monad M}  : forall {A B C : Type} (f : A -> B) (g : B -> C),
   Mfunctor_map (fun x => g (f x))
     = fun x => (Mfunctor_map g) ((Mfunctor_map f) x).
-Proof. 
+Proof.
   intros A B C f g.
   unfold Mfunctor_map.
   apply functional_extensionality. intros al.
@@ -71,9 +96,9 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma Mfunctorial_identity {M} {_ : Monad M}: forall {A : Type}, 
+Lemma Mfunctorial_identity {M} {_ : Monad M}: forall {A : Type},
   (fun (x : M A) => x) = Mfunctor_map (fun (x : A) => x).
-Proof. 
+Proof.
   intros A.
   unfold Mfunctor_map.
   apply functional_extensionality. intros al.
@@ -89,25 +114,25 @@ Definition Munit {M} {MonadM} {A : Type} := @Mpure M MonadM A.
 (* Notation "join" := mult; *)
 Definition Mmult {M} {MonadM} {A : Type} := @Mjoin M MonadM A.
 
-Definition Mcompose {M} {_ : Monad M} {A B C : Type} (g : B -> M C) (f : A -> M B) : A -> M C 
+Definition Mcompose {M} {_ : Monad M} {A B C : Type} (g : B -> M C) (f : A -> M B) : A -> M C
   := fun (a : A) => Mbind g (f a).
 
 (* pure and join (unit and mult) are natural transformations.  *)
-Lemma Mpure_natural_transformation {M} {_ : Monad M} : 
-  forall {A B} (f : A -> B) (x : A), 
+Lemma Mpure_natural_transformation {M} {_ : Monad M} :
+  forall {A B} (f : A -> B) (x : A),
     (Mfunctor_map f) (Mpure x) = Mpure (f x).
-Proof.  
+Proof.
   intros A B f x.
   unfold Mfunctor_map.
   rewrite -> Mleft_identity.
   reflexivity.
 Qed.
 
-Lemma Mjoin_natural_transormation {M} {_ : Monad M} : forall {A B} (f : A -> B) (al : M A), 
+Lemma Mjoin_natural_transormation {M} {_ : Monad M} : forall {A B} (f : A -> B) (al : M A),
   Mjoin (Mfunctor_map (Mfunctor_map f) (Mpure al))
-    = (Mfunctor_map f) al. 
+    = (Mfunctor_map f) al.
 (*
-  join ((Mfunctor_map (@Mfunctor_map M MonadM (M A) (M A) f)) x) = (Mfunctor_map f) (@mult A x);  
+  join ((Mfunctor_map (@Mfunctor_map M MonadM (M A) (M A) f)) x) = (Mfunctor_map f) (@mult A x);
 *)
 Proof.
   intros A B f al.
@@ -118,7 +143,7 @@ Proof.
 Qed.
 
 
-Theorem Mproduct_pure_pure {M} {_ : Monad M} : forall {A:Type} {B:Type} (x : A) (y : B), 
+Theorem Mproduct_pure_pure {M} {_ : Monad M} : forall {A:Type} {B:Type} (x : A) (y : B),
   Mleft_product (Mpure x) (Mpure y) = Mright_product (Mpure x) (Mpure y).
 Proof.
   intros A B. intros x b.
@@ -157,34 +182,34 @@ Qed.
 Definition Mright_skew {M} {MonadM : Monad M} {A B : Type} (mu : M A) (nu : A -> M B) : M (prod A B) :=
   Mbind( fun (a : A) => ( Mlift (fun (b : B) => (pair a b)) (nu a) ) ) mu.
 
-(* A property of monads which holds if whenever bind is applied to a constant map, 
+(* A property of monads which holds if whenever bind is applied to a constant map,
    the result is that constant. *)
 Definition Mbind_const (M : Type -> Type) (MonadM : Monad M) : Prop
-  := forall (A B : Type) (b: M B) (x : M A), 
+  := forall (A B : Type) (b: M B) (x : M A),
        Mbind (fun (a:A) => b) x = b.
 
-Lemma Mright_skew_first {M} {MonadM : Monad M} : 
-  Mbind_const M MonadM -> forall {A B : Type} mu nu, 
+Lemma Mright_skew_first {M} {MonadM : Monad M} :
+  Mbind_const M MonadM -> forall {A B : Type} mu nu,
                             Mfunctor_map (fst : A*B -> A) (Mright_skew mu nu) = mu.
 Proof.
   intros Hbc.
   intros A B mu nu.
   unfold Mfunctor_map, Mright_skew, Mlift.
   rewrite -> Massociativity.
-  assert (forall (a:A), 
-    Mbind (fun (c : prod A B) => Mpure (fst c)) (Mbind (fun b => Mpure (a,b)) (nu a)) 
+  assert (forall (a:A),
+    Mbind (fun (c : prod A B) => Mpure (fst c)) (Mbind (fun b => Mpure (a,b)) (nu a))
       = Mbind (fun (b:B) => Mpure a) (nu a)) as H1. {
     intro a.
     rewrite -> Massociativity.
     f_equal.
     apply functional_extensionality. intro b.
     rewrite -> Mleft_identity.
-    unfold fst.  
+    unfold fst.
     reflexivity.
   }
   apply functional_extensionality in H1.
   rewrite -> H1.
-  assert (forall (a:A), 
+  assert (forall (a:A),
       Mbind (fun (b : B) => Mpure (a)) (nu a) = Mpure a) as H2. {
    intro a.
    apply Hbc.
@@ -195,8 +220,8 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma Mlift_compose {M} {MonadM : Monad M} : 
-  forall {A B C} (f:A->B) (G:B->M C) (x:M A), 
+Lemma Mlift_compose {M} {MonadM : Monad M} :
+  forall {A B C} (f:A->B) (G:B->M C) (x:M A),
     Mbind G (Mlift f x) = Mbind (compose G f) x.
 Proof.
   intros A V C f G x.
@@ -211,12 +236,12 @@ Qed.
 Definition tuple_associate {A B C : Type} (a_bc : prod A (prod B C)) : prod (prod A B) C
   := ((fst a_bc, fst (snd a_bc)), snd (snd a_bc)).
 
-Definition tuple_unassociate {A B C : Type} (ab_c : prod (prod A B) C) : prod A (prod B C) 
+Definition tuple_unassociate {A B C : Type} (ab_c : prod (prod A B) C) : prod A (prod B C)
   := (fst (fst ab_c), ( snd (fst ab_c), snd ab_c) ).
-  
-Proposition Mright_skew_associative {M} {MonadM : Monad M} : 
+
+Proposition Mright_skew_associative {M} {MonadM : Monad M} :
   forall {A B C : Type} (x : M A) (f : A -> M B) (g : (prod A B) -> M C),
-    Mright_skew (Mright_skew x f) g = 
+    Mright_skew (Mright_skew x f) g =
       Mlift tuple_associate (Mright_skew x (fun a => Mright_skew (f a) (fun b => g (a,b)))).
 Proof.
   intros A B C x f g.

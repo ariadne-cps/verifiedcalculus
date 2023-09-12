@@ -1,15 +1,35 @@
-(* ---------------------------------------------------------------- *)
-(* Author:       SINDORF, S.L. & COLLINS, P.
-   Date:         20221017
-   Supervisor:   COLLINS, P.
-   Description:  Coq, Gallina-code
+(******************************************************************************
+ *  systems/behaviour_composition.v
+ *
+ *  Copyright 2023 Sacha L. Sindorf
+ *                 Master's Thesis Artificial Intelligence
+ *                 Maastricht University
+ *
+ *  Copyright 2023 Pieter Collins
+ *
+ *  Proof that behavior of composed system is composed
+ *  behaviour of components.
+ *
+ ******************************************************************************)
 
-                 Proof that behavior of composed system is composed
-                 behavior of components.
+(*
+ * This file is part of the Verified Calculus Library.
+ *
+ * The Verified Calculus Library is free software: you can redistribute it
+ * and/or modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation, either version 3 of the License,
+ * or (at your option) any later version.
+ *
+ * The Verified Calculus Library is distributed in the hope that it will be
+ * useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+ * Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * the Verified Calculus Library. If not, see <https://www.gnu.org/licenses/>.
+ *)
 
-                 Master's Thesis Artificial Intelligence
-                 Maastricht University
-*)
+
 (* ---------------------------------------------------------------- *)
 
 Require Import Coq.Arith.PeanoNat.
@@ -55,7 +75,7 @@ Lemma is_composed_behaviour_output_extensional {UA UD Y1 Y2 : Type} :
          (b2 : @Behaviour ((UA*Y1)*UD) Y2)
          (b12 b12' : @Behaviour (UA*UD) (Y1*Y2)),
     mixed_causal b1 -> mixed_causal b2 ->
-      (forall (u:nat->UA*UD) (n:nat), b12 u n = b12' u n) -> 
+      (forall (u:nat->UA*UD) (n:nat), b12 u n = b12' u n) ->
         (is_composed_behaviour b1 b2 b12 -> is_composed_behaviour b1 b2 b12').
 Proof.
   unfold is_composed_behaviour.
@@ -75,8 +95,8 @@ Lemma is_composed_behaviour_input_extensional {UA UD Y1 Y2 : Type} :
          (b2 b2' : @Behaviour ((UA*Y1)*UD) Y2)
          (b12 : @Behaviour (UA*UD) (Y1*Y2)),
     mixed_causal b1 -> mixed_causal b1' -> mixed_causal b2 -> mixed_causal b2' ->
-      (forall (uy2:nat->UA*(UD*Y2)) (n:nat), b1 uy2 n = b1' uy2 n) -> 
-        (forall (uy1:nat->(UA*Y1)*UD) (n:nat), b2 uy1 n = b2' uy1 n) -> 
+      (forall (uy2:nat->UA*(UD*Y2)) (n:nat), b1 uy2 n = b1' uy2 n) ->
+        (forall (uy1:nat->(UA*Y1)*UD) (n:nat), b2 uy1 n = b2' uy1 n) ->
           (is_composed_behaviour b1 b2 b12 -> is_composed_behaviour b1' b2' b12).
 Proof.
   unfold is_composed_behaviour.
@@ -97,7 +117,7 @@ Proposition composed_mixed_causal_outputs_unique
          (b2 : @Behaviour ((UA*Y1)*UD) Y2),
            mixed_causal b1 ->
            mixed_causal b2 ->
-           forall (u : nat->UA*UD), 
+           forall (u : nat->UA*UD),
              forall (y1 y1' : nat -> Y1) (y2 y2': nat -> Y2),
                (forall n, b1 (fun m => (fst (u m),(snd (u m),y2 m))) n = y1 n) ->
                (forall n, b1 (fun m => (fst (u m),(snd (u m),y2' m))) n = y1' n) ->
@@ -122,7 +142,7 @@ Proof.
     py1 n = b1 (fun k => (ua k, (ud k, py2 k))) n /\
     py2 n = b2 (fun k => ((ua k, py1 k), ud k)) n
   ) as HPcompb12_clear.
-  { intros n. split. 
+  { intros n. split.
     apply eq_sym. rewrite <- Hpy1. f_equal. rewrite -> Eua, -> Eud. reflexivity.
     apply eq_sym. rewrite <- Hpy2. f_equal. rewrite -> Eua, -> Eud. reflexivity. }
 
@@ -132,7 +152,7 @@ Proof.
     py1' n = b1 (fun k => (ua k, (ud k, py2' k))) n /\
     py2' n = b2 (fun k => ((ua k, py1' k), ud k)) n
   ) as HPcompb12_clear'.
-  { intros n. split. 
+  { intros n. split.
     apply eq_sym. rewrite <- Hpy1'. f_equal. rewrite -> Eua, -> Eud. reflexivity.
     apply eq_sym. rewrite <- Hpy2'. f_equal. rewrite -> Eua, -> Eud. reflexivity. }
 
@@ -166,7 +186,7 @@ Proof.
 
   remember (fun n => (py1 n, py2 n)) as y12 eqn:Ey12.
   remember (fun n => (py1' n, py2' n)) as y12' eqn:Ey12'.
-  
+
   assert (forall (n:nat),
     y12' n =
       ( b1 (fun k => (ua k, (ud k, py2' k))) n,
@@ -426,17 +446,17 @@ Proof.
       b2 (fun k => ((fst (u k), py1 k), snd (u k))) n =
       b2 (fun k => ((fst (u k), py1' k), snd (u k))) n
   ) as Hb12eq'''.
-  { rewrite -> Eua, -> Eud in Hb12eq''. 
+  { rewrite -> Eua, -> Eud in Hb12eq''.
     exact Hb12eq''.
   }
-  
+
 
    intros n.
 
    (* Bring it to component behaviour level
       Assertion Hb12eq'' has been set up for that.
    *)
-   rewrite <- Hpy1, <- Hpy2. rewrite <- Hpy1', <- Hpy2'. 
+   rewrite <- Hpy1, <- Hpy2. rewrite <- Hpy1', <- Hpy2'.
    apply pair_equal_spec.
    apply Hb12eq'''.
 Qed.
@@ -473,7 +493,7 @@ Proof.
     intros n. unfold y1', y2'. rewrite <- surjective_pairing. reflexivity. }
   intro n. rewrite -> Hy12, -> Hy12'. revert n.
   unfold is_composed_behaviour in HPcompb12, HPcompb12'.
-  
+
   apply (composed_mixed_causal_outputs_unique b1 b2 Hmcb1 Hmcb2 u).
   - intro n. apply eq_sym. unfold y1, y2, y12. exact (proj1 (HPcompb12 u n)).
   - intro n. apply eq_sym. unfold y1', y2', y12'. exact (proj1 (HPcompb12' u n)).
