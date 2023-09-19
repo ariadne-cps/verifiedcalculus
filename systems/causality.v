@@ -33,8 +33,39 @@
 
 
 Require Import Coq.Arith.PeanoNat.
+Require Import Coq.Classes.RelationClasses.
 
 Module causality.
+
+Definition trace_equivalent {X : Type} (x1 x2 : nat -> X) : Prop :=
+  forall n, x1 n = x2 n.
+Notation "x1 ≡ x2" := (trace_equivalent x1 x2) (at level 70).
+
+Definition behaviour_equivalent {U Y : Type} (b1 b2 : (nat -> U) -> (nat -> Y)) : Prop :=
+  forall u n, b1 u n = b2 u n.
+Notation "b1 ≣ b2" := (behaviour_equivalent b1 b2) (at level 70).
+
+#[export]
+#[refine]
+Instance trace_equivalence {X} : Equivalence (@trace_equivalent X) := { }.
+Proof.
+  - intros u n. reflexivity.
+  - intros u1 u2 H n. symmetry. exact (H n).
+  - intros u1 u2 u3 H12 H23 n.
+    transitivity (u2 n). exact (H12 n). exact (H23 n).
+Qed.
+
+
+#[export]
+#[refine]
+Instance behaviour_equivalence {U Y} : Equivalence (@behaviour_equivalent U Y) := { }.
+Proof.
+  - intros b u n. reflexivity.
+  - intros b1 b2 H u n. symmetry. exact (H u n).
+  - intros b1 b2 b3 H12 H23 u n.
+    transitivity (b2 u n). exact (H12 u n). exact (H23 u n).
+Qed.
+
 
 (* A behaviour is a function from input sequences to output sequences. *)
 Definition Behaviour {U:Type} {Y:Type} : Type := (nat -> U) -> (nat -> Y).
@@ -197,7 +228,7 @@ Qed.
 
 
 Definition extensional {U Y : Type} (b : @Behaviour U Y) :=
-  forall u u', (forall n, u n = u' n) -> (forall n, (b u) n = (b u') n).
+  forall u u', u ≡ u' -> b u ≡ b u'.
 
 Lemma strictly_causal_behaviour_extensional {U Y} : forall (b :@Behaviour U Y),
   strictly_causal b -> extensional b.
@@ -219,7 +250,7 @@ Proof.
 Qed.
 
 Lemma mixed_causal_equivalent_behaviours {UA UD Y} : forall (b b' : @Behaviour (UA*UD) Y),
-  (forall u n, b u n = b' u n) -> mixed_causal b -> mixed_causal b'.
+  b ≣ b' -> mixed_causal b -> mixed_causal b'.
 Proof.
   intros b b' He Hcb.
   unfold mixed_causal in *.
@@ -229,7 +260,5 @@ Proof.
   rewrite <- He, <- He.
   exact (Hcb m Hm).
 Qed.
-
-
 
 End causality.
