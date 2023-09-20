@@ -1,0 +1,346 @@
+(******************************************************************************
+ *  utilities/Words.v
+ *
+ *  Copyright 2023 Pieter Collins
+ *
+ ******************************************************************************)
+
+(*
+ * This file is part of the Verified Calculus Library.
+ *
+ * The Verified Calculus Library is free software: you can redistribute it
+ * and/or modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation, either version 3 of the License,
+ * or (at your option) any later version.
+ *
+ * The Verified Calculus Library is distributed in the hope that it will be
+ * useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+ * Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * the Verified Calculus Library. If not, see <https://www.gnu.org/licenses/>.
+ *)
+
+
+Require Import Coq.Logic.FunctionalExtensionality.
+Require Import Coq.Logic.ProofIrrelevance.
+
+Require Import Coq.Arith.PeanoNat.
+Require Import Coq.Arith.Compare_dec.
+
+
+Section Words.
+
+Definition Seq (X : Type) := nat -> X.
+
+Definition agree {X} (n : nat) (u1 u2 : Seq X) :=
+  forall m, m<n -> u1 m = u2 m.
+
+Lemma agree_refl : forall {X} (n : nat) (u : Seq X),
+  agree n u u.
+Proof.
+  unfold agree. intros X n u m Hmltn.
+  reflexivity.
+Qed.
+
+Lemma agree_sym : forall {X} (n : nat) (u1 u2 : Seq X),
+  agree n u1 u2 -> agree n u2 u1.
+Proof.
+  unfold agree. intros X n u1 u2 H m Hmltn.
+  symmetry. exact (H m Hmltn).
+Qed.
+
+Lemma agree_trans : forall {X} (n : nat) (u1 u2 u3 : Seq X),
+  agree n u1 u2 -> agree n u2 u3 -> agree n u1 u3.
+Proof.
+  unfold agree. intros X n u1 u2 u3 H12 H23 m Hmltn.
+  transitivity (u2 m). exact (H12 m Hmltn). exact (H23 m Hmltn).
+Qed.
+
+
+
+Record ordinal (n : nat) := {
+    val :> nat;
+    val_lt : val < n;
+}.
+
+Definition ord {n : nat} (m : nat) (p : m < n) : ordinal n := {| val:=m; val_lt := p |}.
+Definition ord_S {n : nat} (m : nat) (p : m < n) : ordinal (S n) := {| val:=S m; val_lt := proj1 (Nat.succ_lt_mono m n) p |}.
+Definition ord_s {n : nat} (m : nat) (p : m < n) : ordinal (S n) := {| val:=m; val_lt := Nat.lt_lt_succ_r m n p |}.
+
+Lemma ordinal_eq : forall {n:nat} (k1 k2 : ordinal n),
+  k1.(val n) = k2.(val n) -> k1 = k2.
+Proof.
+  intros n k1 k2.
+  destruct k1 as [k1 p1].
+  destruct k2 as [k2 p2].
+  simpl.
+  intros H.
+  revert p1 p2.
+  rewrite <- H.
+  intros p1 p2.
+  rewrite (proof_irrelevance _ p1 p2).
+  reflexivity.
+Qed.
+
+Lemma ord_eq : forall {n:nat} (k1 k2 : nat) (p1 : k1<n) (p2 : k2<n),
+  k1 = k2 -> ord k1 p1 = ord k2 p2.
+Proof.
+  intros n k1 k2 p1 p2 H.
+  unfold ord.
+  apply ordinal_eq.
+  exact H.
+Qed.
+
+Definition Wrd (n : nat) (X : Type) := (ordinal n) -> X.
+Definition Wrds (X : Type) := forall n, Wrd n X.
+
+Lemma wrd_at_ordinal : forall {X} {n:nat} (x : Wrd n X) (k1 k2 : ordinal n),
+  k1.(val n) = k2.(val n) -> x k1 = x k2.
+Proof.
+  intros X n x k1 k2 H.
+  apply f_equal.
+  exact (ordinal_eq _ _ H).
+Qed.
+
+Lemma wrd_eq : forall {X} {n} (x1 x2 : Wrd n X),
+  (forall kp : ordinal n, x1 kp = x2 kp) -> x1 = x2.
+Proof.
+  intros X n x1 x2 Hkp; apply functional_extensionality; intros kp; apply Hkp.
+Qed.
+
+Lemma wrd_eq' : forall {X} {n} (x1 x2 : Wrd n X),
+  (forall k, forall (p : k<n), let kp:={| val:=k; val_lt:=p |} in x1 kp = x2 kp) -> x1 = x2.
+Proof.
+  intros X n x1 x2 Hkp; apply functional_extensionality; intros [k p]; apply Hkp.
+Qed.
+
+Lemma wrd_1_eq : forall {X} (x1 x2 : Wrd 1 X),
+  x1 = x2 <-> x1 (ord 0 Nat.lt_0_1) = x2 (ord 0 Nat.lt_0_1).
+Proof.
+  intros X x1 x2. split.
+  intro He. rewrite -> He. reflexivity.
+  intro H. apply wrd_eq. intros [k p].
+  assert (k=0) as Hk. { exact (proj1 (Nat.lt_1_r k) p). }
+  transitivity (x1 (ord 0 Nat.lt_0_1)).
+  unfold ord. apply wrd_at_ordinal. simpl. exact Hk.
+  rewrite -> H.
+  unfold ord. apply wrd_at_ordinal. simpl. symmetry. exact Hk.
+Qed.
+
+
+
+
+Definition null {X : Type} : Wrd 0 X :=
+  fun k => match PeanoNat.Nat.nlt_0_r k.(val 0) k.(val_lt 0) with end.
+
+Definition proj {X : Type} (n : nat) (xs : Seq X) : Wrd n X :=
+  fun kp => xs kp.(val n).
+
+Lemma proj_at : forall {X} (n : nat) (xs : Seq X) (kp : ordinal n), 
+    (proj n xs) kp = xs kp.(val n).
+Proof.
+  intros X n xs kp. unfold proj. reflexivity. 
+Qed.
+
+Lemma agree_proj : forall {X} (n : nat) (u1 u2 : Seq X),
+  agree n u1 u2 <-> proj n u1 = proj n u2.
+Proof.
+  intros X n u1 u2.
+  unfold agree, proj.
+  split.
+  - intro H.
+    apply functional_extensionality.
+    intros [m p].
+    simpl.
+    exact (H m p).
+  - intro H.
+    unfold agree.
+    intros m p.
+    apply equal_f with (x:=ord m p) in H.
+    exact H.
+Qed.
+
+Definition restr {X : Type} {n : nat} (m : nat) (p : m <= n) (xs : Wrd n X) : Wrd m X :=
+  fun kp => let k:=kp.(val m) in let q:=kp.(val_lt m) in
+    xs {| val:=k; val_lt:=PeanoNat.Nat.lt_le_trans kp m n q p; |}.
+
+Lemma restr_at : forall {X} {n:nat} (x : Wrd n X),
+  forall (m : nat) (p:m<=n), forall (k:nat) (q:k<m), (restr m p x) (ord k q) = x (ord k (Nat.lt_le_trans k m n q p)).
+Proof.
+  intros X n x m p k q.
+  unfold restr.
+  reflexivity.
+Qed.
+
+Lemma restr_id : forall {X} {n} (p : n<=n) (x : Wrd n X), restr n p x = x.
+Proof.
+  unfold restr.
+  intros X n p x.
+  apply wrd_eq.
+  intros [k q].
+  apply f_equal.
+  simpl.
+  f_equal.
+  apply proof_irrelevance.
+Qed.
+
+Definition coerce {X} {m n} (p : m=n) (x : Wrd n X) : Wrd m X :=
+  fun (kq : ordinal m) => 
+    let k := kq.(val m) in
+    let q := Nat.lt_stepr k m n (kq.(val_lt m)) p in
+      x (ord k q).
+
+Lemma restr_coerce_eq : forall {X} {m n} (p : m<=n) (x : Wrd n X) (q : m=n), 
+  restr m p x = coerce q x.
+  intros X m n p x q.
+  apply wrd_eq.
+  intros [k r].
+  unfold restr, coerce, ord.
+  simpl.
+  f_equal.
+  apply ordinal_eq.
+  simpl.
+  reflexivity.
+Qed.
+
+Lemma restr_restr : forall {X} {n} m p l q r (x : Wrd n X),
+  restr l r x = restr l q (restr m p x).
+Proof.
+  intros X n m p l q r x.
+  apply wrd_eq.
+  intros [k s].
+  simpl.
+  rewrite -> restr_at.
+  rewrite -> restr_at.
+  rewrite -> restr_at.
+  apply wrd_at_ordinal.
+  reflexivity.
+Qed.
+
+
+Definition cat {X : Type} {n : nat} : (Wrd n X) -> X -> (Wrd (S n) X) :=
+  fun xr x => fun xs => let k := (xs.(val (S n))) in let pkltSn := xs.(val_lt (S n)) in
+    let pklen : (k<=n) := proj1 (Nat.lt_succ_r k n) pkltSn in
+      let pkltnorkeqn := Compare_dec.le_lt_eq_dec k n pklen in
+        match pkltnorkeqn with | left pkltn => xr {| val:=k; val_lt:=pkltn |}
+                               | right pklen => x
+        end.
+
+Lemma cat_tail : forall {X} {n} (xw : (Wrd n X)) (x : X) (m:nat) (Hmltn : m < n) {HmltSn : m < S n},
+  cat xw x (ord m HmltSn) = xw (ord m Hmltn).
+Proof.
+  intros X n xw x m Hmltn HmltSn. unfold cat, ord. simpl.
+  destruct (Compare_dec.le_lt_eq_dec m n _).
+  - apply wrd_at_ordinal. reflexivity.
+  - assert (m<n) as H; [exact Hmltn|]. rewrite -> e in H. apply Nat.lt_irrefl in H. contradiction.
+Qed.
+
+Lemma cat_head : forall {X} {n} (xw : (Wrd n X)) (x : X) {m : nat} (HmltSn : m < S n),
+  m = n -> cat xw x (ord m HmltSn) = x.
+Proof.
+  intros X n xw x m HmltSn Hmeqn. unfold cat, ord. simpl.
+  destruct (Compare_dec.le_lt_eq_dec m n _).
+  - assert (m<n) as H; [exact l|]. rewrite -> Hmeqn in H. apply Nat.lt_irrefl in H. contradiction.
+  - reflexivity.
+Qed.
+
+
+Definition splice {X} {n} (xw : Wrd (S n) X) (xe : Seq X) : Seq X :=
+  fun k => match Compare_dec.le_lt_dec (S n) k with | left _ => xe (k-n) | right p => xw (ord k p) end.
+
+Lemma splice_word_element : forall {X} {n} (xw : Wrd (S n) X) (xe : Seq X) (k:nat) (p:k<S n), 
+  (splice xw xe) k = xw (ord k p).
+Proof.
+  intros X n xw xe k p. unfold splice.
+  destruct (Compare_dec.le_lt_dec (S n) k).
+  - set (Hfalse := Nat.lt_irrefl _ (Nat.lt_le_trans _ _ _ p l)).
+    contradiction.
+  - f_equal. apply ord_eq. reflexivity.
+Qed.
+
+Lemma splice_sequence_element : forall {X} {n} (xw : Wrd (S n) X) (xe : Seq X) (k:nat) (p:k>=S n), 
+  (splice xw xe) k = xe (k-n).
+Proof.
+  intros X n xw xe k p. unfold splice.
+  destruct (Compare_dec.le_lt_dec (S n) k).
+  - reflexivity.
+  - unfold ge in p. 
+    set (Hfalse := Nat.lt_irrefl _ (Nat.lt_le_trans _ _ _ l p)).
+    contradiction.
+Qed.
+
+(*
+Lemma splice_word : forall {X} {n} (xw : Wrd (S n) X) (xe : Seq X), 
+  proj (S n) (splice xw xe) = xw.
+Proof.
+  intros X n xw xe.
+  unfold splice, proj.
+  apply functional_extensionality. intro kp.
+  destruct (Compare_dec.le_lt_dec (S n) (val (S n) kp)).
+  - destruct kp as [k p]. unfold val in l. 
+    set (Hfalse := Nat.lt_irrefl _ (Nat.lt_le_trans _ _ _ p l)).
+    contradiction.
+  - destruct kp as [k p]. unfold val in l. 
+    f_equal.
+    apply ordinal_eq.
+    simpl.
+    reflexivity.
+Qed.
+
+Lemma splice_sequence : forall {X} {n} (xw : Wrd (S n) X) (xe : Seq X), 
+  xw (ord n (Nat.lt_succ_diag_r n)) = (xe 0) -> 
+    (fun k => (splice xw xe) (n+k)) = xe.
+Proof.
+  intros X n xw xe Hxn.
+  unfold splice, proj.
+  apply functional_extensionality. intro k.
+  destruct (Compare_dec.le_lt_dec (S n) (n+k)).
+  - rewrite -> Nat.add_comm.
+    rewrite -> Nat.add_sub.
+    reflexivity.
+  - destruct k.
+    rewrite <- Hxn. f_equal. apply ord_eq. exact (Nat.add_0_r n).
+    assert (S n + k < S n + 0) as Hf. { rewrite -> Nat.add_succ_comm. rewrite -> Nat.add_0_r. exact l. }
+    apply Nat.add_lt_mono_l in Hf.
+    apply Nat.nlt_0_r in Hf.
+    contradiction.
+Qed.
+*)
+
+
+
+Fixpoint lproj {X:Type} (n : nat) (xs : Seq X) : list X :=
+  match n with
+    | O => nil
+    | S n' => cons (xs n') (lproj n' xs)
+  end.
+
+Lemma proj_restr : forall {X} (xs : Seq X) (m n : nat) (p:m <= n),
+  proj m xs = restr m p (proj n xs).
+Proof.
+  intros X xs m n p.
+  unfold proj, restr.
+  apply functional_extensionality.
+  intros k.
+  f_equal.
+Qed.
+
+Lemma restr_cons : forall {X} {n} (xw : Wrd n X) (x:X) (p:n<=S n),
+  restr n p (cat xw x) = xw.
+Proof.
+  intros X n xw x HnleSn.
+  apply wrd_eq.
+  intros [m Hmltn].
+  rewrite -> restr_at.
+  apply cat_tail.
+Qed.
+
+
+Definition is_prefix {X} {m n : nat} (xw' : Wrd m X) (xw : Wrd n X) :=
+  match Compare_dec.le_lt_dec m n with | left p => xw' = restr m p xw | right _ => False end.
+
+
+End Words.
+
