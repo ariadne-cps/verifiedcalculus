@@ -1,0 +1,215 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage{amsfonts,amssymb,amsthm,amsmath}
+
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\mvto}{\rightrightarrows}
+\newcommand{\len}[1]{{|#1|}}
+
+\DeclareMathOperator{\behav}{\mathrm{behav}}
+
+%\renewcommand{\implies}{\rightarrow}
+%\renewcommand{\iff}{\leftrightarrow}
+
+\newcommand{\hB}{\widehat{b}}
+\newcommand{\hu}{\hat{u}}
+\newcommand{\hy}{\hat{y}}
+
+\theoremstyle{theorem}
+\newtheorem{theorem}{Theorem} %[section]
+\newtheorem{counterexample}[theorem]{Example}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\theoremstyle{remark}
+\newtheorem{example}[theorem]{Example}
+\newtheorem*{note*}{Note}
+
+\title{On Causality of Behaviours}
+\author{Pieter Collins}
+\date{Draft \today}
+
+\begin{document}
+
+\maketitle
+
+\section{Discrete-time nondeterministic systems}
+
+\subsection{State-space models}
+
+\begin{definition}[Nondeterministic system]
+A nondeterministic state-space model is a tuple $s=\langle f,h,e\rangle$ where
+\[ f:X\times U \mvto X,\ h:X\times U\to Y,\ e\subset X . \]
+\end{definition}
+
+\begin{definition}[Nonblocking system]
+A nondeterministic state-space model $s=\langle f,h,e\rangle$ is \emph{non-blocking} if
+\[ \bigl(\forall x:X,\;\forall u:U,\;\exists x':X,\; x'\in f(x,u)\bigr) \wedge (\exists x_0:X,\; x_0\in e) . \]
+\end{definition}
+
+\begin{note*}
+Constructively, $(\exists x : X,\; x\in e) \implies \neg (e = \emptyset)$, but the converse does not hold.
+\end{note*}
+
+
+\subsection{Infinite-time behaviour}
+
+\begin{definition}[Infinite-time behaviour]
+An infinite-time behaviour is a function taking input sequences to sets of possible output sequences.
+\[ b: U^\omega \mvto Y^\omega . \]
+\end{definition}
+
+\begin{definition}[Infinite-time system output]
+Given $s=\langle f,h,e\rangle$ and input sequence $u:U^\omega$, a sequence $y:Y^\omega$ is a valid output if
+\[ \begin{aligned}
+ \exists x : X^\omega,\;\bigl( & (\forall n:\N,\;x_{n+1}\in f(x_n,u_n)) \\ & \qquad \mbox{} \wedge (\forall n:\N, y_n = h(x_n,u_n)) \wedge (x_0 \in e ) \bigr).
+\end{aligned} \]
+\end{definition}
+
+A system is \emph{causal} or \emph{nonanticipating} if outputs do not depend on future inputs.
+\begin{definition}[Causal/nonanticipating infinite-time behaviour]
+\[ \begin{aligned}
+  & \forall u_1,u_2:U^\omega, \forall n:\N,
+u_1|_{\leq n} = u_2|_{\leq n} \\ & \qquad \implies \forall y_*:Y^n,\; \begin{aligned}[t]&(\exists y_1:Y^\omega, y_1 \in b u_1 \wedge y_1|_{\leq n} = y_*) \\
+  & \qquad \iff (\exists y_2:Y^\omega, y_2 \in b u_2 \wedge y_2|_{\leq n}=y_*) .
+  \end{aligned}  \end{aligned} \]
+%\begin{multline*}
+%  \forall u_1,u_2:U^\omega, \forall n:\N, u_1|_{\leq n} = u_2|_{\leq n} \\
+%  \implies \forall y_*:Y^n,\; (\exists y_1:Y^\omega, y_1 \in b u_1 \wedge y_1|_{\leq n} = y_*) \\
+%   \iff (\exists y_2:Y^\omega, y_2 \in b u_2 \wedge y_2|_{\leq n}=y_*) .
+%\end{multline*}
+\end{definition}
+
+A behaviour is \emph{input-accepting} if for every input, there is a possible output, and \emph{input-enabling} if additionally, every valid partial output extends to a complete output.
+\begin{definition}[Input accepting/enabling infinite-time behaviour]
+Behaviour $b:U^\omega \mvto Y^\omega$.
+\begin{enumerate}
+\item Input-nontrivial:
+\[ \exists u:U^\omega,\; \exists y:Y^\omega,\; y \in b(u) . \]
+\item Input-accepting:
+\[ \forall u:U^\omega,\; \exists y:Y^\omega,\; y \in b(u) . \]
+\item Input-enabling:
+\[ \begin{aligned}
+  &\bigl(\forall u:U^\omega,\; \exists y:Y^\omega,\;y\in b(u)\bigr) \\
+  &\qquad \mbox{} \wedge \forall m:\N,\; \forall u_*:U^m,\; \forall y_*:Y^m, \\
+  &\qquad\qquad (\exists u':U^\omega,\;\exists y':Y^\omega, u'|_{\leq m}=u|_* \wedge y'|_{\leq m}=y_* \wedge y' \in b(u') ) \\
+  &\qquad\qquad\qquad \implies (\forall u:U^\omega, u|_{\leq m}=u_* \implies \exists y:Y^\omega,\;y|_{\leq m}=y_* \wedge y \in b(u)).
+\end{aligned} \]
+\end{enumerate}
+\end{definition}
+
+\begin{theorem}[Input enabling and causality]
+\mbox{}
+\begin{enumerate}
+\item Input-nontrivial and causal implies input-enabling.
+\item Input-enabling implies causal and input-accepting.
+\end{enumerate}
+\end{theorem}
+
+\begin{counterexample}[System need not be causal]
+\label{ex:blockingnoncausal}
+Suppose for some system $s=\langle f,h,e\rangle$ that $u:U^\omega$ is an input with output $y:Y^\omega$, but  but shares a prefix with an input $u'$ for which every trajectory blocks, then $s$ is not causal.
+\end{counterexample}
+
+\begin{theorem}
+If $s=\langle f,h,e\rangle$ is non-blocking, then $\behav(s)$ is causal and input-enabling.
+\end{theorem}
+
+Example~\ref{ex:blockingnoncausal} shows that just looking at the infinite-time behaviour does not give a sensible theory for systems that might exhibit deadlocks/blocking. The reason is that a later forced deadlock prevents the existence of any trajectory with a given partial output.
+
+
+\subsection{Finite-time formalism}
+
+\begin{definition}[Finite-time behaviours]
+\[ b: U^* \mvto Y^* . \]
+\begin{enumerate}
+\item Unrestricted: \( b : U^* \mvto Y^* \)
+\item Non-psychic: \( b : \forall n,\; U^n \mvto Y^{\leq n} \)
+  \[ \forall u:U^*,\; \forall y:Y^*,\; y \in b(u) \implies \len{y} \leq \len{u} \]
+\item Only-maximal: \( b : \forall n,\; U^n \mvto Y^{n} \)
+  \[ \forall u:U^*,\;\forall y:Y^*,\; y \in b(u) \implies \len{y} = \len(u) \]
+\item Prefix-closed: \[ \forall u:U^*,\;\forall y,y':Y^*,\; y \in b(u) \wedge \exists m,\; y'=y|_{\leq m} \implies y' \in b(u) . \]
+\item Prefix-free: \[ \forall u:U^*,\;\forall y,y':Y^*,\; y \in b(u) \wedge \exists m,\; y'=y|_{\leq m} \implies y' \not\in b(u) . \]
+\end{enumerate}
+\end{definition}
+I think it makes sense to consider non-psychic and prefix-closed, or only-maximal which implies prefix-free. However, this already introduces some nonanticipating property.
+
+
+\begin{definition}[Conversions]
+Infinite-time from finite-time:
+\[ \forall u:U^\omega,\; \hB(\hu) := \{ \hy : Y^\omega \mid \forall m,n,\; m \ast n \implies  \hy|_{\leq m} \in b(\hu|_{\leq n}) . \]
+\par
+Finite-time from infinite-time:
+\[ \begin{aligned}
+%  &\forall m,n:\N,\; m\leq n \implies \\
+%  &\qquad \bigl(\forall u:U^n,\; \forall y: Y^m,\;y \in b(u) \iff \exists \hu:U^\omega,\; \exists\hy:Y^\omega,\; \hy\in \hB(\hu) \wedge u=\hu|_{n} \wedge y=\hy|_m \bigr).
+\forall u:U^*,\; b(u) := & \{ y: Y^* \mid \len{y}\ast \len{u} \wedge {} \\ & \qquad \exists \hu:U^\omega,\; \exists\hy:Y^\omega,\; \hy\in \hB(\hu) \wedge u=\hu|_{\leq\len{u}} \wedge y=\hy|_{\leq\len{y}} \}.
+\end{aligned} \]
+Here, $\ast$ denotes a compatibility condition between $m$ and $n$, which can either be $\top$, $m\leq n$ or $m=n$.
+
+\end{definition}
+
+
+\begin{definition}[Finite-time system output]
+Given $s=\langle f,h,e\rangle$, times $m,n:\N$ with $m\leq n$ and input word $u:U^n$, a word $y:Y^m$ is a valid output (up to time $m$) if
+\[ \begin{aligned}
+  \exists x : X^m,\;\bigl(&(\forall k:\N,\; k< m \implies \;x_{k+1}\in f(x_k,u_k)) \wedge \mbox{} \\ &\qquad (\forall k:\N,\; k\leq m \implies y_k = h(x_k,u_k)) \wedge (x_0 \in e ) \bigr) .
+\end{aligned} \]
+\end{definition}
+
+
+
+\newpage
+
+\subsubsection{Equal-time behaviours}
+
+\begin{definition}[Finite-time behaviour]
+\[ b : (n:\N) \to ( U^n \mvto Y^n) \]
+  \[ b : U^* \mvto Y^*, \ \forall u:U^*,\; \forall y:Y^*,\; y \in b(u) \implies \len{y} \leq \len{u} \]
+\end{definition}
+\begin{definition}[Prefix-conform]
+\[ \forall n:\N,\; \forall u : U^*,\; \forall m:\N,\; m\le n \implies
+     b(u)|_{\leq m} \subset b(u|_{\leq m}) .\]
+\end{definition}
+\begin{definition}[Causal]
+\[ \forall n:\N,\; \forall u_1,u_2 : U^n,\; \forall m:\N,\; m\le n \implies
+    \bigl(u_1|_{\leq m} = u_2|_{\leq m} \implies b(u_1)|_{\leq m} = b(u_2)|_{\leq m} \bigr).\]
+\end{definition}
+\begin{definition}[Input-accepting]
+\[ \forall n:\N,\; \forall u : U^n,\  \exists y : Y^n, y \in (b u). \]
+\end{definition}
+\begin{definition}[Input-enabling]
+\[ \begin{aligned}
+  & \forall n:\N,\; \forall u:U^n,\; \forall m:\N,\; m\leq n \wedge u' := u|_{\leq m} \implies \\
+  & \qquad \bigl(\exists y' : Y^m,\; y' \in b(u') \bigr) \\ &\qquad\qquad \wedge \bigl( \forall y':Y^m,\; y'\in b(u') \implies \exists y:Y^n,\; y\in b(u) \wedge y'=y|_{\leq m} \bigr) \bigr). \end{aligned} \]
+\end{definition}
+
+
+\begin{verbatim}
+Definition finite_prefix_conform {U Y : Type}
+  (b : forall {n:nat}, Wrd n U -> M (Wrd n Y)) :=
+     forall (n:nat) (u : Wrd n U) (m:nat) (p:m<=n),
+       subset
+           (apply (fun u => restr m p u) (b u))
+           (b (restr m p u)).
+
+Definition finite_causal {U Y : Type}
+  (b : forall {n:nat}, Wrd n U -> M (Wrd n Y)) :=
+    forall (n:nat) (u u' : Wrd n U) (m:nat) (p:m<=n),
+      restr m p u = restr m p u' ->
+        apply (restr m p) (b u) = apply (restr m p) (b u').
+
+Definition finite_input_nontrivial {U Y} (b : forall {n : nat}, Wrd n U -> M (Wrd n Y)) :=
+  exists n, exists (u : Wrd n U), exists y, element y (b u).
+
+Definition finite_input_accepting {U Y} (b : forall {n : nat}, Wrd n U -> M (Wrd n Y)) :=
+  forall (n:nat) (u : Wrd n U), exists y, element y (b u).
+
+Definition finite_input_enabling {U Y} (b : forall {n : nat}, Wrd n U -> M (Wrd n Y)) :=
+  forall (n:nat) (u : Wrd n U), forall (m:nat) (p:m<=n), let uw := restr m p u in
+    (exists yw : Wrd m Y, element yw (b uw))
+      /\ forall yw : Wrd m Y,
+           element yw (b uw)
+             -> exists y, element y (b u) /\ yw = restr m p y.
+\end{verbatim}
+
+\end{document}
