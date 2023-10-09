@@ -66,4 +66,5 @@ Systems/NondeterministicSystemModels.v
 Systems/NondeterministicInfiniteTimeSystems.v
 Systems/NondeterministicFiniteTimeSystems.v
 Systems/NondeterministicSystemConversions.v
+Systems/NondeterministicMixedTimeSystems.v
 Systems/MonadicSystems.v
