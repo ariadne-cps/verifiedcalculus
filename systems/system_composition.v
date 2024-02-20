@@ -83,6 +83,7 @@ Definition signal' {Y:Type} {X:Type} {U:Type}
 
 (* The behaviour of a system is the input-output map
    taking input signals ℕ→U to the corresponding output ℕ→Y. *)
+
 Definition behaviour {UA UD Y X : Type}
   (s:@System UA UD X Y)
   (u:nat->UA*UD)
