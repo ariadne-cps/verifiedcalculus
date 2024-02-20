@@ -314,7 +314,7 @@ Qed.
 (*----------------------------------------------------------------------------*)
 
 (* Show that the fixed behaviour is indeed a fixed-point. *)
-Proposition causal_fixed_noinputs {Y : Type} :
+Proposition strict_causal_fixed_noinputs {Y : Type} :
   forall (b : @Behaviour Y Y)
          (y_default : Y),
          (strictly_causal b) ->
