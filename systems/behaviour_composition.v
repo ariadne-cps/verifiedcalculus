@@ -94,7 +94,7 @@ Lemma is_composed_behaviour_input_extensional {UA UD Y1 Y2 : Type} :
   forall (b1 b1' : @Behaviour (UA*(UD*Y2)) Y1)
          (b2 b2' : @Behaviour ((UA*Y1)*UD) Y2)
          (b12 : @Behaviour (UA*UD) (Y1*Y2)),
-    mixed_causal b1 -> mixed_causal b1' -> mixed_causal b2 -> mixed_causal b2' ->
+    mixed_causal b1 -> mixed_causal  b1' -> mixed_causal b2 -> mixed_causal b2' ->
       (forall (uy2:nat->UA*(UD*Y2)) (n:nat), b1 uy2 n = b1' uy2 n) ->
         (forall (uy1:nat->(UA*Y1)*UD) (n:nat), b2 uy1 n = b2' uy1 n) ->
           (is_composed_behaviour b1 b2 b12 -> is_composed_behaviour b1' b2' b12).
