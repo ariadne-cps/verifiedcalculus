@@ -31,19 +31,18 @@ Section NondeterministicSystems.
 
 Notation M := Ensemble.
 
-(*
-Inductive system {UA UD X Y : Type} : Type :=
-  | state_space_model (f:X->UA*UD->M X) (h:X->UA->Y) (e:M X)
-.
-*)
-
 Inductive System {U X Y : Type} : Type :=
-  | state_space_model (f:X->U->M X) (h:X->U->Y) (e:M X)
-.
+  | state_space_model (f:X->U->M X) (h:X->U->Y) (e:M X).
 
 Definition nonblocking {U X Y} (s : @System U X Y) :=
   match s with | state_space_model f _ e => inhabited e /\ forall x u, inhabited (f x u) end.
 
+
+Inductive MixedInputSystem {UA UD X Y : Type} : Type :=
+  | mixed_input_state_space_model (f:X->UA*UD->M X) (h:X->UA->Y) (e:M X).
+
+Definition mixed_input_nonblocking {UA UD X Y} (s : @MixedInputSystem UA UD X Y) :=
+  match s with | mixed_input_state_space_model f _ e => inhabited e /\ forall x u, inhabited (f x u) end.
 
 (* Useful types for constructing examples. *)
 Inductive Single := | only.
