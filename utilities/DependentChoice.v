@@ -26,30 +26,14 @@
 Require Import List.
 Require Import Arith_base.
 
+Require Import Words.
+
 Section DependentChoice.
 
 Axiom functional_dependent_choice :
   forall {A : Type} (R:A->A->Prop),
     (forall x, exists y, R x y) -> forall x0,
     (exists f : nat -> A, f 0 = x0 /\ forall n, R (f n) (f (S n))).
-
-
-Fixpoint proj {X:Type} (n : nat) (xs : nat -> X) : list X :=
-  match n with
-    | O => nil
-    | S n' => cons (xs n') (proj n' xs)
-  end.
-
-Lemma proj_zero : forall {X:Type} (xs:nat->X), proj O xs = nil.
-Proof. intros X xs. simpl. reflexivity. Qed.
-Lemma proj_succ : forall {X:Type} (n:nat) (xs:nat->X), proj (S n) xs = cons (xs n) (proj n xs).
-Proof. intros X n xs. simpl. reflexivity. Qed.
-Lemma length_proj : forall {X : Type} (xs : nat -> X) (n : nat), length (proj n xs) = n.
-Proof.
-  intros X xs. induction n.
-  - simpl. reflexivity.
-  - simpl. rewrite -> IHn. reflexivity.
-Qed.
 
 
 
@@ -291,6 +275,101 @@ Proof.
        rewrite -> app_seq_at.
        unfold g in Ht.
        apply Ht.
+Qed.
+
+
+
+
+Definition is_word_choice_sequence {X : Type} (f : forall n, Wrd n X -> X -> Prop) (xs : nat -> X) :=
+  forall n, (f n (projw n xs)) (xs n).
+
+Definition is_word_chosable {X : Type} (f : forall n, Wrd n X -> X -> Prop) :=
+  forall n xw, exists x, f n xw x.
+
+Definition is_choice_word {X : Type} (f : forall n, Wrd n X -> X -> Prop) {n : nat} (xw : Wrd n X) :=
+  forall m (p : m < n), f m (restr m (Nat.lt_le_incl _ _ p) xw) (xw (ord m p)).
+
+Proposition word_dependent_choice_from : forall {X:Type} (f : forall n, Wrd n X -> X -> Prop) {n : nat} (xw : Wrd n X),
+  is_word_chosable f -> is_choice_word f xw -> (exists xs : nat -> X, (projw n xs = xw) /\ is_word_choice_sequence f xs).
+Proof.
+  intros X f n xw.
+  assert (forall {n1 n2 : nat} (e : n1=n2) w1 x1 w2 x2, cast_wrd e w1 = w2 -> x1 = x2 -> f n1 w1 x1 -> f n2 w2 x2) as Hfeq. {
+    intros n1 n2 e w1 w2 x1 x2 Hw Hx. rewrite <- Hw, <- Hx. unfold cast_wrd. destruct e. tauto. }
+  assert (forall {n1 n2 : nat} (e : n1=n2) w1 w2 x, cast_wrd e w1 = w2 -> f n1 w1 x -> f n2 w2 x) as Hfeq'. {
+    intros n1 n2 e w1 w2 x Hw. exact (Hfeq n1 n2 e w1 x w2 x Hw (eq_refl x)). }
+  intros Hf Hxw.
+  set (fl := fun xl => f (length xl) (list_to_word xl)).
+  assert (is_chosable fl) as Hfl. {  
+    unfold is_word_chosable in Hf.
+    unfold is_chosable.
+    intros xl'.
+    set (xw' := list_to_word xl').
+    specialize (Hf _ xw').
+    destruct Hf as [x Hfx].
+    exists x.
+    unfold fl.
+    unfold xw' in Hfx.
+    exact Hfx.
+  }
+  set (xl := word_to_list xw).
+  assert (is_choice_list fl xl) as Hfxl. {
+    generalize Hxw.
+    clear Hxw.
+    intros Hxw.
+    induction n.
+    - unfold xl, word_to_list, is_choice_list. tauto.
+    - unfold xl. 
+      unfold fl.
+      rewrite -> word_to_list_succ.
+      apply is_choice_list_cons. split.
+      -- unfold is_choice_word in Hxw.
+         specialize (Hxw n (Nat.lt_succ_diag_r n)).
+         set (xn := xw (ord n (Nat.lt_succ_diag_r n))) in *.
+         set (n' := length (word_to_list (restr n (Nat.le_succ_diag_r n) xw))).
+         set (xt := (list_to_word (word_to_list (restr n (Nat.le_succ_diag_r n) xw)))).
+         assert (n = n') as Hneqn'. { unfold n'. rewrite -> word_to_list_length. reflexivity. }
+         apply (Hfeq n n' Hneqn' (restr n (Nat.lt_le_incl n (S n) (Nat.lt_succ_diag_r n)) xw) xn); [|reflexivity|apply Hxw].
+         unfold xt.
+         rewrite -> word_to_list_to_word_id'.
+         apply cast_wrd_eq.
+         intros k p1 p2 kp1 kp2.
+         rewrite -> (restr_eq _ (Nat.le_succ_diag_r n)).
+         f_equal. apply ord_eq. reflexivity. 
+      -- apply IHn. unfold is_choice_word in *.
+         intros m p.
+         specialize (Hxw m (Nat.lt_trans _ _ _ p (Nat.lt_succ_diag_r n))).
+         apply (Hfeq _ _ (eq_refl m) (restr m (Nat.lt_le_incl m (S n) (Nat.lt_trans m n (S n) p (Nat.lt_succ_diag_r n))) xw) (xw (ord m (Nat.lt_trans m n (S n) p (Nat.lt_succ_diag_r n))))).
+         --- rewrite -> restr_restr. 
+             rewrite -> cast_wrd_restr. 
+             apply restr_eq.
+         --- rewrite -> restr_at.
+             apply wrd_at_eq. 
+         --- apply Hxw.
+  }
+  assert (exists xs : nat -> X, proj (length xl) xs = xl /\ is_choice_sequence fl xs) as Exs. {
+    apply list_dependent_choice_from.
+    - exact Hfl.
+    - exact Hfxl.
+  }
+  destruct Exs as [xs [Hpxs Hfxs]].
+  exists xs.
+  split.
+  - rewrite <- (word_to_list_to_word_id xw).
+    apply eq_sym.
+    rewrite <- (@proj_to_word_list X xs n n (length_proj xs n)).
+    apply cast_list_to_wrd_eq.
+    replace (word_to_list xw) with xl; [|unfold xl; reflexivity].
+    replace (length xl) with n in Hpxs.
+    -- symmetry. exact Hpxs.
+    -- unfold xl. symmetry. apply word_to_list_length.
+  - unfold is_word_choice_sequence.
+    unfold is_choice_sequence in Hfxs.
+    intros m. specialize (Hfxs m).
+    unfold fl in Hfxs.
+    apply (Hfeq (length (proj m xs)) m (length_proj xs m) (list_to_word (proj m xs)) (xs m)).
+    -- apply proj_to_word_list'.
+    -- reflexivity.
+    -- exact Hfxs.
 Qed.
 
 
