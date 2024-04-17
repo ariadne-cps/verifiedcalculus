@@ -372,7 +372,7 @@ Proof.
     rewrite -> flt_ninjr. reflexivity. }
   assert (FinjR (NinjF 2%nat) <> 0%R) as H2ne0. {
     rewrite -> flt_ninjr. apply not_O_S_INR. }
-  replace (2%R) with (FinjR (NinjF 2%nat)) by H2.
+  replace (2) with (FinjR (NinjF 2)).
   apply Rge_le; unfold Fdiv2; apply flt_div_up; apply H2ne0.
 Qed.
 

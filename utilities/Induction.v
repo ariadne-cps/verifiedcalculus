@@ -23,7 +23,7 @@
  *)
 
 
-Require Import Coq.Arith.Lt.
+Require Import Coq.Arith.PeanoNat.
 
 Module Induction.
 

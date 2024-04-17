@@ -175,7 +175,7 @@ Proof.
   intros X.
   intros l.
   induction l.
-  - intros s m. simpl. apply List.app_nil_end.
+  - intros s m. simpl. symmetry. apply List.app_nil_r.
   - assert (length (a :: l) = S (length l)) as Hlen. { auto. }
     intros s m.
     assert (app_seq (a::l) s = app_seq l (cons_seq a s)) as Happ. {
@@ -188,7 +188,7 @@ Proof.
     rewrite -> (List.app_comm_cons _ l).
     rewrite <- proj_succ.
     rewrite -> proj_cons_seq.
-    rewrite -> List.app_assoc_reverse.
+    rewrite <- List.app_assoc.
     simpl.
     reflexivity.
 Qed.
@@ -271,11 +271,11 @@ Proof.
          apply is_choice_prefix_of_list with (n:=(length xl - m)).
          replace (m + (length xl - m)) with (length xl).
          apply Hl.
-         rewrite -> (Arith_prebase.le_plus_minus_r_stt _ _ Hm).
+         rewrite -> (Arith_base.le_plus_minus_r_stt _ _ Hm).
          reflexivity.
        }
        apply (Hc (S n)).
-       apply Arith_prebase.lt_le_S_stt.
+       apply Arith_base.lt_le_S_stt.
        exact Hnltl.
     -- unfold xs.
        assert (exists m:nat, n=length xl + m) as Hm. {

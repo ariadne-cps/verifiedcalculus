@@ -217,7 +217,7 @@ Proof.
   rewrite -> Z.add_diag.
   rewrite <- (Z.abs_eq 2) by (exact Z.le_0_2).
   rewrite <- Z.abs_mul.
-  replace (2*(b*q-a)) with (b-r) by ring.
+  replace (2*(b*q-a)) with (b-r).
   assert (Z.abs (b-r) <= Z.abs b) as Hab. {
     assert ({b<0}+{b>0}+{b=0}) as Hb. { apply Z_dec. }
     destruct Hb as [[Hlt|Hgt]|Heq].
