@@ -31,6 +31,7 @@ Require Import Coq.Logic.ProofIrrelevance.
 Require Import Coq.Lists.List.
 Require Import Coq.Sets.Ensembles.
 
+Require Import Words.
 Require Import DependentChoice.
 
 Require Export Monads.

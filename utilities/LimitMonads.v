@@ -25,6 +25,7 @@
 
 Require Import Coq.Logic.PropExtensionality.
 
+Require Import Words.
 Require Import Monads.
 Require Import DependentChoice.
 

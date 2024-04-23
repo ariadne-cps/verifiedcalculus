@@ -32,6 +32,7 @@ Require Import Bool.
 Require Import List.
 Require Import Ensembles.
 
+Require Import Words.
 Require Import DependentChoice.
 
 Require Export Monads.
@@ -265,17 +266,12 @@ Qed.
 
 
 
-Require Import Words.
-
 (*
 Context {M : Type -> Type} {MonadM : Monad M}.
 *)
 
-Definition proj {X : Type} (n : nat) (xs : Seq X) : Wrd n X :=
-  fun kp => xs kp.(val n).
-
 Definition is_inverse_limit {M : Type -> Type} {MonadM : Monad M}{X} (A : forall (n: nat), M (ordinal n -> X)) (Alim : M (nat -> X)) :=
-  forall n, Mlift (proj n) Alim = A n.
+  forall n, Mlift (projw n) Alim = A n.
 
 Definition is_inverse_sequence {M : Type -> Type} {MonadM : Monad M} {X} (A : forall n, M (ordinal n -> X)) : Prop :=
   forall (m n : nat) (p : m <= n), Mlift (restr m p) (A n) = A m.
@@ -290,7 +286,7 @@ Definition le_succ_diag_r := PeanoNat.Nat.le_succ_diag_r.
 
 Lemma limit_words_sequence : 
   forall X, forall (xw : forall n : nat, Wrd n X) (p : forall n, restr n (le_succ_diag_r n) (xw (S n)) = xw n),
-    exists xs : nat -> X, forall n, proj n xs = xw n.
+    exists xs : nat -> X, forall n, projw n xs = xw n.
 Proof.
   intros X xw p.
   set (xs := (fun n => xw (S n) (ord n (lt_succ_diag_r n)))).
@@ -301,11 +297,12 @@ Proof.
   - apply wrd_eq. intros kp. destruct kp as [k pk].
     set (Hleg := PeanoNat.Nat.lt_trichotomy k n).
     destruct Hleg as [Hlt|[Heq|Hgt]].
-    -- set (kp := {| val:=k; val_lt:=pk|}).
-       assert (proj n xs = restr n (le_succ_diag_r n) (proj (S n) xs)) as Hpr.
+    -- set (kp := ord k pk).
+       assert (projw n xs = restr n (le_succ_diag_r n) (projw (S n) xs)) as Hpr.
          apply projw_restr.
        assert (xw (S n) kp = restr n (le_succ_diag_r n) (xw (S n)) (ord k Hlt) ) as HSr.
-         rewrite -> restr_at. apply wrd_at_ordinal. simpl. reflexivity.
+         rewrite -> restr_at. apply wrd_at. simpl. reflexivity.
+(* 
        rewrite -> HSr. rewrite -> p. rewrite <- IHn. 
        rewrite -> projw_at, projw_at.
        simpl.
@@ -318,6 +315,8 @@ Proof.
        apply (PeanoNat.Nat.le_trans _ k _ Hgt) in pk' as HSnlen. 
        contradiction (PeanoNat.Nat.nle_succ_diag_l n).
 Qed.
+*)
+Admitted.
 
 Theorem inhabited_subset_monad_has_inverse_limits:
   has_inverse_limits (@InhabitedEnsemble) (InhabitedEnsemble_Monad).
@@ -328,10 +327,10 @@ Proof.
   set ( A := (fun n => ensmbl (A' n))).
   assert ( forall n, inhabited (A n)) as HA.
     exact (fun n => ensmbl_inhabited (A' n)).
-  set ( Ainf := (fun (xs : nat -> X) => forall n, (A n) (proj n xs)) ).
+  set ( Ainf := (fun (xs : nat -> X) => forall n, (A n) (projw n xs)) ).
   assert (inhabited Ainf) as HAinf. {
     admit. }
-  exists ({|ensmbl:=Ainf; ensmbl_inhabited:=HAinf_inhabited|}).
+  exists ({|ensmbl:=Ainf; ensmbl_inhabited:=HAinf|}).
   unfold is_inverse_limit.
   intro n.
   unfold Mlift, Mbind.
@@ -341,7 +340,7 @@ Proof.
   unfold image.
   simpl.
   apply functional_extensionality.
-  intro x.
+  intro xw.
   apply propositional_extensionality.
   split.
   - intros H.
@@ -353,124 +352,23 @@ Proof.
     intro HxinAn.
     set (le_s := PeanoNat.Nat.le_succ_diag_r).
 
-    assert (forall m (w : Wrd m X), element w (ensmbl (A m)) -> exists w', 
-             element w' (ensmbl (A (S m))) /\ restr m (le_s m) w' = w) as Hsu.
-    {
-       unfold element. intros m w Hw.  
-       specialize (Hinvseq m (S m) (le_s m)).
-       admit.
-    }
-
-    assert (exists xe : forall m, @Wrd (n+m) X,
-      (forall m, element (xe m) (ensmbl (A (n+m)))) /\ 
-      (forall l m (p:n+l<=n+m), restr (n+l) p (xe m) = xe l)) as Hxe.
-    { admit. }
-
-    exists (fun m => 
-      let p := (PeanoNat.Nat.lt_decidable (m<n)) in xe 1 0).
-      let p := Nat.ltb m n in 
-                       if p then x (ord m ) else xe (S m) m).
-inhabited_image.
-  split. {
-    simpl.
-    unfold inhabited_singleton, inhabited_image.
-    apply inhabited_subset_equality.
-    apply functional_extensionality.
-    intro xl.
-    apply propositional_extensionality.
-    simpl.
+    set (B := fun (n : nat) => fun (w : Wrd n X) => fun (x : X) => A (S n) (cat w x) ).
+    assert (is_word_chosable B) as HwcB. admit.
+    assert (is_choice_word B xw) as HcwBxw. admit.
+    set (Hxe := word_dependent_choice_from B xw HwcB HcwBxw).
+    destruct Hxe as [xs [HxsS Hxsw]].
+    exists xs.
     split.
-    -- intros [xs [_ Hnil]].
-       exact Hnil.
-    -- intros Hnil.
-       assert (forall {X} (p:X->Prop) (q:Prop), (exists x, p x) /\ q -> exists x, (p x /\ q)) as Hexists. {
-         intros X' p q H.
-         destruct H as [[x Hp] Hq].
-         exists x.
-         split. exact Hp. exact Hq.
-       }
-       unfold image.
-       apply Hexists.
-       split; [|exact Hnil].
-       apply list_dependent_choice.
-       unfold is_chosable.
-       apply HF_inhabited.
-  }
-  intros n.
-  simpl.
-  unfold inhabited_singleton, inhabited_image.
-  apply inhabited_subset_equality.
-  apply functional_extensionality.
-  intros xl.
-  apply propositional_extensionality.
-  simpl.
-  split.
-  - intros H.
-    destruct H as [[xl' xn] H].
-    destruct H as [Hp Hc].
-    destruct Hp as [xl'' [Hp Hf]].
-    destruct Hp as [xs [Hp Hp0]].
-    destruct Hf as [xn' [Hf Ht]].
-    unfold Mpure in Hp0, Ht, Hc.
-    rewrite -> Hp0 in Hf, Ht.
-    clear Hp0 xl''.
-    injection Ht. intros Hxn' Hxl'.
-    rewrite <- Hxn' in *; rewrite -> Hxl' in *.
-    clear Hxl' Hxn' xl' xn'.
-    clear Ht.
-    rewrite -> Hc in *.
-    clear Hc.
-    clear xl.
-    unfold lcons.
-    simpl.
-    set (xl := cons xn (proj n xs)).
-    assert (exists xs' : nat -> X, proj (length xl) xs' = xl /\ forall n', F (proj n' xs') (xs' n')) as Hxs'. {
-      apply list_dependent_choice_from.
-      - unfold is_chosable.
-        apply HF_inhabited.
-      - unfold xl.
-        apply is_choice_list_cons.
-        split.
-        -- exact Hf.
-        -- apply is_choice_prefix_of_sequence.
-           unfold is_choice_sequence.
-           exact Hp.
-    }
-    destruct Hxs' as [xs' [Hpxs' Hcxs']].
-    exists xs'.
-    split.
-    -- unfold Finf.
-       unfold element.
-       apply Hcxs'.
-    -- replace (length xl) with (S n) in Hpxs'.
-       rewrite <- proj_succ.
-       apply eq_sym.
-       exact Hpxs'.
-       unfold xl.
-       simpl.
-       f_equal.
-       rewrite -> length_proj.
-       reflexivity.
-  - unfold singleton, image.
-    unfold lcons.
-    unfold Finf.
-    intros H.
-    destruct H as [xs [Hc Hh]].
-    exists (proj n xs, xs n).
-    split.
-    -- exists (proj n xs).
-       split.
-       --- exists xs.
-           split.
-           ---- apply Hc.
-           ---- reflexivity.
-       --- exists (xs n).
-           split.
-           ---- apply Hc.
-           ---- reflexivity.
-    -- simpl.
-       exact Hh.
-Qed.
+    -- unfold is_word_choice_sequence, B in Hxsw.
+       clear HwcB HcwBxw B.
+       specialize (Hinvseq n (S n) (le_s n)).
+       assert (forall n, cat (projw n xs) (xs n) = projw (S n) xs) as Hprj. admit.
+       intros m.
+       destruct m.
+       --- admit.
+       --- rewrite <- Hprj. exact (Hxsw m).
+    -- unfold singleton. symmetry. exact HxsS.
+Admitted.
 
 
 End EnsembleMonads.
