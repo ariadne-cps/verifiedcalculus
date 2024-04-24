@@ -391,7 +391,7 @@ Proof.
   apply causal_fixed_is_composed_noinputs.
   - exact Hscb2.
   - exact Hcb2.
-  - apply causal_fixed_noinputs.
+  - apply strict_causal_fixed_noinputs.
     apply combined_behaviour_causal_noinputs.
     + exact Hscb2.
     + exact Hcb2.

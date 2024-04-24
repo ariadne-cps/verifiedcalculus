@@ -231,33 +231,33 @@ Proof.
        set (p1ltSSSn:= proj1 (Nat.succ_lt_mono _ _) (Nat.lt_0_succ (S n))).
        remember (u (ord 1 p1ltSSSn)) as u1.
        destruct u1. (* Cases u1 = first and u1 = second *)
-       --- rewrite -> (wrd_at_ordinal u _ (ord 1 p1ltSSSn)) in Huy; [|reflexivity].
+       --- rewrite -> (wrd_at u _ (ord 1 p1ltSSSn)) in Huy; [|reflexivity].
            rewrite <- Hequ1 in Huy.
-           rewrite -> (wrd_at_ordinal y _ (ord 0 p0ltSSSn)) in Huy; [|reflexivity].
+           rewrite -> (wrd_at y _ (ord 0 p0ltSSSn)) in Huy; [|reflexivity].
            rewrite -> restr_at.
-           rewrite -> (wrd_at_ordinal u _ (ord 1 p1ltSSSn)); [|reflexivity].
+           rewrite -> (wrd_at u _ (ord 1 p1ltSSSn)); [|reflexivity].
            rewrite <- Hequ1.
            rewrite <- (proj2 Huy).
            rewrite -> restr_at.
-           rewrite -> (wrd_at_ordinal y _ (ord 0 p0ltSSSn)); [|reflexivity].
+           rewrite -> (wrd_at y _ (ord 0 p0ltSSSn)); [|reflexivity].
            exact (proj1 Huy).
        --- rewrite -> restr_at.
-           rewrite -> (wrd_at_ordinal u _ (ord _ p1ltSSSn)).
+           rewrite -> (wrd_at u _ (ord _ p1ltSSSn)).
            rewrite <- Hequ1.
            tauto.
            reflexivity.
   - unfold finite_causal, apply.
     intros Hc.
-    set (u := proj 2 (fun k => first)).
-    set (u' := proj 2 (fun k => match k with | 0 => first | _ => second end)).
+    set (u := projw 2 (fun k => first)).
+    set (u' := projw 2 (fun k => match k with | 0 => first | _ => second end)).
     set (p1le2 := proj1 (Nat.succ_le_mono _ _) (Nat.le_0_1)).
     assert (restr 1 p1le2 u = restr 1 p1le2 u') as Hu. {
-      unfold u, u'. rewrite <- proj_restr, <- proj_restr. apply agree_proj. unfold agree.
+      unfold u, u'. rewrite <- projw_restr, <- projw_restr. apply agree_projw. unfold agree.
       intros m Hmlt1. replace m with 0. reflexivity. symmetry. exact (proj1 (Nat.lt_1_r m) Hmlt1). }
     specialize (Hc 2 u u' 1 p1le2 Hu).
     assert (forall {X Y} (f1 f2 : X -> Y) (x : X), f1=f2 -> f1 x = f2 x) as Heqf. {
       intros X Y f1 f2 x Hf. rewrite -> Hf. reflexivity. }
-    set (yw := proj 1 (fun _ => second)).
+    set (yw := projw 1 (fun _ => second)).
     specialize (Heqf _ _ _ _ yw Hc) as Hye.
     simpl in Hye.
     assert (forall p q : Prop, p=q -> (p -> q)) as Hpq. {
@@ -266,16 +266,16 @@ Proof.
       intros [y [Hyf Hyt]].
       unfold yw in Hyt.
       apply (Heqf _ _ _ _ (ord 0 Nat.lt_0_1)) in Hyt.
-      rewrite -> proj_at in Hyt.
+      rewrite -> projw_at in Hyt.
       replace (restr 1 p1le2 y (ord 0 (Nat.lt_0_1))) with (y (ord 0 (Nat.lt_0_succ 1))) in Hyt.
       rewrite -> Hyt in Hyf.
       discriminate.
       unfold restr.
-      apply wrd_at_ordinal.
+      apply wrd_at.
       reflexivity.
    }
     assert (exists y : Wrd 2 UY, True /\ restr 1 p1le2 y = yw) as Hy'. {
-      set (y := proj 2 (fun _ => second)).
+      set (y := projw 2 (fun _ => second)).
       exists y.
       split.
       tauto.
@@ -412,7 +412,7 @@ Proof.
          intros k p q Hk.
          unfold cat. simpl.
          destruct (Compare_dec.le_lt_eq_dec k (S n) (proj1 (Nat.lt_succ_r k (S n)) p)).
-         --- unfold ord. apply wrd_at_ordinal. simpl. reflexivity.
+         --- unfold ord. apply wrd_at. simpl. reflexivity.
          --- assert (k < S n) as H; [exact q|].
              rewrite -> e0 in H. apply Nat.lt_irrefl in H. contradiction.
        }
@@ -437,12 +437,12 @@ Proof.
        replace (u (ord m (Nat.lt_succ_l m (S (S n)) HSmltSSn))) with
          (u (ord n HnltSSn)).
        exact Hxf.
-       --- apply wrd_at_ordinal; simpl; exact Hneqm.
+       --- apply wrd_at; simpl; exact Hneqm.
        --- assert (m < S (S n)) as HmltSSn; [exact (Nat.lt_succ_l m (S (S n)) HSmltSSn)|].
            assert (m < S n) as HmltSn; [rewrite <- Hneqm; exact (Nat.lt_succ_diag_r n)|].
            replace (Nat.lt_succ_l m (S (S n)) HSmltSSn) with HmltSSn;  [|apply proof_irrelevance].
            rewrite -> (cat_tail _ _ m HmltSn).
-           apply wrd_at_ordinal.
+           apply wrd_at.
            simpl.
            exact Hneqm.
        --- rewrite -> (cat_head _ _ _ HSmeqSn).
@@ -462,13 +462,13 @@ Proof.
   destruct Hm as [Hmltn|Hmeqn].
   - rewrite -> (cat_tail _ _ _ Hmltn).
     f_equal.
-    -- rewrite -> restr_at. apply wrd_at_ordinal. unfold ord. reflexivity.
+    -- rewrite -> restr_at. apply wrd_at. unfold ord. reflexivity.
     -- rewrite -> restr_at.
-       apply wrd_at_ordinal. unfold ord. reflexivity.
+       apply wrd_at. unfold ord. reflexivity.
   - rewrite -> cat_head; [|exact Hmeqn].
     f_equal.
-    -- apply wrd_at_ordinal. simpl. exact Hmeqn.
-    -- apply wrd_at_ordinal. simpl. exact Hmeqn.
+    -- apply wrd_at. simpl. exact Hmeqn.
+    -- apply wrd_at. simpl. exact Hmeqn.
 Qed.
 
 
@@ -489,16 +489,16 @@ Proof.
   - admit.
   - unfold finite_input_enabling.
     intro H.
-    set (uw:=proj 2 (fun _ => only)).
+    set (uw:=projw 2 (fun _ => only)).
     set (H1lt2 := Nat.lt_1_2).
     set (H1le2 := (Nat.le_succ_diag_r 1)).
-    set (yw:=proj 1 (fun _ => first)).
-    set (yw':=proj 1 (fun _ => second)).
+    set (yw:=projw 1 (fun _ => first)).
+    set (yw':=projw 1 (fun _ => second)).
     specialize (H 2 uw 1 H1le2).
     destruct H as [_ H].
     specialize (H yw).
     assert (element yw (b 1 (restr 1 H1le2 uw))) as Hyw. {
-      unfold uw, yw, b, element. rewrite -> proj_at. reflexivity. }
+      unfold uw, yw, b, element. rewrite -> projw_at. reflexivity. }
     specialize (H Hyw).
 Admitted.
 
@@ -514,13 +514,13 @@ Proof.
   intros n ue m Hmlen.
   split.
   - destruct m as [|m].
-    -- exists (@null Y).
-       exists (@null X).
+    -- exists (@null_wrd Y).
+       exists (@null_wrd X).
        split.
        --- unfold finite_trajectory. simpl. split. trivial.
            intros m HSmlt0.
            apply Nat.nlt_0_r in HSmlt0 as HF. contradiction.
-       --- unfold finite_signal, null, restr.
+       --- unfold finite_signal, null_wrd, restr.
            apply functional_extensionality.
            intros [k Hklt0].
            apply Nat.nlt_0_r in Hklt0 as HF. contradiction.
@@ -550,7 +550,7 @@ Proof.
            replace (ue (ord z (Nat.lt_le_trans z 1 n Hzlt1 Hmlen))) with (ue (ord 0 H0ltn)).
            unfold y0, u0.
            reflexivity.
-           apply wrd_at_ordinal.
+           apply wrd_at.
            simpl.
            exact Hz0.
        --- rename Hmlen into HSSmlen.
@@ -586,7 +586,7 @@ Proof.
                       rewrite -> restr_at.
                       replace (ue (ord m _)) with (ue (ord m Hmltn)).
                       exact HxSm.
-                      unfold ord. apply wrd_at_ordinal. simpl. reflexivity.
+                      unfold ord. apply wrd_at. simpl. reflexivity.
            ---- assert (S m <= S m) as HSmleSm. admit.
                 assert (m <= S m) as HmleSm. admit.
                 assert (S (S m) <= S (S m)) as HSSmleSSm. admit.
@@ -597,13 +597,13 @@ Proof.
                 f_equal.
                 rewrite <- Hyw.
                 f_equal.
-                ----- apply restr_cons.
+                ----- apply restr_cat.
                 ----- apply functional_extensionality.
                       intros [k p].
                       rewrite -> restr_at.
                       rewrite -> restr_at.
                       rewrite -> restr_at.
-                      apply wrd_at_ordinal.
+                      apply wrd_at.
                       reflexivity.
                 ----- unfold ySm.
                       f_equal.
@@ -612,7 +612,7 @@ Proof.
                       reflexivity.
                       unfold uSm.
                       rewrite -> restr_at.
-                      apply wrd_at_ordinal.
+                      apply wrd_at.
                       reflexivity.
   - admit.
 Admitted.
@@ -663,9 +663,9 @@ Lemma finite_input_enabling_trajectory :
   forall {U Y} (b : forall {n : nat}, Wrd n U -> M (Wrd n Y)),
     finite_input_enabling (@b) ->
       forall (us : Seq U) {n} (yw : Wrd n Y),
-        element yw (b (proj n us)) ->
+        element yw (b (projw n us)) ->
           exists ys : Seq Y,
-           proj n ys = yw /\ forall m (p:n<=m), element (proj m ys) (b (proj m us)).
+           projw n ys = yw /\ forall m (p:n<=m), element (projw m ys) (b (projw m us)).
 (*
           exists ys : forall m, n<=m -> Wrd m Y,
             forall m, (p:n<=m), element (ys m p) (b (proj m us)) /\ restr m exists ys : Seq Y, proj n ys = yw /\ forall m, n<=m -> element (proj m ys) (b (proj m us)).
@@ -675,14 +675,14 @@ Proof.
   intros U Y b Hia.
   intros us n yw Hbyw.
   set (p := Nat.le_succ_diag_r n).
-  remember (proj (S n) us) as ue.
+  remember (projw (S n) us) as ue.
   remember (restr n p ue) as uw.
-  assert (exists ye : Wrd (S n) Y, restr n p ye = yw /\ element ye (b (S n) (proj (S n) us))) as Hs. {
+  assert (exists ye : Wrd (S n) Y, restr n p ye = yw /\ element ye (b (S n) (projw (S n) us))) as Hs. {
     specialize (Hia (S n) ue n p).
     destruct Hia as [Hie Hia].
 
-    assert (proj n us = uw) as Huw. {
-      rewrite -> Hequw, -> Heque. apply proj_restr. }
+    assert (projw n us = uw) as Huw. {
+      rewrite -> Hequw, -> Heque. apply projw_restr. }
     rewrite <- Hequw in Hie, Hia.
     rewrite <- Heque.
     rewrite -> Huw in Hbyw.
@@ -695,7 +695,6 @@ Proof.
     exact Hbye.
   }
 Admitted.
-
 
 Proposition finite_input_enabling_implies_causal :
   forall {U Y} (b : forall {n : nat}, Wrd n U -> M (Wrd n Y)),
