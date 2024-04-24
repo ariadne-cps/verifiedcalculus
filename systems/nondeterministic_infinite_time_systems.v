@@ -436,7 +436,7 @@ Proof.
   specialize (Hnt (Logic.inhabits (u 0))).
   destruct Hnt as [u' [y' Huy']].
   assert (agree 0 u u') as Hu. {
-    unfold agree. intros m Hm. Search lt 0. apply Nat.nlt_0_r in Hm. contradiction. }
+    unfold agree. intros m Hm. apply Nat.nlt_0_r in Hm. contradiction. }
   specialize (Hie u 0 u' y' Huy' Hu).
   destruct Hie as [y [Hy _]].
   exists y.
@@ -693,20 +693,21 @@ Theorem composed_mixed_causal_behaviour_causal {UA UD Y1 Y2} :
       is_mixed_composed_behaviour b1 b2 b12 -> 
         mixed_causal b1 -> mixed_causal b2 -> mixed_causal b12.
 Proof.
-Admitted. 
+Admitted.
+
 
 (* Show that the behaviour of the composition of two systems
    is a composition of the behaviours of the components. *)
+(*
 Theorem composed_system_behaviour {U X1 X2 Y1 Y2 : Type} :
    forall (s1 : @System U X1 Y1)
           (s2 : @System (U*Y1) X2 Y2),
           is_composed_behaviour
             (behaviour s1)
             (behaviour s2)
-            (behaviour (compose_systems s1 s2))
+            (behaviour (compose_mixed_causal_systems s1 s2))
 .
 Proof.
-(*
    intros s1 s2.
    remember (compose_systems s1 s2) as s12 eqn:Es12.
    destruct s1 as (f1,h1,e1).
@@ -798,8 +799,8 @@ Proof.
    unfold signal. rewrite -> Eh12. simpl. split.
    - f_equal. symmetry. apply Hx.
    - f_equal. symmetry. apply Hx.
-*)
 Admitted.
+*)
 
 
 

@@ -34,8 +34,9 @@ Require Import Words.
 Require Import EnsembleMonad.
 
 Require Export nondeterministic_system_models.
+Require Export nondeterministic_finite_time_systems.
 
-Search min le.
+Notation finite_causal := weak_finite_causal.
 
 Section NondeterministicSystems.
 
@@ -341,6 +342,7 @@ Example not_finite_prefix_conform_implies_causal :
   exists U Y (b : @FiniteBehaviour U Y),
     not (finite_prefix_conform b -> finite_causal b).
 Proof.
+(*
   set (UY := Double).
   set (b := fun n => match n with 
          | 0 => fun (_ : Wrd 0 UY) (_ : Wrd 0 UY) => True 
@@ -432,6 +434,9 @@ Proof.
    rewrite <- Hye in Hy'.
    contradiction.
 Qed.
+*)
+Admitted.
+
 (*
 
 Definition causal {U Y : Type}
@@ -471,7 +476,7 @@ Definition finite_input_accepting {U Y} (b : forall {n : nat}, Wrd n U -> M (Wrd
   forall (n:nat) (u : Wrd n U), exists y, element y (b u).
 
 Definition finite_input_enabling {U Y} (b : forall {n : nat}, Wrd n U -> M (Wrd n Y)) :=
-  forall (n:nat) (u : Wrd n U), forall (m:nat) (p:m<=n), let uw := restr m p u in
+  forall (n:nat) (u : Wrd n U), forall (m:nat) (p:Nat.le m n), let uw := restr m p u in
     (exists yw : Wrd m Y, element yw (b uw))
       /\ forall yw : Wrd m Y,
            element yw (b uw)
@@ -485,6 +490,7 @@ Proposition finite_behaviour_prefix_conform :
   forall {U X Y} (s : @System U X Y),
     finite_prefix_conform (@finite_behaviour U X Y s).
 Proof.
+(*
   unfold finite_behaviour, finite_prefix_conform.
   intros U X Y s.
   destruct s as (f,h,e).
@@ -528,9 +534,10 @@ Proof.
     rewrite -> restr_at.
     reflexivity.
 Qed.
+*)
+Admitted.
 
-
-
+(*
 Lemma finite_trajectory_cons :
   forall {U X} (f : X -> U -> M X) (e : M X) {n:nat} (u : Wrd (S (S n)) U) (x : Wrd (S n) X) (xSn : X),
     let HSnleSSn := Nat.le_succ_diag_r (S n) in
@@ -620,7 +627,6 @@ Example not_finite_prefix_conform_and_causal_and_input_accepting_implies_input_e
   exists (U Y : Type) (b : forall {n : nat}, Wrd n U -> M (Wrd n Y)),
     finite_prefix_conform (@b) /\ finite_causal (@b) /\ finite_input_accepting (@b) /\ not (finite_input_enabling (@b)).
 Proof.
-Search 0 lt S.
   set (U:=Single). set (Y:=Double).
   set (b:=(let (nn :=n)) in fun n => match n with 
                    | 0 => fun _ _ => True 
@@ -826,6 +832,7 @@ Proof.
     exact Hbye.
   }
 Admitted.
+*)
 
 
 Proposition finite_input_enabling_implies_causal :

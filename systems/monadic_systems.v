@@ -157,9 +157,9 @@ Definition Mproduct {X1 X2} : M X1 -> M X2 -> M (X1*X2) := @Mright_product M Mon
 
 (* Define the composition of state space models. *)
 Definition compose_systems {UA UD X1 X2 Y1 Y2 : Type}
-  (s1 : @system UA      (UD*Y2) X1 Y1)
-  (s2 : @system (UA*Y1)      UD X2 Y2)
-  : (@system UA UD (X1*X2) (Y1*Y2)) :=
+  (s1 : @System UA      (UD*Y2) X1 Y1)
+  (s2 : @System (UA*Y1)      UD X2 Y2)
+  : (@System UA UD (X1*X2) (Y1*Y2)) :=
     match s1 with
     | state_space_model f1 h1 e1 =>
       match s2 with
@@ -197,8 +197,8 @@ Admitted.
 (* Show that the behaviour of the composition of two systems
    is a composition of the behaviours of the components. *)
 Theorem composed_system_behaviour {UA UD X1 X2 Y1 Y2 : Type} :
-   forall (s1 : @system UA (UD*Y2) X1 Y1)
-          (s2 : @system (UA*Y1) UD X2 Y2),
+   forall (s1 : @System UA (UD*Y2) X1 Y1)
+          (s2 : @System (UA*Y1) UD X2 Y2),
           is_composed_behaviour
             (behaviour s1)
             (behaviour s2)
@@ -312,8 +312,8 @@ Admitted.
 *)
 
 Lemma Hb12eqbehav {UA UD X1 X2 Y1 Y2 : Type} :
-  forall (s1 : @system UA (UD*Y2) X1 Y1)
-         (s2 : @system (UA*Y1) UD X2 Y2)
+  forall (s1 : @System UA (UD*Y2) X1 Y1)
+         (s2 : @System (UA*Y1) UD X2 Y2)
          (b12 : (nat->UA*UD)->M (nat->Y1*Y2)),
     is_composed_behaviour (behaviour s1) (behaviour s2) b12 ->
     is_composed_behaviour (behaviour s1) (behaviour s2) (behaviour (compose_systems s1 s2))
@@ -342,8 +342,8 @@ Admitted.
 (* The composed behaviour of two systems should be unique. *)
 (* One condition can go, because it is already proven to be true *)
 Theorem composed_system_behaviour_unique {UA UD X1 X2 Y1 Y2 : Type} :
-  forall (s1 : @system UA (UD*Y2) X1 Y1)
-         (s2 : @system (UA*Y1) UD X2 Y2)
+  forall (s1 : @System UA (UD*Y2) X1 Y1)
+         (s2 : @System (UA*Y1) UD X2 Y2)
          (b12 : (nat->UA*UD)->M (nat->(Y1*Y2))),
     is_composed_behaviour (behaviour s1) (behaviour s2) b12
       -> b12 = behaviour (compose_systems s1 s2).
