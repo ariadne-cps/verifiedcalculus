@@ -284,11 +284,44 @@ Definition has_inverse_limits (M : Type -> Type) (MonadM : Monad M) := forall {X
 Definition lt_succ_diag_r := PeanoNat.Nat.lt_succ_diag_r.
 Definition le_succ_diag_r := PeanoNat.Nat.le_succ_diag_r.
 
+Lemma restr_wrds : forall {X} (xw : forall n, Wrd n X) (m n1 n2 : nat) (q1 : m<=n1) (q2 : m<=n2) (e : n1 = n2),
+  restr m q1 (xw n1) = restr m q2 (xw n2).
+Proof.
+  intros X xw m n1 n2 q1 q2 e.
+  apply wrd_eq. intros kp. destruct kp as [k p]. 
+  rewrite -> restr_at, -> restr_at.
+  replace (xw n2) with (cast_wrd e (xw n1)). 
+  apply eq_sym. apply cast_wrd_at.
+  unfold cast_wrd. destruct e. reflexivity.
+Qed.
+  
 Lemma limit_words_sequence : 
-  forall X, forall (xw : forall n : nat, Wrd n X) (p : forall n, restr n (le_succ_diag_r n) (xw (S n)) = xw n),
+  forall {X}, forall (xw : forall n : nat, Wrd n X) (p : forall n, restr n (le_succ_diag_r n) (xw (S n)) = xw n),
     exists xs : nat -> X, forall n, projw n xs = xw n.
 Proof.
   intros X xw p.
+  assert (forall m n (q : m <= m+n), restr m q (xw (m+n)) = xw m) as sp'. {
+    intro m. induction n.
+    - replace (m+0) with m by (exact (plus_n_O m)). intro q. apply restr_id.
+    - intro qSn. set (qn := PeanoNat.Nat.le_add_r m n).
+      rewrite <- (IHn qn). 
+      set (xs := (fun n => xw (S n) (ord n (lt_succ_diag_r n)))).
+      rewrite <- (p (m+n)).
+      assert ((m + S n) = S (m + n)) as Heq. { apply PeanoNat.Nat.add_succ_r. }
+      assert (m <= S (m+n)) as qmnS. { apply le_S. apply PeanoNat.Nat.le_add_r. }
+      rewrite -> (restr_restr _ _ _ _ qmnS).
+      apply restr_wrds.
+      exact Heq.
+  }
+  assert (forall m n (q : m <= n), restr m q (xw n) = xw m) as sp. {
+    intros m n q.
+    set (l:=n-m). 
+    assert (n=m+l) as Heq. { unfold l. apply Arith_base.le_plus_minus_stt. exact q. }
+    assert (m<=m+l) as r. { rewrite <- Heq. exact q. }
+    rewrite <- (sp' m l r).
+    apply restr_wrds.
+    exact Heq.
+  }
   set (xs := (fun n => xw (S n) (ord n (lt_succ_diag_r n)))).
   exists xs.
   induction n.
@@ -302,21 +335,23 @@ Proof.
          apply projw_restr.
        assert (xw (S n) kp = restr n (le_succ_diag_r n) (xw (S n)) (ord k Hlt) ) as HSr.
          rewrite -> restr_at. apply wrd_at. simpl. reflexivity.
-(* 
-       rewrite -> HSr. rewrite -> p. rewrite <- IHn. 
-       rewrite -> projw_at, projw_at.
-       simpl.
-       reflexivity.
+       transitivity (xs k).
+         rewrite -> projw_at. easy.
+       unfold xs.
+       assert (S k<=S n) as HSle. { apply Arith_base.lt_le_S_stt. exact pk. }
+  
+       rewrite <- (sp (S k) (S n) HSle).      
+       rewrite -> restr_at.
+       apply wrd_at.
+       tauto.
     -- rewrite -> projw_at. simpl.
        replace (xs k) with (xs n); [|rewrite -> Heq; reflexivity].     
        unfold xs. f_equal. apply ord_eq. symmetry. exact Heq.
-    -- apply Arith_prebase.lt_n_Sm_le_stt in pk as pk'.
-       apply Arith_prebase.lt_le_S_stt in Hgt.
+    -- apply Arith_base.lt_n_Sm_le_stt in pk as pk'.
+       apply Arith_base.lt_le_S_stt in Hgt.
        apply (PeanoNat.Nat.le_trans _ k _ Hgt) in pk' as HSnlen. 
        contradiction (PeanoNat.Nat.nle_succ_diag_l n).
 Qed.
-*)
-Admitted.
 
 Theorem inhabited_subset_monad_has_inverse_limits:
   has_inverse_limits (@InhabitedEnsemble) (InhabitedEnsemble_Monad).
