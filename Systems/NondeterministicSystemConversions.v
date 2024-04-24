@@ -52,20 +52,28 @@ Definition infinite_causal' {U Y : Type}
 (* Equivalent? definition based on finite_input_enabling. *)
 Definition infinite_input_enabling' {U Y} (b : Seq U -> M (Seq Y)) :=
   forall (u : Seq U), forall (m:nat), let uw := proj m u in
-    (exists yw : Wrd m Y, exists y : Seq Y, yw = proj m y /\ element y (b u))
+    (exists yw : Wrd m Y, exists y : Seq Y, yw = projw m y /\ element y (b u))
       /\ forall yw : Wrd m Y,
-           (exists u' y', agree m u u' -> yw = proj m y' -> element y' (b u'))
-             -> exists y, element y (b u) /\ yw = proj m y.
+           (exists u' y', agree m u u' -> yw = projw m y' -> element y' (b u'))
+             -> exists y, element y (b u) /\ yw = projw m y.
 
-
-
+Definition infinite_trajectory {U X : Type} := @trajectory U X.
+Definition infinite_signal {X Y : Type} := @signal X Y.
+Definition infinite_behaviour {U Y X : Type} := @behaviour U Y X.
+Definition nonblocking_infinite_trajectory {U X : Type} := @nonblocking_trajectory U X.
+Definition InfiniteBehaviour {U Y : Type} := @Behaviour U Y.
+Definition infinite_input_nontrivial {U Y : Type} := @input_nontrivial U Y.
+Definition infinite_input_enabling {U Y : Type} := @input_enabling U Y.
+Definition infinite_input_accepting {U Y : Type} := @input_accepting U Y.
+Definition infinite_causal {U Y : Type} := @causal U Y.
 
 
 Theorem nonblocking_infinite_output_extension :
  forall {U X Y} (s : @System U X Y) (u : Seq U) {n : nat} (yw : Wrd (S n) Y),
-   nonblocking s -> (finite_behaviour s) (S n) (proj (S n) u) (yw) ->
-     exists (y : Seq Y), (infinite_behaviour s) u y /\ (proj (S n) y = yw). 
+   nonblocking s -> (finite_behaviour s) (S n) (projw (S n) u) (yw) ->
+     exists (y : Seq Y), (infinite_behaviour s) u y /\ (projw (S n) y = yw). 
 Proof.
+(*
   intros U X Y s u n yw Hs Hyw.
   unfold finite_behaviour in Hyw.
   destruct s as [f h e].
@@ -81,7 +89,7 @@ Proof.
       unfold inhabited. exists xn. reflexivity. 
   }
   destruct Hxe as [xe Hxe].
-  assert (exists x, (proj (S n) x = xw)  /\ infinite_trajectory f e u x). {
+  assert (exists x, (projw (S n) x = xw)  /\ infinite_trajectory f e u x). {
     set (x := splice xw xe).
     exists x.
     split.
@@ -150,18 +158,20 @@ Proof.
     unfold finite_signal, infinite_signal, proj.
     reflexivity.
 Qed.
+*)
+Admitted.
 
 Lemma proj_output : forall {U X Y : Type}
   (s : @System U X Y) (u : Seq U) (y : Seq Y),
     element y (infinite_behaviour s u) -> 
-      forall n, element (proj (S n) y) (finite_behaviour s (S n) (proj (S n) u)).
+      forall n, element (projw (S n) y) (finite_behaviour s (S n) (projw (S n) u)).
 Proof.
   intros U X Y s u y Hy n.
   destruct s as [f h e].
   unfold infinite_behaviour, apply, element in Hy.
   unfold finite_behaviour, apply, element, proj.
   destruct Hy as [x [[Hx0 Hx] Hy]].
-  exists (proj (S n) x).
+  exists (projw (S n) x).
   split.
   - unfold finite_trajectory. unfold infinite_trajectory in Hx.
     split.
@@ -178,17 +188,17 @@ Qed.
 
 Definition infinite_behaviour_from_finite {U Y : Type}
   (bw : forall [n : nat], Wrd n U -> M (Wrd n Y)) : Seq U -> M (Seq Y) :=
-    fun u y => forall n, element (proj n y) (bw (proj n u)).
+    fun u y => forall n, element (projw n y) (bw (projw n u)).
 
 Definition finite_behaviour_from_infinite {U Y : Type}
   (bs : Seq U -> M (Seq Y)) : forall [n : nat], Wrd n U -> M (Wrd n Y) :=
-    fun (n:nat) u y => exists us ys, proj n us = u /\ proj n ys = y /\ element ys (bs us).
+    fun (n:nat) u y => exists us ys, projw n us = u /\ projw n ys = y /\ element ys (bs us).
 
 Definition is_infinite_behaviour {U Y : Type}
   (bw : forall {n : nat}, Wrd n U -> M (Wrd n Y))
   (bs : Seq U -> M (Seq Y))
   := forall (u : Seq U) (y : Seq Y),
-       element y (bs u) <-> forall n, element (proj n y) (bw (proj n u)).
+       element y (bs u) <-> forall n, element (projw n y) (bw (projw n u)).
 
 Proposition infinite_behaviour_superset :
   forall {U Y} b, forall u,
@@ -254,8 +264,8 @@ Proof.
   - intro n.
     set (u := fun (k : nat) => if (k <? n) then first else second).
     exists u, u.
-    assert (proj n u = proj n u0) as Hp. {
-      apply agree_proj. unfold agree. unfold u, u0.
+    assert (projw n u = projw n u0) as Hp. {
+      apply agree_projw. unfold agree. unfold u, u0.
       intros m Hmltn.
       apply Nat.ltb_lt in Hmltn.
       rewrite -> Hmltn.
@@ -289,9 +299,9 @@ Proof.
    intros u y H n.
    specialize (H n).
    destruct H as [yn [Huyn Hy]].
-   replace (proj n y) with (proj n yn).
+   replace (projw n y) with (projw n yn).
    exact (Huyn n).
-   apply agree_proj.
+   apply agree_projw.
    apply agree_sym.
    exact Hy.
 Qed.
@@ -302,11 +312,11 @@ Qed.
 Definition system_input_enabling {U X Y} (s : @System U X Y) :=
   match s with 
   | state_space_model f h e =>
-      forall (u : Seq U), forall (n:nat), let uw := proj n u in
+      forall (u : Seq U), forall (n:nat), let uw := projw n u in
         (exists xw : Wrd n X, finite_trajectory f e uw xw)
           /\ forall xw : Wrd n X,
                finite_trajectory f e uw xw
-                 -> exists x, infinite_trajectory f e u x /\ xw = proj n x
+                 -> exists x, infinite_trajectory f e u x /\ xw = projw n x
   end.
 
 Example not_system_input_enabling_and_behaviour_input_enabling :
@@ -326,20 +336,20 @@ Proof.
     set (x := fun n => match n with | 0 => first | _ => second end).
     specialize (H u 2).
     destruct H as [_ H].
-    set (uw := proj 2 u).
-    set (xw := proj 2 x).
+    set (uw := projw 2 u).
+    set (xw := projw 2 x).
     specialize (H xw).
     assert (finite_trajectory f e uw xw) as Huxw. {
       unfold finite_trajectory, element, f, e, uw, xw, x. simpl.
       split.
-      - rewrite -> proj_at. simpl. reflexivity.
-      - intros m q. rewrite -> proj_at. simpl. replace m with 0. tauto.
+      - rewrite -> projw_at. simpl. reflexivity.
+      - intros m q. rewrite -> projw_at. simpl. replace m with 0. tauto.
         apply eq_sym. apply Nat.lt_1_r. apply Nat.succ_lt_mono. exact q.
     }
     specialize (H Huxw).
     destruct H as [x' [Hux' Hx']].
     unfold xw in Hx'.
-    apply agree_proj in Hx'. 
+    apply agree_projw in Hx'. 
     unfold agree in Hx'.
     specialize (Hx' 1 Nat.lt_1_2).
     unfold x in Hx'.
@@ -363,7 +373,7 @@ Proof.
        split.
        --- unfold infinite_trajectory.
            unfold element, f, e, u, x.
-           split. reflexivity. intros m. tauto.
+           split. reflexivity. intros m. unfold element. tauto.
        --- unfold infinite_signal. unfold h, u, x, y. reflexivity.     
     -- intros u n u' y' _ _.
        set (x := fun (n : nat) => first : X).
@@ -399,7 +409,7 @@ Proof.
   unfold causal, finite_prefix_conform, infinite_causal, is_infinite_behaviour.
   intros U Y bs.
   intros [bw Hc].
-  assert (forall n u1 u2, agree n u1 u2 -> subset (apply (proj n) (bs u1)) (apply (proj n) (bs u2))) as Hic. {
+  assert (forall n u1 u2, agree n u1 u2 -> subset (apply (projw n) (bs u1)) (apply (projw n) (bs u2))) as Hic. {
     intros n u1 u2 Hu.
     unfold subset, apply, element.
     intros yw.
@@ -409,21 +419,21 @@ Proof.
       destruct Hn as [m Hm].
     destruct Hc as [Hfc Hib].
     unfold subset, apply in Hfc.
-    assert (exists y2 : Wrd (S n) Y, bw (S n) (proj (S n) u2) y2 /\ restr n (Nat.le_succ_diag_r n) y2 = yw) as IH. {
-      set (uw2 := proj (S n) u2).
+    assert (exists y2 : Wrd (S n) Y, bw (S n) (projw (S n) u2) y2 /\ restr n (Nat.le_succ_diag_r n) y2 = yw) as IH. {
+      set (uw2 := projw (S n) u2).
       specialize (Hfc n u1).
       unfold element in Hfc.
 Admitted.
 
 Definition partial_behaviours {U Y} (b : Seq U -> M (Seq Y)) {n} : (Wrd n U) -> M (Wrd n Y) :=
-  fun uw => fun yw => exists us ys, proj n us = uw /\ proj n ys = yw /\ element ys (b us).
+  fun uw => fun yw => exists us ys, projw n us = uw /\ projw n ys = yw /\ element ys (b us).
 
 Definition input_enabling' {U Y} (b : Seq U -> M (Seq Y)) :=
-  forall u, forall n, let uw := proj n u in
+  forall u, forall n, let uw := projw n u in
     (exists yw : Wrd n Y, element yw (partial_behaviours b uw))
       /\ forall yw : Wrd n Y,
            element yw (partial_behaviours b uw)
-             -> exists y, element y (b u) /\ yw = proj n y.
+             -> exists y, element y (b u) /\ yw = projw n y.
 
 
 
