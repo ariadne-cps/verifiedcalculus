@@ -28,8 +28,8 @@ Require Import Coq.Logic.PropExtensionality.
 
 Require Import Coq.Logic.ProofIrrelevance.
 
-Require Import List.
-Require Import Ensembles.
+Require Import Coq.Lists.List.
+Require Import Coq.Sets.Ensembles.
 
 Require Import DependentChoice.
 
@@ -41,7 +41,6 @@ Require Export LimitMonads.
 
 Section EnsembleMonads.
 
-
 Definition element {X : Type} (x : X) (xs : Ensemble X) : Prop := xs x.
 Definition intersection {X : Type} (xs1 xs2 : Ensemble X) : Ensemble X :=
   fun x => (xs1 x) /\ (xs2 x).
@@ -52,6 +51,11 @@ Definition singleton {X : Type} (x : X) : Ensemble X :=
   fun x' => (x'=x).
 Definition image {X Y : Type} (fs : X -> Ensemble Y) (xs : Ensemble X) : Ensemble Y :=
   fun y => exists x, (xs x) /\ ((fs x) y).
+Definition apply {X Y : Type} (f : X -> Y) (xs : Ensemble X) : Ensemble Y
+  := fun y => exists x, xs x /\ f x = y.
+
+Definition subset {X} (s1 s2 : Ensemble X) : Prop :=
+  forall x, element x s1 -> element x s2.
 
 Proposition ensemble_equal : forall {X : Type} {s1 s2 : Ensemble X},
   (forall x : X, element x s1 <-> element x s2) -> s1 = s2.
@@ -263,6 +267,23 @@ Proof.
   reflexivity.
 Qed.
 
+
+Lemma apply_element : forall {X Y} (f : X -> Y) (A : Ensemble X) (x : X), (A x) -> (apply f A) (f x).
+Proof. 
+  intros X Y f A x HAx. unfold apply. 
+  exists x. split. exact HAx. reflexivity. 
+Qed.
+
+Lemma image_singleton_apply : forall {X Y} (f : X -> Y) (A : Ensemble X), image (fun x => singleton (f x)) A = apply f A.
+Proof.
+  intros X Y f A.
+  unfold image, singleton, apply.
+  apply functional_extensionality. intro y.
+  apply propositional_extensionality.
+  split. 
+  - intro H. destruct H as [x [HA Hf]]. exists x. split. exact HA. symmetry. exact Hf.
+  - intro H. destruct H as [x [HA Hf]]. exists x. split. exact HA. exact (eq_sym Hf).
+Qed.
 
 
 Definition inhabited {X:Type} (s : Ensemble X) := exists x, s x.
