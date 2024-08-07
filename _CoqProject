@@ -56,5 +56,8 @@ systems/causality.v
 systems/behaviour_composition.v
 systems/system_composition.v
 systems/compose_behaviours.v
-systems/nondeterministic_systems.v
+systems/nondeterministic_system_models.v
+systems/nondeterministic_infinite_time_systems.v
+systems/nondeterministic_finite_time_systems.v
+systems/nondeterministic_system_conversions.v
 systems/monadic_systems.v
