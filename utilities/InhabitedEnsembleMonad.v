@@ -706,4 +706,51 @@ Proof.
   symmetry. apply image_singleton_apply.
 Qed.
 
+Theorem inhabited_ensemble_monad_fst_skew_product_is_id :
+  fst_skew_product_is_id (@InhabitedEnsemble) (InhabitedEnsemble_Monad).
+Proof.
+  unfold fst_skew_product_is_id.
+  intros X F' n An'.
+  destruct An' as [An HAn].
+  unfold Mright_skew, Mlift.
+  unfold Mbind, Mpure.
+  unfold inhabited_image, inhabited_singleton.
+  apply inhabited_ensemble_eq.
+  simpl.
+  unfold image.
+  apply functional_extensionality. intro w.
+  apply propositional_extensionality.
+  split.
+  - intros H.
+    destruct H as [wx [Hwx Hw]].
+    destruct Hwx as [w' [Aw' Hw']].
+    destruct Hw' as [x' [Fx' Hwx']].
+    unfold singleton in Hw, Hwx'.
+    rewrite -> Hwx' in Hw. simpl in Hw.
+    rewrite <- Hw in Aw'. exact Aw'.
+  - intro HAw.
+    set (Fw' := F' n w).
+    set (Fw := ensmbl Fw').
+    set (HFw := ensmbl_inhabited Fw').
+    destruct (HFw) as [x Hx].
+    exists (w,x).
+    split.
+    -- exists w.
+       split.
+       exact HAw.
+       exists x.
+       split.
+       exact Hx.
+       exact (eq_refl (w,x)).
+    -- exact (eq_refl w).
+Qed.
+
+Theorem inhabited_ensemble_monad_has_infinite_skew_product :
+  has_infinite_skew_product (@InhabitedEnsemble) (InhabitedEnsemble_Monad).
+Proof.
+  apply inverse_limits_imply_skew_products.
+  exact inhabited_ensemble_monad_fst_skew_product_is_id.
+  exact inhabited_ensemble_monad_has_inverse_limits.
+Qed.
+
 End EnsembleMonads.
