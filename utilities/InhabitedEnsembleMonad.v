@@ -145,20 +145,21 @@ Instance InhabitedSubtype_Monad : Monad (@InhabitedSubtype) :=
 
 
 
-Theorem inhabited_subset_monad_has_infinite_skew_product:
-  has_infinite_skew_product (@InhabitedEnsemble) (InhabitedEnsemble_Monad).
+Theorem inhabited_ensemble_monad_has_list_infinite_skew_product:
+  has_list_infinite_skew_product (@InhabitedEnsemble) (InhabitedEnsemble_Monad).
 Proof.
   unfold InhabitedEnsemble_Monad.
-  unfold has_infinite_skew_product.
+  unfold has_list_infinite_skew_product.
   intros X Finhabited.
   set ( F := fun xl => subset (Finhabited xl) ).
   assert (forall xl, inhabited (F xl)) as HF_inhabited. {
     intro xl. exact (Finhabited xl).(subset_inhabited). }
-  set ( Finf := (fun (xs : nat -> X) => forall n, F (proj n xs) (xs n)) ).
+  set ( Finf := (fun xs => forall n, F (proj n xs) (xs n)) : Ensemble (nat -> X) ).
   assert (inhabited Finf) as HFinf_inhabited. {
     apply list_dependent_choice. exact HF_inhabited. }
-  exists ({|subset:=Finf; subset_inhabited:=HFinf_inhabited|}).
-  unfold is_infinite_skew_product.
+  set (Finf' := Build_InhabitedEnsemble (nat -> X) Finf HFinf_inhabited).
+  exists Finf'.
+  unfold is_list_infinite_skew_product.
   split. {
     simpl.
     unfold inhabited_singleton, inhabited_image.

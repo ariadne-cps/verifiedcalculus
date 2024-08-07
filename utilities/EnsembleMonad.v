@@ -305,9 +305,9 @@ Qed.
 
 #[local]
 Lemma proj1_eq {M} {Monad_M : Monad M} : forall {X : Type} (F : list X -> M X) (Finf : M (nat -> X)),
-  is_infinite_skew_product F Finf -> (Mlift (proj 1) Finf = Mlift (fun x => cons x nil) (F nil)).
+  is_list_infinite_skew_product F Finf -> (Mlift (proj 1) Finf = Mlift (fun x => cons x nil) (F nil)).
 Proof.
-  unfold is_infinite_skew_product.
+  unfold is_list_infinite_skew_product.
   intros X F Finf.
   intros [Hnil *Hcons].
   rewrite <- Hcons.
@@ -327,21 +327,21 @@ Qed.
 
 #[local]
 Lemma proj2_eq {M} {Monad_M : Monad M} : forall {X : Type} (F : list X -> M X) (Finf : M (nat -> X)),
-  is_infinite_skew_product F Finf ->
+  is_list_infinite_skew_product F Finf ->
     (Mlift (proj 2) Finf = Mlift lcons (Mright_skew (Mlift (fun x => cons x nil) (F nil)) F)).
 Proof.
   intros X F Finf H.
   rewrite <- (proj1_eq F Finf H).
   apply eq_sym.
-  unfold is_infinite_skew_product in H.
+  unfold is_list_infinite_skew_product in H.
   destruct H as [HO HS].
   exact (HS 1).
 Qed.
 
-Theorem ensemble_monad_does_not_have_infinite_skew_product :
-  not (has_infinite_skew_product (Ensemble) (Ensemble_Monad)).
+Theorem ensemble_monad_does_not_have_list_infinite_skew_product :
+  not (exists_list_infinite_skew_product (Ensemble) (Ensemble_Monad)).
 Proof.
-  unfold has_infinite_skew_product.
+  unfold has_list_infinite_skew_product.
   set (F := fun (xl : list bool) =>
     match xl with
     | nil => (fun (x:bool) => True) : Ensemble bool
