@@ -28,12 +28,17 @@ Require Import Coq.Arith.PeanoNat.
 Require Import Monads.
 Require Import LimitMonads.
 
+Definition Seq (X : Type) := nat -> X.
+
 Fixpoint proj {X} (n : nat) (s : nat -> X) : list X :=
   match n with | 0 => nil | S m => cons (s m) (proj m s) end.
 
-Context `{M : Type -> Type } `{Monad_M : Monad M}.
+Context `{M : Type -> Type } `{Monad_M : Monad M} 
+  `{is_limit_monad_M : has_infinite_skew_product M Monad_M}.
 
-Inductive system {UA UD X Y : Type} : Type :=
+Definition Behaviour {U Y} : Type := (nat -> U) -> M (nat -> Y).
+
+Inductive System {UA UD X Y : Type} : Type :=
   | state_space_model (f:X->UA*UD->M X) (h:X->UA->Y) (e:M X)
 .
 
@@ -72,10 +77,8 @@ Proof.
   exact x.
 Qed.
 
-Axiom limit_monad_M : has_infinite_skew_product M Monad_M.
-
 Definition trajectory {U X : Type} (f:X->U->M X) (e:M X) (u:nat->U) : M (nat -> X) :=
-  @trajectory' U X limit_monad_M f e u.
+  @trajectory' U X is_limit_monad_M f e u.
 
 (* Output signal y:ℕ→Y is defined by y[n] = h(x[n], u[n]) *)
 (* Definition signal {X:Type } {U:Type} {Y:Type} *)
@@ -87,29 +90,30 @@ Definition signal {X U Y : Type }
 .
 
 Definition behaviour {UA UD Y X : Type}
-  (s:@system UA UD X Y)
-  (u:nat->UA*UD)
-  : M (nat -> Y) :=
-    match s with
-    | state_space_model f h e =>
-      signal h (trajectory f e u) (fun k => fst (u k))
-    end
+  (s:@System UA UD X Y) : @Behaviour (UA*UD) Y := 
+    fun (u:nat->UA*UD) =>
+      match s with
+      | state_space_model f h e =>
+        signal h (trajectory f e u) (fun k => fst (u k))
+      end
 .
+
+Definition zip {T1 T2} (s1 : Seq T1) (s2 : Seq T2) := fun n => (s1 n, s2 n).
+Definition unzip {T1 T2} (s : Seq (T1*T2)) := (fun n=>fst (s n), fun n => snd (s n)).
+Notation "( s1 ; s2 )" := (zip s1 s2) (at level 0).
 
 Definition mixed_causal {UA UD Y : Type} (b : (nat -> UA*UD) -> M (nat -> Y)) :=
   forall u1 u2 : nat -> UA*UD, forall n,
-    let ua1 := fun n => fst (u1 n) in
-    let ud1 := fun n => snd (u1 n) in
-    let ua2 := fun n => fst (u2 n) in
-    let ud2 := fun n => snd (u2 n) in
-     (forall m, m<n -> ua1 m = ua2 m) -> (forall m, m<=n -> ud1 m = ud2 m) ->
+    let (ua1,ud1) := unzip u1 in
+    let (ua2,ud2) := unzip u2 in
+     (forall m, m<=n -> ua1 m = ua2 m) -> (forall m, m<n -> ud1 m = ud2 m) ->
        (forall m, m<=n -> Mlift (proj (S n)) (b u1) = Mlift (proj (S n)) (b u2))
 .
 
 (* Show that the behaviour of a system satisfies the weaker definition of causal. *)
 Lemma behaviour_mixed_causal :
   forall {UA UD X Y : Type}
-    (s : @system UA UD X Y),
+    (s : @System UA UD X Y),
       mixed_causal (behaviour s).
 Proof.
 (*

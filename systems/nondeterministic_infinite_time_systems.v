@@ -1,5 +1,5 @@
 (******************************************************************************
- *  systems/nondeterministic_infinite_time_systems.v
+ *  systems/nondeterministic_time_systems.v
  *
  *  Copyright 2023 Sacha L. Sindorf
  *  Copyright 2023 Pieter Collins
@@ -40,38 +40,47 @@ Section NondeterministicSystems.
 Notation M := Ensemble.
 
 
-Definition InfiniteBehaviour {U Y : Type} :=
+Definition zip {T1 T2} (s1 : Seq T1) (s2 : Seq T2) := fun n => (s1 n, s2 n).
+Definition unzip {T1 T2} (s : Seq (T1*T2)) := (fun n=>fst (s n), fun n => snd (s n)).
+Notation "( u1 ; u2 )" := (zip u1 u2) (at level 0).
+Notation "x ∈ S" := (element x S) (at level 80).
+
+
+Definition Behaviour {U Y : Type} :=
   Seq U -> M (Seq Y).
 
 
-Definition infinite_trajectory {U X : Type}
+Definition trajectory {U X : Type}
   (f:X->U->M X) (e:M X) (u:nat->U) : M (Seq X) :=
     fun x => element (x 0) e /\ forall n, element (x (S n)) (f (x n) (u n)).
 
-Definition infinite_signal {X U Y : Type}
+Definition signal {X U Y : Type}
   (h:X->U->Y) (x:nat->X) (u:nat->U) : nat -> Y := 
     fun n => h (x n) (u n).
 
-Definition infinite_behaviour {U Y X : Type}
-  (s : @System U X Y) : @InfiniteBehaviour U Y :=
+Definition behaviour {U Y X : Type}
+  (s : @System U X Y) : @Behaviour U Y :=
     match s with
     | state_space_model f h e =>
-      fun u => apply (fun x => infinite_signal h x (fun n => u n)) (infinite_trajectory f e u)
+      fun u => apply (fun x => signal h x (fun n => u n)) (trajectory f e u)
     end.
 
 
-Lemma is_infinite_output {U X Y} :
+Lemma is_output {U X Y} :
   forall (s : @System U X Y) u y, 
-      element y (infinite_behaviour s u) 
-       = match s with | state_space_model f h e => exists x, element (x 0) e /\ (forall n, element (x (S n)) (f (x n) (u n))) /\ (forall n, y n = h (x n) (u n))
+      element y (behaviour s u) 
+       = match s with | state_space_model f h e => 
+           exists x, element (x 0) e  
+             /\ (forall n, element (x (S n)) (f (x n) (u n))) 
+               /\ (forall n, y n = h (x n) (u n))
     end.
 Proof.
   intros s u y.
   destruct s as [f h e].
   apply propositional_extensionality. 
-  unfold infinite_behaviour, Mlift, Mbind, Mpure. 
+  unfold behaviour, Mlift, Mbind, Mpure. 
   simpl.
-  unfold image, singleton, infinite_signal, infinite_trajectory, element.
+  unfold image, singleton, signal, trajectory, element.
   split.
   - intros Hx. destruct Hx as [x [[He Hf] Hh]].
     exists x. split; [|split]. 
@@ -88,46 +97,56 @@ Qed.
 
 
 
-Definition infinite_causal {U Y : Type}
+Definition causal {U Y : Type}
   (b : (Seq U) -> M (Seq Y)) : Prop :=
     forall n, forall u1 u2 : Seq U, agree n u1 u2 ->
       forall y : Seq Y, 
         (exists y1 : Seq Y, element y1 (b u1) /\ agree n y1 y) <-> 
           (exists y2 : Seq Y, element y2 (b u2) /\ agree n y2 y).
 
-Definition infinite_input_nontrivial {U Y} (b : Seq U -> M (Seq Y)) :=
+Definition mixed_causal {UA UD Y : Type}
+  (b : @Behaviour (UA*UD) Y) : Prop :=
+    forall n, forall u1 u2 : Seq (UA*UD), 
+      let (ua1,ud1) := unzip u1 in let (ua2,ud2) := unzip u2 in
+        agree_le n ua1 ua2 ->
+        agree_lt n ud1 ud2 ->
+          forall y : Seq Y, 
+            (exists y1 : Seq Y, element y1 (b u1) /\ agree_le (S n) y1 y) <-> 
+            (exists y2 : Seq Y, element y2 (b u2) /\ agree_le (S n) y2 y).
+
+Definition input_nontrivial {U Y} (b : Seq U -> M (Seq Y)) :=
   Logic.inhabited U -> exists (u : Seq U), exists y, element y (b u).
 
-Definition infinite_input_accepting {U Y} (b : Seq U -> M (Seq Y)) :=
+Definition input_accepting {U Y} (b : Seq U -> M (Seq Y)) :=
   forall (u : Seq U), exists y, element y (b u).
 
-Definition infinite_input_enabling {U Y} (b : Seq U -> M (Seq Y)) :=
-  infinite_input_nontrivial b /\
+Definition input_enabling {U Y} (b : Seq U -> M (Seq Y)) :=
+  input_nontrivial b /\
     forall (u : Seq U), 
       forall (n : nat) (u' : Seq U) (y' : Seq Y), 
         b u' y' -> (agree n u u') ->
          exists (y : Seq Y), b u y /\ agree n y y'.
 
-Lemma infinite_input_accepting_implies_nontrivial : forall {U Y : Type},
-  forall (b : @InfiniteBehaviour U Y), 
-    infinite_input_accepting b -> infinite_input_nontrivial b.
+Lemma input_accepting_implies_nontrivial : forall {U Y : Type},
+  forall (b : @Behaviour U Y), 
+    input_accepting b -> input_nontrivial b.
 Proof.
   intros U Y b Hia.
-  unfold infinite_input_accepting, infinite_input_nontrivial in *.
+  unfold input_accepting, input_nontrivial in *.
   intro Huv. destruct Huv as [uv]. set (u := fun n:nat => uv).
   destruct (Hia u) as [y Hy].
   exists u, y.
   exact Hy.
 Qed.
 
-Proposition infinite_input_enabling_implies_accepting : 
+Proposition input_enabling_implies_accepting : 
   forall {U Y} (b : Seq U -> M (Seq Y)), 
-    infinite_input_enabling b -> infinite_input_accepting b.
+    input_enabling b -> input_accepting b.
 Proof.
   intros U Y b Hie u.
   destruct Hie as [Hnt Hie].
-  unfold infinite_input_nontrivial in Hnt.  
-  unfold infinite_input_accepting.
+  unfold input_nontrivial in Hnt.  
+  unfold input_accepting.
   specialize (Hnt (Logic.inhabits (u 0))).
   destruct Hnt as [u' [y' Huy']].
   assert (agree 0 u u') as Hu0. {
@@ -138,13 +157,13 @@ Proof.
   exists y. exact Huy.
 Qed.
 
-Proposition infinite_input_enabling_implies_causal : 
+Proposition input_enabling_implies_causal : 
   forall {U Y} (b : Seq U -> M (Seq Y)), 
-    infinite_input_enabling b -> infinite_causal b.
+    input_enabling b -> causal b.
 Proof.
   intros U Y b Hie.
   destruct Hie as [_ Hie].
-  unfold infinite_causal.
+  unfold causal.
   assert (forall n u1 u2 y, agree n u1 u2 -> (exists y1, b u1 y1 /\ agree n y1 y) 
           -> (exists y2, b u2 y2 /\ agree n y2 y)) as H. {
     intros n u1 u2 y Hu.
@@ -166,11 +185,11 @@ Proof.
   - apply H. apply agree_sym. exact Hu.
 Qed.
 
-Proposition infinite_causal_and_input_nontrivial_implies_enabling : 
+Proposition causal_and_input_nontrivial_implies_enabling : 
   forall {U Y} (b : Seq U -> M (Seq Y)), 
-     infinite_causal b -> infinite_input_nontrivial b -> infinite_input_enabling b.
+     causal b -> input_nontrivial b -> input_enabling b.
 Proof.
-  unfold infinite_causal, infinite_input_enabling.
+  unfold causal, input_enabling.
   intros U Y b Hc Hin.
   split. exact Hin. clear Hin.
   intros u n u' y' Huy' Hu.
@@ -187,10 +206,10 @@ Qed.
 
 
 
-Lemma nonblocking_infinite_trajectory : forall {U X : Type}
+Lemma nonblocking_trajectory : forall {U X : Type}
   (f : X -> U -> Ensemble X) (e : Ensemble X),
     (forall x u, inhabited (f x u)) -> (inhabited e) ->
-      forall u, exists x, infinite_trajectory f e u x.
+      forall u, exists x, trajectory f e u x.
 Proof.
   intros U X f e Hf He u.
   set (R nx nx' := fst nx' = S (fst nx) /\ element (snd nx') (f (snd nx) (u (fst nx)))).
@@ -226,21 +245,21 @@ Proof.
 Qed.
 
 
-Proposition nonblocking_infinite_input_accepting :
+Proposition nonblocking_input_accepting :
  forall {U X Y} (s : @System U X Y),
-   nonblocking s -> infinite_input_accepting (infinite_behaviour s).
+   nonblocking s -> input_accepting (behaviour s).
 Proof.
   intros U X Y s Hs u.
   destruct s as [f h e].
-  assert (exists x, infinite_trajectory f e u x) as Hx. {
+  assert (exists x, trajectory f e u x) as Hx. {
     destruct Hs as [He Hf]. 
-    apply nonblocking_infinite_trajectory.
+    apply nonblocking_trajectory.
     exact Hf. exact He.
   }
   destruct Hx as [x Hx].
-  set (y:=infinite_signal h x u).
+  set (y:=signal h x u).
   exists y.
-  unfold element, infinite_behaviour, apply.
+  unfold element, behaviour, apply.
   exists x.
   split.
   exact Hx.
@@ -249,23 +268,23 @@ Qed.
 
 
 
-Theorem nonblocking_infinite_output_extension :
+Theorem nonblocking_output_extension :
  forall {U X Y} (s : @System U X Y) (u u' : Seq U) (n : nat) (y : Seq Y),
-   nonblocking s -> (agree n u u') -> (infinite_behaviour s u y) ->
-     exists (y' : Seq Y), (infinite_behaviour s u' y' /\ agree n y y').
+   nonblocking s -> (agree n u u') -> (behaviour s u y) ->
+     exists (y' : Seq Y), (behaviour s u' y' /\ agree n y y').
 Proof.
   intros U X Y s u u' n y Hs Hua Huy.
   destruct s as [f h e].
   destruct Hs as [He Hf].
-  unfold infinite_behaviour, apply in Huy.
+  unfold behaviour, apply in Huy.
   destruct Huy as [x [Hx Hy]].
   set (xn := x n).
   set (yn := y n).
   set (en := fun x => x = xn).
   assert (inhabited en) as Hen. { unfold inhabited. exists xn. unfold en. reflexivity. }
   set (ue' := fun k => u' (n+k)).
-  assert (exists xe', infinite_trajectory f en ue' xe') as Hxe'. {
-    apply nonblocking_infinite_trajectory.
+  assert (exists xe', trajectory f en ue' xe') as Hxe'. {
+    apply nonblocking_trajectory.
     exact Hf. exact Hen.
   }
   destruct Hxe' as [xe' Hxe'].
@@ -298,13 +317,13 @@ Proof.
     symmetry.
     exact (Hxlt m Hmltn).
   }
-  set (y' := infinite_signal h x' u').
+  set (y' := signal h x' u').
   exists y'.
   split.
-  unfold infinite_behaviour.
+  unfold behaviour.
   exists x'.
   split.
-  - unfold infinite_trajectory.
+  - unfold trajectory.
     split.
     -- rewrite -> Hxle.
        exact Hx0.
@@ -328,7 +347,7 @@ Proof.
   - unfold y'.
     reflexivity.
   - rewrite <- Hy. unfold y', agree.
-    unfold infinite_signal.
+    unfold signal.
     intros m Hmltn.
     assert (m <= n) as Hmlen. exact (Nat.lt_le_incl _ _ Hmltn).
     f_equal.
@@ -337,22 +356,22 @@ Proof.
     exact (Hua m Hmltn).
 Qed.
 
-Proposition nonblocking_infinite_behaviour_causal : forall {U X Y : Type}
+Proposition nonblocking_behaviour_causal : forall {U X Y : Type}
     (s : @System U X Y),
-      nonblocking s -> infinite_causal (infinite_behaviour s).
+      nonblocking s -> causal (behaviour s).
 Proof.
   intros U X Y s Hs.
   unfold nonblocking. 
-  unfold infinite_causal.
+  unfold causal.
   assert (forall n u1 u2, agree n u1 u2 -> forall y : Seq Y,  
-            (exists y1, element y1 (infinite_behaviour s u1) /\ agree n y1 y) -> 
-            (exists y2, element y2 (infinite_behaviour s u2) /\ agree n y2 y)) as H. {
+            (exists y1, element y1 (behaviour s u1) /\ agree n y1 y) -> 
+            (exists y2, element y2 (behaviour s u2) /\ agree n y2 y)) as H. {
     intros n u1 u2 Hu y.
     destruct s as [f h e].
     intros [y1 [Huy1 Hyw1]].
     unfold element.
-    assert (exists y2, infinite_behaviour (state_space_model f h e) u2 y2 /\ agree n y1 y2) as H'.
-    apply (nonblocking_infinite_output_extension _ u1).
+    assert (exists y2, behaviour (state_space_model f h e) u2 y2 /\ agree n y1 y2) as H'.
+    apply (nonblocking_output_extension _ u1).
     - exact Hs.
     - exact Hu.
     - exact Huy1. 
@@ -368,20 +387,21 @@ Proof.
   split. apply H. exact Hu. apply H. apply agree_sym. exact Hu.
 Qed.
 
-Theorem nonblocking_infinite_behaviour_input_enabling : forall {U X Y : Type}
+Theorem nonblocking_behaviour_input_enabling : forall {U X Y : Type}
     (s : @System U X Y),
-      nonblocking s -> infinite_input_enabling (infinite_behaviour s).
+      nonblocking s -> input_enabling (behaviour s).
 Proof.
   intros U X Y s Hs.
-  apply infinite_causal_and_input_nontrivial_implies_enabling.
-  apply nonblocking_infinite_behaviour_causal; [exact Hs].
-  apply infinite_input_accepting_implies_nontrivial.
-  apply nonblocking_infinite_input_accepting; [exact Hs].
+  apply causal_and_input_nontrivial_implies_enabling.
+  apply nonblocking_behaviour_causal; [exact Hs].
+  apply input_accepting_implies_nontrivial.
+  apply nonblocking_input_accepting; [exact Hs].
 Qed.
 
 
 
 
+(*
 Definition input_nontrivial {U Y} (b : Seq U -> M (Seq Y)) :=
   Logic.inhabited U -> exists u, exists y, element y (b u).
 
@@ -392,6 +412,7 @@ Definition input_enabling {U Y} (b : Seq U -> M (Seq Y)) :=
   input_nontrivial b /\
     forall n, forall u1 u2, agree n u1 u2 ->
       forall y1, exists y2, element y2 (b u2) /\ (element y1 (b u1) -> agree n y1 y2).
+*)
 
 (*
 Definition partial_behaviours {U Y} (b : Seq U -> M (Seq Y)) {n} (uw : Wrd n U) : M (Wrd n Y) :=
@@ -412,21 +433,22 @@ Proposition input_enabling_implies_input_accepting :
 Proof.
   unfold input_enabling, input_accepting, input_nontrivial.
   intros U Y b [Hnt Hie] u.
-  assert (agree 0 u u) as Hu. exact (agree_refl 0 u).
   specialize (Hnt (Logic.inhabits (u 0))).
   destruct Hnt as [u' [y' Huy']].
-  specialize (Hie 0 u u Hu y').
+  assert (agree 0 u u') as Hu. {
+    unfold agree. intros m Hm. Search lt 0. apply Nat.nlt_0_r in Hm. contradiction. }
+  specialize (Hie u 0 u' y' Huy' Hu).
   destruct Hie as [y [Hy _]].
   exists y.
   exact Hy.
 Qed.
 
 (*
-Proposition input_enabling_implies_infinite_causal :
+Proposition input_enabling_implies_causal :
   forall {U Y} (b : Seq U -> M (Seq Y)),
-    input_enabling b -> infinite_causal b.
+    input_enabling b -> causal b.
 Proof.
-  unfold input_enabling, infinite_causal.
+  unfold input_enabling, causal.
   intros U Y b Hia.
   intros n u1 u2 Hu12.
   apply ensemble_equal.
@@ -461,11 +483,11 @@ Qed.
 *)
 
 (*
-Proposition infinite_causal_and_input_accepting_implies_input_enabling :
+Proposition causal_and_input_accepting_implies_input_enabling :
   forall {U Y} (b : Seq U -> M (Seq Y)),
-    infinite_causal b -> input_accepting b -> input_enabling b.
+    causal b -> input_accepting b -> input_enabling b.
 Proof.
-  unfold infinite_causal, input_accepting, input_enabling.
+  unfold causal, input_accepting, input_enabling.
   unfold element, partial_behaviours.
   intros U Y b Hic Hie.
   intros u n.
@@ -498,7 +520,7 @@ Qed.
 
 Example not_behaviour_causal : exists (U X Y : Type)
     (s : @System U X Y),
-      not (infinite_causal (infinite_behaviour s)).
+      not (causal (behaviour s)).
 Proof.
   exists Double, Double, Double.
   set (f:=fun (x u x': Double) => (x=first) /\ (x'=u)).
@@ -506,25 +528,25 @@ Proof.
   set (e:=fun (x0 : Double) => (x0=first)).
   set (s:=state_space_model f h e).
   exists s.
-  unfold infinite_causal.
+  unfold causal.
   intros H.
   set (u1:=fun n:nat => first).
   set (u2:=fun n:nat => match n with | 0 => first | _ => second end).
   specialize (H 1 u1 u2).
   set (x1:=fun n:nat => first).
   set (y1:=fun n:nat => first).
-  assert (element y1 (infinite_behaviour s u1)) as H1. {
-    unfold infinite_behaviour, Mlift, Mbind. simpl. 
-    unfold infinite_signal, infinite_trajectory, image, singleton, element.
+  assert (element y1 (behaviour s u1)) as H1. {
+    unfold behaviour, Mlift, Mbind. simpl. 
+    unfold signal, trajectory, image, singleton, element.
     exists x1. split. split.
     unfold e, x1. reflexivity.
     intro n. unfold f, u1, x1. split. reflexivity. reflexivity.
     apply functional_extensionality. intro n. unfold h, u1, x1, y1. reflexivity.
   }
-  assert (forall y2, not (element y2 (infinite_behaviour s u2))) as H2. {
+  assert (forall y2, not (element y2 (behaviour s u2))) as H2. {
     intros y2.
-    unfold infinite_behaviour, Mlift, Mbind. simpl. 
-    unfold infinite_signal, infinite_trajectory, image, singleton, element.
+    unfold behaviour, Mlift, Mbind. simpl. 
+    unfold signal, trajectory, image, singleton, element.
     unfold f, h, e.
     intro Hy2.
     destruct Hy2 as [x2 [[He2 Hf2] Hh2]].
@@ -542,7 +564,7 @@ Proof.
   }
   specialize (H Hu).
   set (yw := (fun k:nat => first)).
-  assert (exists y1, element y1 (infinite_behaviour s u1) /\ agree 1 y1 yw) as Hyw1. {
+  assert (exists y1, element y1 (behaviour s u1) /\ agree 1 y1 yw) as Hyw1. {
     unfold element in H1.
     unfold element, apply.
     exists y1.
@@ -555,7 +577,7 @@ Proof.
     simpl.
     reflexivity.
   }
-  assert (not (exists y2, element y2 (infinite_behaviour s u2) /\ agree 1 y2 yw)) as Hyw2. {
+  assert (not (exists y2, element y2 (behaviour s u2) /\ agree 1 y2 yw)) as Hyw2. {
     unfold element.
     intros [y2 [Hy2 _]].
     exact (H2 y2 Hy2).
@@ -605,28 +627,73 @@ Definition compose_mixed_causal_systems {UA UD X1 X2 Y1 Y2 : Type}
     end
 .
 
-Definition zip {T1 T2} (s1 : Seq T1) (s2 : Seq T2) := fun n => (s1 n, s2 n).
-Definition unzip {T1 T2} (s : Seq (T1*T2)) := (fun n=>fst (s n), fun n => snd (s n)).
-Notation "( u1 ; u2 )" := (zip u1 u2) (at level 0).
 
 Definition is_mixed_composed_behaviour {UA UD Y1 Y2}
-  (b1 : Behaviour (UA*(UD*Y2)) Y1)
-  (b2 : Behaviour ((UA*Y1)*UD) Y2)
-  (b12 : Behaviour (UA*UD) (Y1*Y2)) :=
+  (b1 : @Behaviour (UA*(UD*Y2)) Y1)
+  (b2 : @Behaviour ((UA*Y1)*UD) Y2)
+  (b12 : @Behaviour (UA*UD) (Y1*Y2)) := 
     forall (u:nat->UA*UD), let (ua,ud) := unzip u in
-      forall (y12:nat->Y1*Y2), let (y1,y2) := unzip y12 in
-        y1 ∈ b12 u <-> y1 ∈ b1 (ua;(ud;y2)) /\ y2 ∈ b2 ((ua;y1);ud).
+      forall (y12:nat->Y1*Y2), let (y1,y2) := unzip y12 in 
+        y12 ∈ b12 u <-> y1 ∈ b1 (ua;(ud;y2)) /\ y2 ∈ b2 ((ua;y1);ud).
 
 Definition is_composed_behaviour {U Y1 Y2}
-      (b1 : Seq (U*Y2) -> M (Seq Y1))
-      (b2 : Seq (U*Y1) -> M (Seq Y2))
-      (b12 : Seq U -> M (Seq (Y1*Y2)))
+      (b1 : @Behaviour (U*Y2) Y1)
+      (b2 : @Behaviour (U*Y1) Y2)
+      (b12 : @Behaviour U (Y1*Y2))
     : Prop :=
   forall (u : Seq U) (y12 : Seq (Y1*Y2)),
     let (y1,y2) := unzip  y12 in
-      element y12 (b12 u) <->
-      element y1 (b1 (u;y2)) /\ element y2 (b2 (u;y1)).
+      y12 ∈ b12 u <-> y1 ∈ b1 (u;y2) /\ y2 ∈ b2 (u;y1).
 
+Definition compose_mixed_behaviours {UA UD Y1 Y2}
+    (b1 : @Behaviour (UA*(UD*Y2)) Y1)
+    (b2 : @Behaviour ((UA*Y1)*UD) Y2)
+      : @Behaviour (UA*UD) (Y1*Y2) :=
+  fun (u:nat->UA*UD) => let (ua,ud) := unzip u in
+    fun(y12:nat->Y1*Y2) => let (y1,y2) := unzip y12 in
+      y1 ∈ b1 (ua;(ud;y2)) /\ y2 ∈ b2 ((ua;y1);ud).
+
+Theorem compose_mixed_behaviours_correct {UA UD Y1 Y2} :
+  forall (b1 : @Behaviour (UA*(UD*Y2)) Y1) (b2 : @Behaviour ((UA*Y1)*UD) Y2),
+    is_mixed_composed_behaviour b1 b2 (compose_mixed_behaviours b1 b2).
+Proof.
+  intros b1 b2.
+  unfold is_mixed_composed_behaviour, compose_mixed_behaviours.
+  intros u. remember (unzip u) as uad. destruct uad as [ua ud].
+  intros y12. remember (unzip y12) as y1y2. destruct y1y2 as [y1 y2].
+  unfold element. simpl.
+  replace (fun n => fst  (y12 n)) with y1.
+  replace (fun n => snd  (y12 n)) with y2.
+  tauto.
+  injection Heqy1y2. tauto.
+  injection Heqy1y2. tauto.
+Qed.
+
+Theorem composed_mixed_behaviour_unique {UA UD Y1 Y2} :
+  forall (b1 : @Behaviour (UA*(UD*Y2)) Y1) (b2 : @Behaviour ((UA*Y1)*UD) Y2)
+    (b12 b12' : @Behaviour (UA*UD) (Y1*Y2)),
+      is_mixed_composed_behaviour b1 b2 b12 -> 
+        is_mixed_composed_behaviour b1 b2 b12' -> b12=b12'.
+Proof.
+  intros b1 b2 b12 b12'.
+  unfold is_mixed_composed_behaviour.
+  intros Hb12 Hb12'.
+  apply functional_extensionality. intro u.
+  apply functional_extensionality. intro y.
+  apply propositional_extensionality.
+  specialize (Hb12 u y).
+  specialize (Hb12' u y).
+  apply iff_sym in Hb12'.
+  apply (@iff_trans _ _ _ Hb12 Hb12').
+Qed.
+
+Theorem composed_mixed_causal_behaviour_causal {UA UD Y1 Y2} :
+  forall (b1 : @Behaviour (UA*(UD*Y2)) Y1) (b2 : @Behaviour ((UA*Y1)*UD) Y2)
+    (b12 : @Behaviour (UA*UD) (Y1*Y2)),
+      is_mixed_composed_behaviour b1 b2 b12 -> 
+        mixed_causal b1 -> mixed_causal b2 -> mixed_causal b12.
+Proof.
+Admitted. 
 
 (* Show that the behaviour of the composition of two systems
    is a composition of the behaviours of the components. *)
@@ -634,9 +701,9 @@ Theorem composed_system_behaviour {U X1 X2 Y1 Y2 : Type} :
    forall (s1 : @System U X1 Y1)
           (s2 : @System (U*Y1) X2 Y2),
           is_composed_behaviour
-            (infinite_behaviour s1)
-            (infinite_behaviour s2)
-            (infinite_behaviour (compose_systems s1 s2))
+            (behaviour s1)
+            (behaviour s2)
+            (behaviour (compose_systems s1 s2))
 .
 Proof.
 (*
@@ -651,16 +718,16 @@ Proof.
    intros u.
    simpl.
 
-   remember (infinite_trajectory f12 e12 u) as x12 eqn:Ex12.
-   remember (infinite_signal h12 x12 (fun k => fst (u k))) as y12 eqn:Ey12.
-   remember (infinite_trajectory f1 e1 (fun k =>
+   remember (trajectory f12 e12 u) as x12 eqn:Ex12.
+   remember (signal h12 x12 (fun k => fst (u k))) as y12 eqn:Ey12.
+   remember (trajectory f1 e1 (fun k =>
       (fst (u k), (snd (u k), snd (y12 k))))) as x1 eqn:Ex1.
 
 
-   remember (infinite_trajectory f2 e2 (fun k =>
+   remember (trajectory f2 e2 (fun k =>
       ((fst (u k), fst (y12 k)), snd (u k)))) as x2 eqn:Ex2.
-   remember (infinite_signal h1 x1) as y1 eqn:Ey1.
-   remember (infinite_signal h2 x2) as y2 eqn:Ey2.
+   remember (signal h1 x1) as y1 eqn:Ey1.
+   remember (signal h2 x2) as y2 eqn:Ey2.
 
    assert ( forall n m:nat, m<=n -> x1 m = fst (x12 m) /\ x2 m = snd (x12 m) ) as SHx.
    { induction n.
@@ -668,14 +735,14 @@ Proof.
        assert (m=0) as Hmeq0. { apply Nat.le_0_r. assumption. }
        rewrite -> Hmeq0.
        rewrite -> Ex12. rewrite -> Ex1. rewrite -> Ex2.
-       unfold infinite_trajectory. rewrite -> Ee12. simpl. split. reflexivity. reflexivity.
+       unfold trajectory. rewrite -> Ee12. simpl. split. reflexivity. reflexivity.
      - intro m. rewrite -> Nat.le_succ_r. apply or_ind.
        -- apply IHn.
        -- intro HmeqSn. rewrite -> HmeqSn.
 
           assert ( x1 (S n) = f1 (x1 n) (fst (u n), (snd (u n), h2 (x2 n) (fst (u n), h1 (x1 n) (fst (u n)))))) as Hx1Sn.
           { rewrite -> Ex1. simpl. f_equal. f_equal.
-            rewrite -> Ey12. unfold infinite_signal. rewrite -> Eh12. simpl.
+            rewrite -> Ey12. unfold signal. rewrite -> Eh12. simpl.
             assert ( x1 n = fst (x12 n) /\ x2 n = snd (x12 n) ) as Hnx.
             { apply IHn. apply Nat.le_refl. }
             assert (x2 n = snd (x12 n)) as Hx2n. { apply Hnx. }
@@ -684,13 +751,13 @@ Proof.
             rewrite <- Hx1n.
             f_equal. f_equal. f_equal.
             rewrite -> Ex1. f_equal.
-            rewrite -> Ey12. unfold infinite_signal. rewrite -> Eh12.
+            rewrite -> Ey12. unfold signal. rewrite -> Eh12.
             reflexivity.
           }
 
           assert ( x2 (S n) = f2 (x2 n) ((fst (u n), h1 (x1 n) (fst (u n))), snd (u n))) as Hx2Sn.
           { rewrite -> Ex2. simpl. f_equal.
-            rewrite -> Ey12. unfold infinite_signal. rewrite -> Eh12. simpl.
+            rewrite -> Ey12. unfold signal. rewrite -> Eh12. simpl.
             assert ( x1 n = fst (x12 n) /\ x2 n = snd (x12 n) ) as Hnx.
             { apply IHn. apply Nat.le_refl. }
             assert (x1 n = fst (x12 n)) as Hx1n. { apply Hnx. }
@@ -728,7 +795,7 @@ Proof.
 
    intros n.
    rewrite -> Ey12. rewrite -> Ey1. rewrite -> Ey2.
-   unfold infinite_signal. rewrite -> Eh12. simpl. split.
+   unfold signal. rewrite -> Eh12. simpl. split.
    - f_equal. symmetry. apply Hx.
    - f_equal. symmetry. apply Hx.
 *)
