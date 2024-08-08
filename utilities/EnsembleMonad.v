@@ -328,7 +328,7 @@ Qed.
 Lemma proj1_eq {M} {Monad_M : Monad M} : 
   forall {X : Type} (F : forall n, Wrd n X -> M X) (Finf : M (Seq X)),
     (is_infinite_skew_product F Finf) -> 
-      (Mlift (projw 1) Finf = Mlift (fun x => fun kp => x) (F 0 null_wrd)).
+      (Mlift (proj 1) Finf = Mlift (fun x => fun kp => x) (F 0 null_wrd)).
 Proof.
   unfold is_infinite_skew_product.
   intros X F Finf.
@@ -353,7 +353,7 @@ Qed.
 Lemma proj2_eq {M} {Monad_M : Monad M} : 
   forall {X : Type} (F : forall n, Wrd n X -> M X) (Finf : M (Seq X)),
     is_infinite_skew_product F Finf ->
-      (Mlift (projw 2) Finf = 
+      (Mlift (proj 2) Finf = 
         Mlift (wlcons 1) (Mright_skew (Mlift (fun x => fun kp => x) (F 0 null_wrd)) (F 1))).
 Proof.
   intros X F Finf H.
@@ -384,18 +384,18 @@ Proof.
   specialize (H X).
   specialize (H F).
   destruct H as [Finf H].
-  assert ( forall {X} (xs : nat -> X), projw 1 xs = fun kp => xs 0) as Hpr1. {
-    intros X' xs. apply wrd_1_eq. rewrite -> projw_at. reflexivity. }
-  assert ( forall (xs : nat -> X), projw 2 xs = fun kp => xs (val 2 kp) ) as Hpr2. {
-    intros xs. unfold projw. reflexivity. }
+  assert ( forall {X} (xs : nat -> X), proj 1 xs = fun kp => xs 0) as Hpr1. {
+    intros X' xs. apply wrd_1_eq. rewrite -> proj_at. reflexivity. }
+  assert ( forall (xs : nat -> X), proj 2 xs = fun kp => xs (val 2 kp) ) as Hpr2. {
+    intros xs. unfold proj. reflexivity. }
   set ( S1 := fun x0:X => True).
   set ( S2 := fun x01:X*X => (fst x01=true)).
-  assert (Mlift (projw 1) Finf = Mlift (fun x0:X => fun kp => x0) S1 ) as Hs1. {
+  assert (Mlift (proj 1) Finf = Mlift (fun x0:X => fun kp => x0) S1 ) as Hs1. {
     rewrite -> (proj1_eq F Finf H).
     unfold F, S1.
     reflexivity.
   }
-  assert (Mlift (projw 2) Finf = Mlift (fun x01:X*X => cat (cat null_wrd (fst x01)) (snd x01)) S2 ) as Hs2.  {
+  assert (Mlift (proj 2) Finf = Mlift (fun x01:X*X => cat (cat null_wrd (fst x01)) (snd x01)) S2 ) as Hs2.  {
     rewrite -> (proj2_eq F Finf H).
     unfold Ensemble_Monad.
     unfold Mright_skew, Mlift, Mbind, Mpure.
@@ -451,7 +451,7 @@ Proof.
       -- simpl.
          exact Hxw.
     }
-    assert (Mlift (restr 1 (PeanoNat.Nat.le_succ_diag_r 1)) (Mlift (projw 2) Finf) = Mlift (projw 1) Finf) as Hx21. {
+    assert (Mlift (restr 1 (PeanoNat.Nat.le_succ_diag_r 1)) (Mlift (proj 2) Finf) = Mlift (proj 1) Finf) as Hx21. {
       apply Mlift_compose. }
     revert Hx21.
     rewrite -> Hs1.

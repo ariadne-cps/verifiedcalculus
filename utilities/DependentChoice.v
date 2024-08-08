@@ -41,7 +41,7 @@ Definition is_chosable {X : Type} (f : list X -> X -> Prop) :=
   forall xl, exists x, f xl x.
 
 Definition is_choice_sequence {X : Type} (f : list X -> X -> Prop) (xs : nat -> X) :=
-  forall n, (f (proj n xs)) (xs n).
+  forall n, (f (proj_list n xs)) (xs n).
 
 Fixpoint is_choice_list {X : Type} (f : list X -> X -> Prop) (xl : list X) :=
   match xl with
@@ -82,10 +82,10 @@ Proof.
     intro m. unfold xls. reflexivity. }
   assert (forall m, snd (xlxs m) = xs m) as Hxs. {
     intro m. unfold xs. reflexivity. }
-  assert (forall n, proj n xs = xls n) as Hp. {
+  assert (forall n, proj_list n xs = xls n) as Hp. {
     induction n.
-    unfold proj, xs, xls. rewrite -> Hxlxs0. simpl. reflexivity.
-    rewrite -> proj_succ.
+    unfold proj_list, xs, xls. rewrite -> Hxlxs0. simpl. reflexivity.
+    rewrite -> proj_list_succ.
     rewrite -> IHn.
     rewrite <- Hxls, <- Hxls, <- Hxs.
     specialize (Hxlxs n).
@@ -137,24 +137,24 @@ Proof.
     -- auto.
 Qed.
 
-Lemma proj_cons_seq : forall {X : Type} (a : X) (s : nat -> X) (m : nat),
-  proj (S m) (cons_seq a s) = app (proj m s) (cons a nil).
+Lemma proj_list_cons_seq : forall {X : Type} (a : X) (s : nat -> X) (m : nat),
+  proj_list (S m) (cons_seq a s) = app (proj_list m s) (cons a nil).
 Proof.
   intros X a s m.
   revert a s.
   induction m.
   - intros a s. auto.
   - intros a s.
-    rewrite -> (proj_succ (S m)).
+    rewrite -> (proj_list_succ (S m)).
     rewrite -> IHm.
-    rewrite -> (proj_succ m).
+    rewrite -> (proj_list_succ m).
     rewrite -> List.app_comm_cons.
     unfold cons_seq.
     reflexivity.
 Qed.
 
-Lemma proj_app_seq : forall {X : Type} (l : list X) (s : nat -> X) (m : nat),
-  proj (length l + m) (app_seq l s) = app (proj m s) l.
+Lemma proj_list_app_seq : forall {X : Type} (l : list X) (s : nat -> X) (m : nat),
+  proj_list (length l + m) (app_seq l s) = app (proj_list m s) l.
 Proof.
   intros X.
   intros l.
@@ -166,23 +166,23 @@ Proof.
       auto. }
     rewrite -> Hlen, Happ.
     replace (S (length l) + m) with (S (length l + m)); [|apply PeanoNat.Nat.add_succ_l].
-    rewrite -> proj_succ.
+    rewrite -> proj_list_succ.
     rewrite -> IHl.
     rewrite -> app_seq_at.
     rewrite -> (List.app_comm_cons _ l).
-    rewrite <- proj_succ.
-    rewrite -> proj_cons_seq.
+    rewrite <- proj_list_succ.
+    rewrite -> proj_list_cons_seq.
     rewrite <- List.app_assoc.
     simpl.
     reflexivity.
 Qed.
 
-Lemma proj_length_app_seq : forall {X : Type} (l : list X) (s : nat -> X),
-  proj (length l) (app_seq l s) = l.
+Lemma proj_list_length_app_seq : forall {X : Type} (l : list X) (s : nat -> X),
+  proj_list (length l) (app_seq l s) = l.
 Proof.
   intros X l s.
   replace (length l) with (length l + 0).
-  apply proj_app_seq.
+  apply proj_list_app_seq.
   apply PeanoNat.Nat.add_0_r.
 Qed.
 
@@ -193,12 +193,12 @@ Lemma is_choice_list_cons : forall {X} (f:list X -> X -> Prop) (a:X) (l:list X),
 Proof. intros X f a l; split; auto. Qed.
 
 Lemma is_choice_prefix_of_sequence : forall {X} (f:list X -> X -> Prop) (xs : nat -> X),
-  is_choice_sequence f xs -> forall n, is_choice_list f (proj n xs).
+  is_choice_sequence f xs -> forall n, is_choice_list f (proj_list n xs).
 Proof.
   intros X f xs H.
   induction n.
   - simpl. trivial.
-  - rewrite -> proj_succ.
+  - rewrite -> proj_list_succ.
     apply is_choice_list_cons.
     split.
     -- apply H.
@@ -206,17 +206,17 @@ Proof.
 Qed.
 
 Lemma is_choice_prefix_of_list : forall {X} (f:list X -> X -> Prop) (xs : nat -> X),
-  forall m n, is_choice_list f (proj (m+n) xs) -> is_choice_list f (proj m xs).
+  forall m n, is_choice_list f (proj_list (m+n) xs) -> is_choice_list f (proj_list m xs).
 Proof.
   intros X f xs.
   intros m.
   induction n.
   - rewrite <- plus_n_O. trivial.
   - replace (m + S n) with (S (m+n)).
-    rewrite -> proj_succ.
+    rewrite -> proj_list_succ.
     intros H.
     apply IHn.
-    apply (is_choice_list_cons f (xs(m+n)) (proj (m+n) xs)) in H.
+    apply (is_choice_list_cons f (xs(m+n)) (proj_list (m+n) xs)) in H.
     apply H.
     apply eq_sym.
     apply PeanoNat.Nat.add_succ_r.
@@ -224,12 +224,12 @@ Qed.
 
 
 Proposition list_dependent_choice_from : forall {X:Type} (f : list X -> X -> Prop) (xl : list X),
-  is_chosable f -> is_choice_list f xl -> (exists xs : nat -> X, (proj (length xl) xs = xl) /\ is_choice_sequence f xs).
+  is_chosable f -> is_choice_list f xl -> (exists xs : nat -> X, (proj_list (length xl) xs = xl) /\ is_choice_sequence f xs).
 Proof.
   intros X f xl Hf Hxl.
 
   set ( g:=fun xt => f (app xt xl) ).
-  assert (exists xs, forall n, g (proj n xs) (xs n)) as Hg. {
+  assert (exists xs, forall n, g (proj_list n xs) (xs n)) as Hg. {
     apply list_dependent_choice.
     unfold g.
     intros xt.
@@ -240,17 +240,17 @@ Proof.
   exists xs.
   split.
   - unfold xs.
-    apply proj_length_app_seq.
+    apply proj_list_length_app_seq.
   - intros n.
     assert (n < length xl \/ length xl <= n) as Hnl. {
       apply PeanoNat.Nat.lt_ge_cases. }
     destruct Hnl as [Hnltl|Hllen].
-    -- assert (is_choice_list f (proj (length xl) xs)) as Hl. {
+    -- assert (is_choice_list f (proj_list (length xl) xs)) as Hl. {
          unfold xs.
-         rewrite -> proj_length_app_seq.
+         rewrite -> proj_list_length_app_seq.
          exact Hxl.
        }
-       assert (forall n, n<=length xl -> is_choice_list f (proj n xs)) as Hc. {
+       assert (forall n, n<=length xl -> is_choice_list f (proj_list n xs)) as Hc. {
          intros m Hm.
          apply is_choice_prefix_of_list with (n:=(length xl - m)).
          replace (m + (length xl - m)) with (length xl).
@@ -271,7 +271,7 @@ Proof.
        }
        destruct Hm as [m Hm].
        rewrite -> Hm.
-       rewrite -> proj_app_seq.
+       rewrite -> proj_list_app_seq.
        rewrite -> app_seq_at.
        unfold g in Ht.
        apply Ht.
@@ -281,7 +281,7 @@ Qed.
 
 
 Definition is_word_choice_sequence {X : Type} (f : forall n, Wrd n X -> X -> Prop) (xs : nat -> X) :=
-  forall n, (f n (projw n xs)) (xs n).
+  forall n, (f n (proj_word n xs)) (xs n).
 
 Definition is_word_chosable {X : Type} (f : forall n, Wrd n X -> X -> Prop) :=
   forall n xw, exists x, f n xw x.
@@ -290,7 +290,7 @@ Definition is_choice_word {X : Type} (f : forall n, Wrd n X -> X -> Prop) {n : n
   forall m (p : m < n), f m (restr m (Nat.lt_le_incl _ _ p) xw) (xw (ord m p)).
 
 Proposition word_dependent_choice_from : forall {X:Type} (f : forall n, Wrd n X -> X -> Prop) {n : nat} (xw : Wrd n X),
-  is_word_chosable f -> is_choice_word f xw -> (exists xs : nat -> X, (projw n xs = xw) /\ is_word_choice_sequence f xs).
+  is_word_chosable f -> is_choice_word f xw -> (exists xs : nat -> X, (proj_word n xs = xw) /\ is_word_choice_sequence f xs).
 Proof.
   intros X f n xw.
   assert (forall {n1 n2 : nat} (e : n1=n2) w1 x1 w2 x2, cast_wrd e w1 = w2 -> x1 = x2 -> f n1 w1 x1 -> f n2 w2 x2) as Hfeq. {
@@ -346,7 +346,7 @@ Proof.
              apply wrd_at_eq. 
          --- apply Hxw.
   }
-  assert (exists xs : nat -> X, proj (length xl) xs = xl /\ is_choice_sequence fl xs) as Exs. {
+  assert (exists xs : nat -> X, proj_list (length xl) xs = xl /\ is_choice_sequence fl xs) as Exs. {
     apply list_dependent_choice_from.
     - exact Hfl.
     - exact Hfxl.
@@ -356,7 +356,7 @@ Proof.
   split.
   - rewrite <- (word_to_list_to_word_id xw).
     apply eq_sym.
-    rewrite <- (@proj_to_word_list X xs n n (length_proj xs n)).
+    rewrite <- (@proj_to_word_list X xs n n (length_proj_list xs n)).
     apply cast_list_to_wrd_eq.
     replace (word_to_list xw) with xl; [|unfold xl; reflexivity].
     replace (length xl) with n in Hpxs.
@@ -366,7 +366,7 @@ Proof.
     unfold is_choice_sequence in Hfxs.
     intros m. specialize (Hfxs m).
     unfold fl in Hfxs.
-    apply (Hfeq (length (proj m xs)) m (length_proj xs m) (list_to_word (proj m xs)) (xs m)).
+    apply (Hfeq (length (proj_list m xs)) m (length_proj_list xs m) (list_to_word (proj_list m xs)) (xs m)).
     -- apply proj_to_word_list'.
     -- reflexivity.
     -- exact Hfxs.

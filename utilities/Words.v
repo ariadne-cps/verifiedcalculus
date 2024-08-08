@@ -223,20 +223,20 @@ Proof. intros X m n  e w1 w2. unfold cast_wrd. destruct e. tauto. Qed.
 
 
 
-Definition projw {X : Type} (n : nat) (xs : Seq X) : Wrd n X :=
+Definition proj {X : Type} (n : nat) (xs : Seq X) : Wrd n X :=
   fun kp => xs kp.(val n).
 
-Lemma projw_at : forall {X} (n : nat) (xs : Seq X) (kp : Ordinal n),
-    (projw n xs) kp = xs kp.(val n).
+Lemma proj_at : forall {X} (n : nat) (xs : Seq X) (kp : Ordinal n),
+    (proj n xs) kp = xs kp.(val n).
 Proof.
-  intros X n xs kp. unfold projw. reflexivity. 
+  intros X n xs kp. unfold proj. reflexivity. 
 Qed.
 
-Lemma agree_projw : forall {X} (n : nat) (u1 u2 : Seq X),
-  agree n u1 u2 <-> projw n u1 = projw n u2.
+Lemma agree_proj : forall {X} (n : nat) (u1 u2 : Seq X),
+  agree n u1 u2 <-> proj n u1 = proj n u2.
 Proof.
   intros X n u1 u2.
-  unfold agree, projw.
+  unfold agree, proj.
   split.
   - intro H.
     apply functional_extensionality.
@@ -487,10 +487,10 @@ Proof.
 Qed.
 
 Lemma splice_word : forall {X} {n} (xw : Wrd (S n) X) (xe : Seq X), 
-  projw (S n) (splice xw xe) = xw.
+  proj (S n) (splice xw xe) = xw.
 Proof.
   intros X n xw xe.
-  unfold splice, projw.
+  unfold splice, proj.
   apply functional_extensionality. intro kp.
   destruct (Compare_dec.le_lt_dec (S n) (val (S n) kp)).
   - destruct kp as [k p]. unfold val in l. 
@@ -509,7 +509,7 @@ Lemma splice_sequence : forall {X} {n} (xw : Wrd (S n) X) (xe : Seq X),
     (fun k => (splice xw xe) (n+k)) = xe.
 Proof.
   intros X n xw xe Hxn.
-  unfold splice, projw.
+  unfold splice, proj.
   apply functional_extensionality. intro k.
   destruct (Compare_dec.le_lt_dec (S n) (n+k)).
   - rewrite -> Nat.add_comm.
@@ -526,11 +526,11 @@ Qed.
 
 
 
-Lemma projw_restr_eq : forall {X} (xs : Seq X) (m n : nat) (p:m <= n),
-  projw m xs = restr m p (projw n xs).
+Lemma proj_restr_eq : forall {X} (xs : Seq X) (m n : nat) (p:m <= n),
+  proj m xs = restr m p (proj n xs).
 Proof.
   intros X xs m n p.
-  unfold projw, restr.
+  unfold proj, restr.
   apply functional_extensionality.
   intros k.
   f_equal.
@@ -555,16 +555,16 @@ Lemma length_cons : forall {X : Type} (a : X) (l : list X),
   length (cons a l) = S (length l).
 Proof. intros X a l. auto. Qed.
   
-Fixpoint proj {X:Type} (n : nat) (xs : nat -> X) : list X :=
+Fixpoint proj_list {X:Type} (n : nat) (xs : nat -> X) : list X :=
   match n with
     | O => nil
-    | S n' => cons (xs n') (proj n' xs)
+    | S n' => cons (xs n') (proj_list n' xs)
   end.
-Lemma proj_zero : forall {X:Type} (xs:nat->X), proj O xs = nil.
+Lemma proj_list_zero : forall {X:Type} (xs:nat->X), proj_list O xs = nil.
 Proof. intros X xs. simpl. reflexivity. Qed.
-Lemma proj_succ : forall {X:Type} (n:nat) (xs:nat->X), proj (S n) xs = cons (xs n) (proj n xs).
+Lemma proj_list_succ : forall {X:Type} (n:nat) (xs:nat->X), proj_list (S n) xs = cons (xs n) (proj_list n xs).
 Proof. intros X n xs. simpl. reflexivity. Qed.
-Lemma length_proj : forall {X : Type} (xs : nat -> X) (n : nat), length (proj n xs) = n.
+Lemma length_proj_list : forall {X : Type} (xs : nat -> X) (n : nat), length (proj_list n xs) = n.
 Proof.
   intros X xs. induction n.
   - simpl. reflexivity.
@@ -702,41 +702,42 @@ Proof.
 Qed.
 
 
+Definition proj_word {X} := @proj X.
 
-Lemma proj_to_word_list : forall {X} (xs : nat -> X) (n1 n2 : nat) (e : length (proj n1 xs) = n2), 
-  cast_wrd e (list_to_word (proj n1 xs)) = projw n2 xs.
+Lemma proj_to_word_list : forall {X} (xs : nat -> X) (n1 n2 : nat) (e : length (proj_list n1 xs) = n2), 
+  cast_wrd e (list_to_word (proj_list n1 xs)) = proj_word n2 xs.
 Proof.
   intros X xs n1.
   induction n1.
   - intros n2 el.
     apply wrd_eq.
-    intros kp. destruct kp as [k p]. assert False; [|contradiction]. rewrite <- el in p. rewrite -> length_proj in p. contradiction (Nat.nlt_0_r k).
+    intros kp. destruct kp as [k p]. assert False; [|contradiction]. rewrite <- el in p. rewrite -> length_proj_list in p. contradiction (Nat.nlt_0_r k).
   - intros Sln2 Sle2.
-    assert (length (proj (S n1) xs) = S n1) as Sle1. { apply length_proj. }
-    simpl. apply wrd_eq.  unfold projw.
+    assert (length (proj_list (S n1) xs) = S n1) as Sle1. { apply length_proj_list. }
+    simpl. apply wrd_eq.  unfold proj_word.
     intros kp. destruct kp as [k p].
     assert (k <= n1) as p'. { apply (Nat.lt_succ_r k n1). rewrite <- Sle1, -> Sle2. exact p. } 
     apply le_lt_eq_dec in p'.
     destruct p' as [Hkltn|Hkeqn].
     -- simpl. 
        rewrite -> cast_wrd_at'.
-       assert (length (proj n1 xs) = n1) as Hle1. { apply length_proj. }
-       assert (k < length (proj n1 xs)) as Hkltln1. { rewrite -> Hle1. exact Hkltn. }
-       rewrite -> (cat_tail (list_to_word (proj n1 xs)) (xs n1) _ Hkltln1).
+       assert (length (proj_list n1 xs) = n1) as Hle1. { apply length_proj_list. }
+       assert (k < length (proj_list n1 xs)) as Hkltln1. { rewrite -> Hle1. exact Hkltn. }
+       rewrite -> (cat_tail (list_to_word (proj_list n1 xs)) (xs n1) _ Hkltln1).
        specialize (IHn1 n1 Hle1).
-       assert (list_to_word (proj n1 xs) = cast_wrd (eq_sym Hle1) (projw n1 xs)) as IHn1'. { 
-         rewrite <- IHn1. rewrite -> cast_cast_wrd'. remember (list_to_word (proj n1 xs)) as w1. 
+       assert (list_to_word (proj_list n1 xs) = cast_wrd (eq_sym Hle1) (proj_word n1 xs)) as IHn1'. { 
+         rewrite <- IHn1. rewrite -> cast_cast_wrd'. remember (list_to_word (proj_list n1 xs)) as w1. 
          rewrite <- (cast_wrd_id w1). rewrite -> cast_cast_wrd'. apply cast_wrd_eq.
          intros k' p1 p2. apply wrd_at_eq. }
        rewrite -> IHn1'.
        apply cast_wrd_at'. 
     -- rewrite -> cast_wrd_at'. rewrite -> cat_head'. 
        --- rewrite <- Hkeqn. reflexivity. 
-       --- rewrite -> length_proj. exact Hkeqn. 
+       --- rewrite -> length_proj_list. exact Hkeqn. 
 Qed.
 
 Lemma proj_to_word_list' : forall {X} (xs : nat -> X) (n : nat), 
-  cast_wrd (length_proj xs n) (list_to_word (proj n xs)) = projw n xs.
+  cast_wrd (length_proj_list xs n) (list_to_word (proj_list n xs)) = proj_word n xs.
 Proof. intros X xs n. apply proj_to_word_list. Qed.
 
 End Words.

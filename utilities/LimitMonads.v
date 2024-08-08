@@ -36,7 +36,7 @@ Section LimitMonads.
 
 
 Definition is_inverse_limit {M : Type -> Type} {MonadM : Monad M}{X} (A : forall (n: nat), M (Wrd n X)) (Alim : M (Seq X)) :=
-  forall n, Mlift (projw n) Alim = A n.
+  forall n, Mlift (proj n) Alim = A n.
 
 Definition is_inverse_sequence {M : Type -> Type} {MonadM : Monad M} {X} (A : forall n, M (Wrd n X)) : Prop :=
   forall (m n : nat) (p : m <= n), Mlift (restr m p) (A n) = A m.
@@ -62,10 +62,10 @@ Qed.
 
 Definition is_infinite_skew_product {M : Type -> Type} {_ : Monad M} {X : Type}
   (F : forall n, Wrd n X -> M X) (Finf : M (Seq X)) :=
-    (Mlift (projw 0) Finf = Mpure null_wrd) /\
+    (Mlift (proj 0) Finf = Mpure null_wrd) /\
       forall (n:nat),
-        Mlift (wlcons n) (Mright_skew (Mlift (projw n) Finf) (F n)) =
-        Mlift (projw (S n)) Finf.
+        Mlift (wlcons n) (Mright_skew (Mlift (proj n) Finf) (F n)) =
+        Mlift (proj (S n)) Finf.
 
 Definition exists_infinite_skew_product (M : Type -> Type) (_ : Monad M) :=
   forall (X : Type) (F : forall n, Wrd n X -> M X), 

@@ -310,7 +310,7 @@ Definition diagonal {X} (xws : forall n, Wrd n X) (n : nat) := xws (S n) (ord n 
 
 Lemma diagonal_eq {X} : forall (xws : forall n, Wrd n X),
   (forall n, restr n (le_succ_diag_r n) (xws (S n)) = xws n) ->
-    forall n, projw n (diagonal xws) = xws n.
+    forall n, proj n (diagonal xws) = xws n.
 Proof.
   intros xws Hr.
   assert (forall n k (p:n<=n+k), restr n p (xws (n+k)) = xws n). {
@@ -335,7 +335,7 @@ Proof.
   intro n.
   apply wrd_eq.
   destruct kp as [k p].
-  rewrite -> projw_at.
+  rewrite -> proj_at.
   unfold diagonal.
   simpl.
   assert (S k <= n) as p' by lia.
@@ -352,7 +352,7 @@ Proposition word_sequence_exists :
     (A m xm) ->
     (forall n (xSn : Wrd (S n) X), (A (S n) xSn) -> A n (restr n (le_succ_diag_r n) xSn)) ->
     (forall n (xn : Wrd n X), (A n xn) -> exists xSn, (A (S n) xSn) /\ restr n (le_succ_diag_r n) xSn = xn) -> 
-    exists (xs : Seq X), (projw m xs = xm) /\ forall n, A n (projw n xs).
+    exists (xs : Seq X), (proj m xs = xm) /\ forall n, A n (proj n xs).
 Proof.
   intros X A m xm HAxm Hrestr' Hsucc.
   set (B := sigT (fun n => @sig (Wrd n X) (A n))).
@@ -435,7 +435,7 @@ Proof.
     intros k p1 p2 kp1 kp2. f_equal. apply ord_eq. reflexivity.
   }
   assert (forall n (p:n>=m), m+(n-m)=n) as Hmnmeqn by lia.
-  assert (forall n, projw n xs = xws n) as Hdiag. { 
+  assert (forall n, proj n xs = xws n) as Hdiag. { 
     unfold xs.
     apply diagonal_eq.
     exact Hrestrxws.
@@ -501,8 +501,8 @@ Qed.
 Lemma ensemble_inverse_limits : forall {X} (A : forall n, Ensemble (Wrd n X)) (Ainf : Ensemble (Seq X)),
   (forall n, inhabited (A n)) -> 
   (forall m n (p:m<=n), apply (restr m p) (A n) = A m) ->
-  (Ainf = fun (xs : Seq X) => forall n, A n (projw n xs)) ->
-    (forall n, apply (projw n) Ainf = A n).
+  (Ainf = fun (xs : Seq X) => forall n, A n (proj n xs)) ->
+    (forall n, apply (proj n) Ainf = A n).
 Proof. 
   intros X A Ainf HAi HAr HAinf.
   unfold apply.
@@ -515,7 +515,7 @@ Proof.
     rewrite <- Hxn.
     exact (Hxs n).
   - intro HAxn.
-    assert (exists xs, projw n xs = xn /\ forall m, A m (projw m xs)) as Hxs. {
+    assert (exists xs, proj n xs = xn /\ forall m, A m (proj m xs)) as Hxs. {
       apply (@word_sequence_exists X A).
       - apply HAxn.
       - clear HAxn xn n.
@@ -564,7 +564,7 @@ Proof.
   unfold is_inverse_limit.
   unfold Mlift, Mbind, Mpure.
   unfold inhabited_image, inhabited_singleton. simpl.
-  set ( Ainf := (fun (xs : nat -> X) => forall n, (A n) (projw n xs)) ).
+  set ( Ainf := (fun (xs : nat -> X) => forall n, (A n) (proj n xs)) ).
   assert (inhabited Ainf) as Ainf_inhabited. {
     set (Hp0 := @ensemble_inverse_limits).
     specialize (Hp0 X A Ainf (HA) (Hinvseq) (eq_refl Ainf) 0).
@@ -582,7 +582,7 @@ Proof.
   2: unfold A; apply inhabited_ensemble_eq; reflexivity. 
   apply inhabited_ensemble_eq.
   simpl.
-  replace (image (fun x => singleton (projw n x)) Ainf) with (apply (projw n) Ainf).
+  replace (image (fun x => singleton (proj n x)) Ainf) with (apply (proj n) Ainf).
   apply ensemble_inverse_limits.
   exact HA.
   exact Hinvseq.
