@@ -28,8 +28,8 @@ Require Import Coq.Logic.PropExtensionality.
 
 Require Import Coq.Logic.ProofIrrelevance.
 
-Require Import List.
-Require Import Ensembles.
+Require Import Coq.Lists.List.
+Require Import Coq.Sets.Ensembles.
 
 Require Import DependentChoice.
 
@@ -41,7 +41,6 @@ Require Export LimitMonads.
 
 Section EnsembleMonads.
 
-
 Definition element {X : Type} (x : X) (xs : Ensemble X) : Prop := xs x.
 Definition intersection {X : Type} (xs1 xs2 : Ensemble X) : Ensemble X :=
   fun x => (xs1 x) /\ (xs2 x).
@@ -52,6 +51,11 @@ Definition singleton {X : Type} (x : X) : Ensemble X :=
   fun x' => (x'=x).
 Definition image {X Y : Type} (fs : X -> Ensemble Y) (xs : Ensemble X) : Ensemble Y :=
   fun y => exists x, (xs x) /\ ((fs x) y).
+Definition apply {X Y : Type} (f : X -> Y) (xs : Ensemble X) : Ensemble Y
+  := fun y => exists x, xs x /\ f x = y.
+
+Definition subset {X} (s1 s2 : Ensemble X) : Prop :=
+  forall x, element x s1 -> element x s2.
 
 Proposition ensemble_equal : forall {X : Type} {s1 s2 : Ensemble X},
   (forall x : X, element x s1 <-> element x s2) -> s1 = s2.
@@ -264,6 +268,23 @@ Proof.
 Qed.
 
 
+Lemma apply_element : forall {X Y} (f : X -> Y) (A : Ensemble X) (x : X), (A x) -> (apply f A) (f x).
+Proof. 
+  intros X Y f A x HAx. unfold apply. 
+  exists x. split. exact HAx. reflexivity. 
+Qed.
+
+Lemma image_singleton_apply : forall {X Y} (f : X -> Y) (A : Ensemble X), image (fun x => singleton (f x)) A = apply f A.
+Proof.
+  intros X Y f A.
+  unfold image, singleton, apply.
+  apply functional_extensionality. intro y.
+  apply propositional_extensionality.
+  split. 
+  - intro H. destruct H as [x [HA Hf]]. exists x. split. exact HA. symmetry. exact Hf.
+  - intro H. destruct H as [x [HA Hf]]. exists x. split. exact HA. exact (eq_sym Hf).
+Qed.
+
 
 Definition inhabited {X:Type} (s : Ensemble X) := exists x, s x.
 Definition empty {X : Type} (s : Ensemble X) := forall x, not (s x).
@@ -304,8 +325,10 @@ Qed.
 
 
 #[local]
-Lemma proj1_eq {M} {Monad_M : Monad M} : forall {X : Type} (F : list X -> M X) (Finf : M (nat -> X)),
-  is_infinite_skew_product F Finf -> (Mlift (proj 1) Finf = Mlift (fun x => cons x nil) (F nil)).
+Lemma proj1_eq {M} {Monad_M : Monad M} : 
+  forall {X : Type} (F : forall n, Wrd n X -> M X) (Finf : M (Seq X)),
+    (is_infinite_skew_product F Finf) -> 
+      (Mlift (proj 1) Finf = Mlift (fun x => fun kp => x) (F 0 null_wrd)).
 Proof.
   unfold is_infinite_skew_product.
   intros X F Finf.
@@ -320,15 +343,18 @@ Proof.
   apply functional_extensionality.
   intro x0.
   rewrite -> Mleft_identity.
-  unfold lcons.
-  simpl.
+  f_equal.
+  apply wrd_1_eq.
+  unfold wlcons, cat.
   reflexivity.
 Qed.
 
 #[local]
-Lemma proj2_eq {M} {Monad_M : Monad M} : forall {X : Type} (F : list X -> M X) (Finf : M (nat -> X)),
-  is_infinite_skew_product F Finf ->
-    (Mlift (proj 2) Finf = Mlift lcons (Mright_skew (Mlift (fun x => cons x nil) (F nil)) F)).
+Lemma proj2_eq {M} {Monad_M : Monad M} : 
+  forall {X : Type} (F : forall n, Wrd n X -> M X) (Finf : M (Seq X)),
+    is_infinite_skew_product F Finf ->
+      (Mlift (proj 2) Finf = 
+        Mlift (wlcons 1) (Mright_skew (Mlift (fun x => fun kp => x) (F 0 null_wrd)) (F 1))).
 Proof.
   intros X F Finf H.
   rewrite <- (proj1_eq F Finf H).
@@ -338,71 +364,79 @@ Proof.
   exact (HS 1).
 Qed.
 
+
 Theorem ensemble_monad_does_not_have_infinite_skew_product :
-  not (has_infinite_skew_product (Ensemble) (Ensemble_Monad)).
+  not (exists_infinite_skew_product (Ensemble) (Ensemble_Monad)).
 Proof.
+  set (X := bool).
   unfold has_infinite_skew_product.
-  set (F := fun (xl : list bool) =>
-    match xl with
-    | nil => (fun (x:bool) => True) : Ensemble bool
-    | cons true nil => fun (x:bool) => True
-    | cons false nil => fun x => False
-    | cons x _ => fun x' => x'=x
+  set (F := fun n : nat =>
+    match n as m return (Wrd m X -> Ensemble X) with
+    | 0 => fun (_ : Wrd 0 X) (_ : X) => True
+    | 1 => fun (w : Wrd 1 X) (x : X) => 
+         let k := ord 0 (PeanoNat.Nat.lt_0_1) in 
+           match w k with | true => True | false => False end
+    | S m => (fun (m' : nat) (w : Wrd (S m') X) (x : X) => 
+         let k := ord m' (PeanoNat.Nat.lt_succ_diag_r m') in 
+           w k = x) m
     end).
   intros H.
-  specialize (H bool).
+  specialize (H X).
   specialize (H F).
   destruct H as [Finf H].
-  assert ( forall {X} (xs : nat -> X), proj 1 xs = cons (xs 0) nil ) as Hpr1. {
-    unfold proj. reflexivity. }
-  assert ( forall {X} (xs : nat -> X), proj 2 xs = cons (xs 1) (cons (xs 0) nil) ) as Hpr2. {
-    unfold proj. reflexivity. }
-  set ( S1 := fun x0:bool => True).
-  set ( S2 := fun x01:bool*bool => (fst x01=true)).
-  assert (Mlift (proj 1) Finf = Mlift (fun x0:bool => cons x0 nil) S1 ) as Hs1. {
+  assert ( forall {X} (xs : nat -> X), proj 1 xs = fun kp => xs 0) as Hpr1. {
+    intros X' xs. apply wrd_1_eq. rewrite -> proj_at. reflexivity. }
+  assert ( forall (xs : nat -> X), proj 2 xs = fun kp => xs (val 2 kp) ) as Hpr2. {
+    intros xs. unfold proj. reflexivity. }
+  set ( S1 := fun x0:X => True).
+  set ( S2 := fun x01:X*X => (fst x01=true)).
+  assert (Mlift (proj 1) Finf = Mlift (fun x0:X => fun kp => x0) S1 ) as Hs1. {
     rewrite -> (proj1_eq F Finf H).
     unfold F, S1.
     reflexivity.
   }
-  assert (Mlift (proj 2) Finf = Mlift (fun x01:bool*bool => cons (snd x01) (cons (fst x01) nil)) S2 ) as Hs2.  {
+  assert (Mlift (proj 2) Finf = Mlift (fun x01:X*X => cat (cat null_wrd (fst x01)) (snd x01)) S2 ) as Hs2.  {
     rewrite -> (proj2_eq F Finf H).
-    unfold lcons.
     unfold Ensemble_Monad.
     unfold Mright_skew, Mlift, Mbind, Mpure.
     unfold singleton, image.
     apply functional_extensionality.
-    intro xl.
+    intro xw.
     apply propositional_extensionality.
     split.
-    - intro Hxl_x.
-      destruct Hxl_x as [xl_x [[xl' [Hxl0' Hxl1']] Hc]].
-      destruct Hxl0' as [x0 [Hx0F Hx0l]].
-      destruct Hxl1' as [x1 [Hx1F Hx1l]].
+    - intro Hxw_x.
+      destruct Hxw_x as [xw_x [[xw' [Hxw0' Hxw1']] Hc]].
+      destruct Hxw0' as [x0 [Hx0F Hx0w]].
+      destruct Hxw1' as [x1 [Hx1F Hx1w]].
       exists (x0,x1).
       split.
       -- unfold S2.
          simpl.
-         rewrite -> Hx0l in Hx1F.
+         rewrite -> Hx0w in Hx1F.
          unfold F in Hx1F.
          destruct x0.
          --- reflexivity.
          --- contradiction.
-      -- rewrite -> Hc, -> Hx1l, -> Hx0l.
+      -- rewrite -> Hc, -> Hx1w, -> Hx0w.
+         unfold wlcons.
          simpl.
+         f_equal.
+         apply (wrd_1_eq).
+         unfold cat. 
          reflexivity.
+         
     - intro Hx01.
-      destruct Hx01 as [[x0 x1] [Hs2 Hxl]].
-      simpl in Hxl.
-      exists (cons x0 nil, x1).
+      destruct Hx01 as [[x0 x1] [Hs2 Hxw]].
+      simpl in Hxw.
+      exists (cat null_wrd x0, x1).
       split.
-      -- exists (cons x0 nil).
+      -- exists (cat null_wrd x0).
          split.
          --- exists x0.
              split.
              ---- unfold F.
-                  unfold element.
                   trivial.
-             ---- reflexivity.
+             ----apply wrd_1_eq. unfold cat. reflexivity.
          --- exists x1.
              split.
              ---- unfold S2 in Hs2.
@@ -410,42 +444,48 @@ Proof.
                   rewrite -> Hs2.
                   unfold F.
                   unfold element, In.
+                  unfold cat, null_wrd. 
+                  simpl.
                   trivial.
              ---- reflexivity.
       -- simpl.
-         exact Hxl.
+         exact Hxw.
     }
-    assert (Mlift (@tl bool) (Mlift (proj 2) Finf) = Mlift (proj 1) Finf) as Hx21. {
+    assert (Mlift (restr 1 (PeanoNat.Nat.le_succ_diag_r 1)) (Mlift (proj 2) Finf) = Mlift (proj 1) Finf) as Hx21. {
       apply Mlift_compose. }
     revert Hx21.
     rewrite -> Hs1.
     rewrite -> Hs2.
     rewrite -> Mlift_associative.
-    unfold tail, compose.
+    unfold compose.
     assert (forall {X} (s1 s2 : Ensemble X), (exists c, ~ (s1 c) /\ s2 c) -> (s1=s2) -> False ) as Hsne. {
-      intros X s1 s2 Hc He.
+      intros X' s1 s2 Hc He.
       destruct Hc as [c [Hs1c Hs2c]].
       apply Hs1c.
       rewrite -> He.
       exact Hs2c.
     }
     apply Hsne.
-    exists (cons false nil).
+    exists (cat null_wrd false).
     split.
     - unfold S2.
       simpl.
       unfold singleton, image.
       intros [x [Hxt Hxf]].
       rewrite -> Hxt in Hxf.
-      discriminate Hxf.
+      rewrite -> restr_cat_id in Hxf.
+      set (k0 := ord 0 PeanoNat.Nat.lt_0_1). 
+      assert (forall {X Y} (x : X) (f1 f2 : X -> Y), f1 = f2 -> f1 x = f2 x) as Heqf. {
+        intros X' Y' x' f1 f2 e. rewrite <- e. reflexivity. }
+      set (c := Heqf _ _ k0 (cat null_wrd false) _ Hxf). 
+      discriminate c.
     - unfold S1.
       simpl.
       unfold singleton, image.
       exists false.
       split.
-      -- unfold element.
-         trivial.
-      -- reflexivity.
+      -- trivial.
+      -- apply wrd_1_eq. reflexivity.
 Qed.
 
 
