@@ -37,13 +37,14 @@ Require Import Coq.Classes.RelationClasses.
 
 Module causality.
 
-Definition trace_equivalent {X : Type} (x1 x2 : nat -> X) : Prop :=
+Notation "n1 ≤ n2" := (n1 <= n2) (at level 70).
+
+Definition Tr (X : Type) : Type := nat -> X.
+Definition trace_equivalent {X : Type} (x1 x2 : Tr X) : Prop :=
   forall n, x1 n = x2 n.
 Notation "x1 ≡ x2" := (trace_equivalent x1 x2) (at level 70).
-
-Definition behaviour_equivalent {U Y : Type} (b1 b2 : (nat -> U) -> (nat -> Y)) : Prop :=
-  forall u n, b1 u n = b2 u n.
-Notation "b1 ≣ b2" := (behaviour_equivalent b1 b2) (at level 70).
+Notation "x1 '|<' n '|≡' x2" := (forall m, m<n -> x1 m = x2 m) (at level 40).
+Notation "x1 |≤ n |≡ x2" := (forall m, m <= n -> x1 m = x2 m) (at level 40).
 
 #[export]
 #[refine]
@@ -56,6 +57,127 @@ Proof.
 Qed.
 
 
+Definition zip {T1 T2} (s1 : Tr T1) (s2 : Tr T2) := fun n => (s1 n, s2 n).
+Definition unzip {T1 T2} (s : Tr (T1*T2)) := (fun n => fst (s n), fun n => snd (s n)).
+Notation "( u1 ; u2 )" := (zip u1 u2) (at level 0).
+
+Lemma zip_unzip {UA UD} : 
+  forall (u : Tr (UA*UD)),
+    zip (fst (unzip u)) (snd (unzip u)) ≡ u.
+Proof.
+  intros u n. unfold zip,unzip. simpl. 
+  now rewrite <- surjective_pairing.
+Qed.
+
+Lemma unzip_zip {UA UD} : 
+  forall (ua : Tr UA) (ud : Tr UD),
+    unzip (zip ua ud) = (ua,ud).
+Proof.
+  intros ua ud. now unfold zip,unzip.
+Qed.
+
+Lemma equal_projections : forall (A B : Type) (p1 p2 : A * B),
+  forall (e : p1=p2), (fst p1 = fst p2) /\ (snd p1 = snd p2).
+Proof. intros A B p1 p2 e. now rewrite <- e. Qed.
+  
+Lemma zip_prod {UA UD} : 
+  forall (ua ua' : Tr UA) (ud ud' : Tr UD),
+    ua ≡ ua' /\ ud ≡ ud' <-> (ua;ud) ≡ (ua';ud').
+Proof.
+  intros ua ua' ud ud'. 
+  split.
+  - intro Huad. destruct Huad as [Hua Hud].
+    unfold zip. intro n. f_equal. apply Hua. apply Hud.
+  - intro Huad. unfold zip in Huad. split.
+    -- intro n. specialize (Huad n). 
+       apply (f_equal fst) in Huad. simpl in Huad. exact Huad.
+    -- intro n. specialize (Huad n). 
+       apply (f_equal snd) in Huad. simpl in Huad. exact Huad.
+Qed.
+Lemma zip_prod_l {UA UD} : 
+  forall (ua : Tr UA) (ud ud' : Tr UD),
+    ud ≡ ud' -> (ua;ud) ≡ (ua;ud').
+Proof. 
+  intros ua ud ud' Hud. apply zip_prod. split.
+  reflexivity. assumption.
+Qed.
+Lemma zip_prod_r {UA UD} : 
+  forall (ua ua' : Tr UA) (ud : Tr UD),
+    ua ≡ ua' -> (ua;ud) ≡ (ua';ud).
+Proof. 
+  intros ua ua' ud Hua. apply zip_prod. split.
+  assumption. reflexivity.
+Qed.
+
+Lemma zip_prod_lt {U1 U2} : 
+  forall (u1 u1' : Tr U1) (u2 u2' : Tr U2) (n:nat),
+    u1 |< n |≡ u1' -> u2 |< n |≡ u2' -> (u1;u2) |< n |≡ (u1';u2').
+Proof.
+  intros u1 u1' u2 u2' n Hu1 Hu2 m Hmltn.
+  unfold zip, unzip. f_equal.
+  - exact (Hu1 m Hmltn).
+  - exact (Hu2 m Hmltn).
+Qed.
+
+Lemma unzip_prod {UA UD} :
+  forall (ua : Tr UA) (ud : Tr UD) (u : Tr (UA*UD)),
+    (ua,ud) = unzip u -> (ua;ud) ≡ u.
+Proof.
+  unfold zip, unzip. intros ua ud u H n.
+  apply injective_projections. 
+  - apply (f_equal fst) in H. simpl in H. now rewrite -> H.
+  - apply (f_equal snd) in H. simpl in H. now rewrite -> H. Qed.
+Lemma fst_unzip_proj {UA UD} 
+  {u : Tr (UA*UD)} {ua : Tr UA} {ud : Tr UD} : 
+    forall (e : (ua,ud) = unzip u), 
+      ua = fst (unzip u).
+Proof. intro H. now apply (f_equal fst) in H. Qed.
+Lemma unzip_proj {UA UD} 
+  {u : Tr (UA*UD)} {ua : Tr UA} {ud : Tr UD} : 
+    forall (e : (ua,ud) = unzip u), 
+      ua = fst (unzip u) /\ ud = snd (unzip u).
+Proof.
+  intro H. split.
+  now apply (f_equal fst) in H. 
+  now apply (f_equal snd) in H.
+Qed.
+Lemma fst_unzip_prod {UA UD} :
+  forall (u u' : Tr (UA*UD)),
+    u ≡ u' -> fst (unzip u) ≡ fst (unzip u').
+Proof.
+  intros u u' H n. unfold unzip. simpl. now rewrite <- (H n).
+Qed.
+Lemma snd_unzip_prod {UA UD} :
+  forall (u u' : Tr (UA*UD)),
+    u ≡ u' -> snd (unzip u) ≡ snd (unzip u').
+Proof.
+  intros u u' H n. unfold unzip. simpl. now rewrite <- (H n).
+Qed.
+
+Lemma eqv_le_lt_succ {U} : 
+  forall (u u' : Tr U) (n : nat),
+    u |≤ n |≡ u' -> u |< (S n) |≡ u'.
+Proof.
+  intros u u' n Hu m HmltSn.
+  set (Hmlen := (proj1 (Nat.lt_succ_r _ _)) HmltSn).
+  exact (Hu m Hmlen).
+Qed.
+
+Lemma all_eqv_lt {U} :
+  forall (u u' : Tr U),
+    (forall n, u |< n |≡ u') -> u ≡ u'.
+Proof.
+  intros u u' H n. exact (H (S n) n (Nat.lt_succ_diag_r n)).
+Qed.
+
+(* A behaviour is a function from input sequences to output sequences. *)
+Definition Behaviour (U:Type) (Y:Type) : Type := 
+  Tr U -> Tr Y.
+
+Definition behaviour_equivalent {U Y} (b1 b2 : Behaviour U Y) : Prop :=
+  forall u n, b1 u n = b2 u n.
+Notation "b1 ≣ b2" := (behaviour_equivalent b1 b2) (at level 70).
+
 #[export]
 #[refine]
 Instance behaviour_equivalence {U Y} : Equivalence (@behaviour_equivalent U Y) := { }.
@@ -66,9 +188,6 @@ Proof.
     transitivity (b2 u n). exact (H12 u n). exact (H23 u n).
 Qed.
 
-
-(* A behaviour is a function from input sequences to output sequences. *)
-Definition Behaviour {U:Type} {Y:Type} : Type := (nat -> U) -> (nat -> Y).
 
 (* A behaviour is causal if the output up to time n depends only on the input up to time n. *)
 Definition causal {U:Type} {Y:Type}
@@ -86,18 +205,18 @@ Definition causal' {U:Type} {Y:Type}
 
 
 (* A behaviour is strictly causal if the output up to time n depends only on the input before time n. *)
-Definition strictly_causal {U:Type} {Y:Type}
-  (b : @Behaviour U Y) : Prop :=
-   forall u u' : nat -> U, forall n:nat, (forall m:nat, m < n -> u m = u' m)
-       -> (forall m:nat, m <= n -> (b u) m = (b u') m)
+Definition strictly_causal {U Y : Type} 
+    (b : Behaviour U Y) : Prop :=
+  forall u u' : Tr U, forall n:nat, 
+    u |<n |≡ u' -> b u |≤n |≡ b u'
 .
 
 (* A weaker definition of strict causality which turns out to be equivalent. *)
 (* A behaviour is struct causal if the output at time n depends only on the input up to time n. *)
-Definition strictly_causal' {U:Type} {Y:Type}
-  (b : @Behaviour U Y) : Prop :=
-   forall u u' : nat -> U, forall n:nat, (forall m:nat, m < n -> u m = u' m)
-       -> (b u) n = (b u') n
+Definition strictly_causal' {U Y : Type}
+    (b : Behaviour U Y) : Prop :=
+  forall u u' : Tr U, forall n:nat, 
+      u |<n |≡ u' -> b u n = b u' n
 .
 
 (* Show that the two definitions of causality are actually equivalent. *)
@@ -153,27 +272,12 @@ Proof.
 Qed.
 
 (* A behaviour is causal if the output up to time n depends only on the input up to time n. *)
-Definition old_mixed_causal {UA UD Y : Type}
-  (b : @Behaviour (UA*UD) Y)
-  : Prop :=
-    forall (ua ua':nat->UA) (ud ud':nat->UD) (n:nat),
-      (forall m0:nat, m0 <= n -> ua m0 = ua' m0) ->
-      (forall m1:nat, m1 < n -> ud m1 = ud' m1) ->
-      (forall m0:nat, m0 <= n ->
-        (b (fun k => (ua k, ud k))) m0 =
-        (b (fun k => (ua' k, ud' k))) m0)
-.
 
-Definition mixed_causal {UA UD Y : Type}
-  (b : @Behaviour (UA*UD) Y)
-  : Prop :=
-    forall (u u':nat->UA*UD) (n:nat),
-      (forall m0:nat, m0 <= n -> fst (u m0) = fst (u' m0)) ->
-      (forall m1:nat, m1 < n -> snd (u m1) = snd (u' m1)) ->
-      (forall m0:nat, m0 <= n ->
-        (b u m0 = b u' m0))
-.
-
+Definition mixed_causal {UA UD Y}
+   (b : Behaviour (UA*UD) Y) : Prop :=
+  forall (u u':Tr (UA*UD)) (n:nat),
+    let (ua,ud):=unzip u in let (ua',ud'):=unzip u' in
+      ua |≤n |≡ ua' -> ud |<n |≡ ud' -> b u |≤n |≡ b u'.
 
 (* Weaker definition *)
 Definition old_mixed_causal' {UA UD Y : Type}
@@ -227,10 +331,10 @@ Proof.
 Qed.
 
 
-Definition extensional {U Y : Type} (b : @Behaviour U Y) :=
+Definition extensional {U Y : Type} (b : Behaviour U Y) :=
   forall u u', u ≡ u' -> b u ≡ b u'.
 
-Lemma strictly_causal_behaviour_extensional {U Y} : forall (b :@Behaviour U Y),
+Lemma strictly_causal_behaviour_extensional {U Y} : forall (b : Behaviour U Y),
   strictly_causal b -> extensional b.
 Proof.
   unfold strictly_causal, extensional.
@@ -239,7 +343,7 @@ Proof.
 Qed.
 
 
-Lemma mixed_causal_behaviour_extensional {UA UD Y} : forall (b : @Behaviour (UA*UD) Y),
+Lemma mixed_causal_behaviour_extensional {UA UD Y} : forall (b : Behaviour (UA*UD) Y),
   mixed_causal b -> extensional b.
 Proof.
   unfold mixed_causal, extensional.
