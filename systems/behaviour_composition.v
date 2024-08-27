@@ -121,13 +121,19 @@ Proof.
   specialize (Hcompb12 u). specialize (Hcompb12' u).
   unfold unzip in Hcompb12, Hcompb12'.
 
+(*
+  destruct (unzip_eq u) as [ua ud [[Eua Eud] Euad]].
+  destruct (unzip_eq (b12 u)) as [y1 y2 [[Ey1 Ey2] _]].
+  destruct (unzip_eq (b12' u)) as [y1' y2' [[Ey1' Ey2'] _]].
+*)
+
   remember (fun k => fst (u k)) as ua eqn:Eua.
   remember (fun k => snd (u k)) as ud eqn:Eud.
   remember (fun k => fst (b12 u k)) as y1 eqn:Ey1.
   remember (fun k => snd (b12 u k)) as y2 eqn:Ey2.
   remember (fun k => fst (b12' u k)) as y1' eqn:Ey1'.
   remember (fun k => snd (b12' u k)) as y2' eqn:Ey2'.
-  
+
   destruct Hcompb12 as [Hy1 Hy2].
   destruct Hcompb12' as [Hy1' Hy2'].
 
@@ -205,45 +211,16 @@ Proof.
   (* Step 7 Unzip outputs  *)
   intros n.
   apply injective_projections.
-   - specialize (H1 n).
+  - specialize (H1 n).
     rewrite -> Ey1 in H1.
     rewrite -> Ey1' in H1.
     exact H1.
-   - specialize (H2 n).
+  - specialize (H2 n).
     rewrite -> Ey2 in H2.
     rewrite -> Ey2' in H2.
     exact H2.
 Qed.
 
-(*
-Theorem composed_mixed_causal_behaviour_unique'
-  {UA UD Y1 Y2 : Type} :
-  forall (b1 : @Behaviour ((UA*(UD*Y2))) Y1)
-         (b2 : @Behaviour (((UA*Y1)*UD)) Y2)
-         (b12 b12' : @Behaviour (UA*UD) (Y1*Y2)),
-           mixed_causal b1 ->
-           mixed_causal b2 ->
-           is_composed_behaviour b1 b2 b12 ->
-           is_composed_behaviour b1 b2 b12'
-             -> b12 = b12'.
-Proof.
-  intros b1 b2 b12 b12' Hmcb1 Hmcb2 Hb12 Hb12'.
-  apply functional_extensionality. intro u.
-  apply functional_extensionality. intro n.
-  apply (composed_mixed_causal_behaviour_unique b1 b2 _ _ Hmcb1 Hmcb2 Hb12 Hb12').
-Qed.
-*)
-
-
-Lemma pair_equal_fst_snd T1 T2 : forall (p1 p2 : T1*T2), (fst p1 = fst p2) -> (snd p1 = snd p2) -> p1 = p2.
-Proof.
-  intros p1 p2. intros Hfst Hsnd.
-  destruct p1 as (p1fst,p1snd).
-  destruct p2 as (p2fst,p2snd).
-  f_equal.
-  exact Hfst.
-  exact Hsnd.
-Qed.
 
 Theorem behaviour_composition_mixed_causal {UA UD Y1 Y2} :
   forall b1 b2 (b12 : @Behaviour (UA*UD) (Y1*Y2)),
