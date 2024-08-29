@@ -225,7 +225,7 @@ Definition compose_behaviours {UA UD Y1 Y2} (y1_default : Y1)
 
 
 
-Theorem mixed_causal_composed {UA UD Y1 Y2} (y1d : Y1) :
+Theorem compose_mixed_causal_behaviours_correct {UA UD Y1 Y2} (y1d : Y1) :
   forall (b1 : Behaviour (UA*(UD*Y2)) Y1) 
          (b2 : Behaviour ((UA*Y1)*UD) Y2),
     mixed_causal b1 -> mixed_causal b2 ->
@@ -292,7 +292,7 @@ Proof.
   intros b1 b2 Hb1 Hb2.
   set (b12 := compose_behaviours y1_default b1 b2).
   apply (behaviour_composition_mixed_causal b1 b2 b12 Hb1 Hb2).
-  now apply (mixed_causal_composed _ _ _ Hb1 Hb2).
+  now apply (compose_mixed_causal_behaviours_correct _ _ _ Hb1 Hb2).
 Qed.
 
   
@@ -666,11 +666,11 @@ Proof.
   assert (mixed_causal pb1) as Hcpb1. { 
     apply mixed_causal_preprocess1. exact Hcb1. }
   assert (is_composed_behaviour pb1 b2 b12) as Hpb12. {
-    apply mixed_causal_composed. exact Hcpb1. exact Hcb2. }
+    apply compose_mixed_causal_behaviours_correct. exact Hcpb1. exact Hcb2. }
   assert (mixed_causal b12) as Hcb12. {
     exact (behaviour_composition_mixed_causal pb1 b2 b12 Hcpb1 Hcb2 Hpb12). }
   assert (is_composed_behaviour b12 b3 b123) as Hb123. {
-    apply mixed_causal_composed. exact Hcb12. exact Hcb3. }
+    apply compose_mixed_causal_behaviours_correct. exact Hcb12. exact Hcb3. }
   unfold is_three_composed_behaviours.
   unfold is_composed_behaviour in Hpb12, Hb123.
   intros ua ud.
@@ -746,11 +746,11 @@ Proof.
   assert (mixed_causal pb3) as Hcpb3. { 
     apply mixed_causal_preprocess3. exact Hcb3. }
   assert (is_composed_behaviour b2 pb3 b23) as Hpb23. {
-    apply mixed_causal_composed. exact Hcb2. exact Hcpb3. }
+    apply compose_mixed_causal_behaviours_correct. exact Hcb2. exact Hcpb3. }
   assert (mixed_causal b23) as Hcb23. {
     exact (behaviour_composition_mixed_causal b2 pb3 b23 Hcb2 Hcpb3 Hpb23). }
   assert (is_composed_behaviour b1 b23 b123) as Hb123. {
-    apply mixed_causal_composed. exact Hcb1. exact Hcb23. }
+    apply compose_mixed_causal_behaviours_correct. exact Hcb1. exact Hcb23. }
   unfold is_three_composed_behaviours.
   unfold is_composed_behaviour in Hpb23, Hb123.
   intros ua ud.
@@ -876,17 +876,17 @@ Proof.
   set (b23' := compose_behaviours y2d b2 pb3).
   set (b123' := compose_behaviours y1d b1 b23').
   assert (is_composed_behaviour pb1 b2 b12) as Hb12. {
-    apply mixed_causal_composed. exact Hmcpb1. exact Hmcb2. }
+    apply compose_mixed_causal_behaviours_correct. exact Hmcpb1. exact Hmcb2. }
   assert (mixed_causal b12) as Hmcb12. {
     exact (behaviour_composition_mixed_causal pb1 b2 b12 Hmcpb1 Hmcb2 Hb12). }
   assert (is_composed_behaviour b12 b3 b123) as Hb123. {
-    apply mixed_causal_composed. exact Hmcb12. exact Hmcb3. }
+    apply compose_mixed_causal_behaviours_correct. exact Hmcb12. exact Hmcb3. }
   assert (is_composed_behaviour b2 pb3 b23') as Hb23'. {
-    apply mixed_causal_composed. exact Hmcb2. exact Hmcpb3. }
+    apply compose_mixed_causal_behaviours_correct. exact Hmcb2. exact Hmcpb3. }
   assert (mixed_causal b23') as Hmcb23'. {
     exact (behaviour_composition_mixed_causal b2 pb3 b23' Hmcb2 Hmcpb3 Hb23'). }
   assert (is_composed_behaviour b1 b23' b123') as Hb123'. {
-    apply mixed_causal_composed. exact Hmcb1. exact Hmcb23'. }
+    apply compose_mixed_causal_behaviours_correct. exact Hmcb1. exact Hmcb23'. }
   assert (mixed_causal b123) as Hmcb123. { 
     exact (behaviour_composition_mixed_causal b12 b3 b123 Hmcb12 Hmcb3 Hb123). }
   assert (mixed_causal b123') as Hmcb123'. { 
@@ -931,20 +931,20 @@ Proof.
   assert (mixed_causal pb3) as Hcpb3. { apply mixed_causal_preprocess3. exact Hcb3. }
   set (b23 := compose_behaviours y2_default b2 pb3).
   assert (is_composed_behaviour b2 pb3 b23) as Hb23. {
-    apply mixed_causal_composed. exact Hcb2. exact Hcpb3. }
+    apply compose_mixed_causal_behaviours_correct. exact Hcb2. exact Hcpb3. }
   assert (mixed_causal b23) as Hcb23. {
     apply (behaviour_composition_mixed_causal b2 pb3). exact Hcb2. exact Hcpb3. exact Hb23. }
   set (b1_23 := compose_behaviours y1_default b1 b23).
   assert (is_composed_behaviour b1 b23 b1_23) as Hb1_23. {
-    apply mixed_causal_composed. exact Hcb1. exact Hcb23. }
+    apply compose_mixed_causal_behaviours_correct. exact Hcb1. exact Hcb23. }
   set (b12 := compose_behaviours y1_default pb1 b2).
   assert (is_composed_behaviour pb1 b2 b12) as Hb12. {
-    apply mixed_causal_composed. exact Hcpb1. exact Hcb2. }
+    apply compose_mixed_causal_behaviours_correct. exact Hcpb1. exact Hcb2. }
   assert (mixed_causal b12) as Hcb12. {
     apply (behaviour_composition_mixed_causal pb1 b2). exact Hcpb1. exact Hcb2. exact Hb12. }
   set (b12_3 := compose_behaviours (y1_default,y2_default) b12 b3).
   assert (is_composed_behaviour b12 b3 b12_3) as Hb12_3. {
-    apply mixed_causal_composed. exact Hcb12. exact Hcb3. }
+    apply compose_mixed_causal_behaviours_correct. exact Hcb12. exact Hcb3. }
   assert (forall u, b12_3 u ≡ postprocess b1_23 u) as Hb123p. {
     apply compose_behaviours_associative.
     exact Hcb1. exact Hcb2. exact Hcb3.
@@ -966,7 +966,7 @@ Proof.
   - intros H.
     exists b23.
     split.
-    -- apply mixed_causal_composed. exact Hcb2. exact Hcpb3.
+    -- apply compose_mixed_causal_behaviours_correct. exact Hcb2. exact Hcpb3.
     -- destruct H as [b12' [Hb12' Hb123']].
        assert (forall u n, b12 u n = b12' u n) as Hb12e. {
          exact (composed_mixed_causal_behaviour_unique pb1 b2 b12 b12' Hcpb1 Hcb2 Hb12 Hb12'). }
@@ -992,7 +992,7 @@ Proof.
   - intros H.
     exists b12.
     split.
-    -- apply mixed_causal_composed. exact Hcpb1. exact Hcb2.
+    -- apply compose_mixed_causal_behaviours_correct. exact Hcpb1. exact Hcb2.
     -- destruct H as [b23' [Hb23' Hb123']].
        assert (forall u n, b23 u n = b23' u n) as Hb23e. {
          exact (composed_mixed_causal_behaviour_unique b2 pb3 _ _ Hcb2 Hcpb3 Hb23 Hb23'). }
@@ -1019,4 +1019,6 @@ Proof.
        }
        exact (is_composed_behaviour_output_extensional b12 b3 b12_3 b123 Hcb12 Hcb3 Hb123e Hb12_3).
 Qed.
+
+
 

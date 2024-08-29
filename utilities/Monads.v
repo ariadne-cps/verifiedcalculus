@@ -58,29 +58,72 @@ Class Monad (M : Type -> Type) :=
 Definition compose {A B C : Type} (g : B -> C) (f : A -> B) : A -> C
   := fun (a:A) => g (f a).
 
-Theorem Mlift_associative : forall {M} {MonadM : Monad M} {A:Type} {B:Type} {C:Type} (a : M A) (f:A->B) (g:B->C),
-  Mlift g (Mlift f a) = Mlift (compose g f) a.
+Lemma Mlift_identity {M} {_ : Monad M} {X : Type} :
+  Mlift (fun (x : X) => x) = (fun (x : M X) => x).
 Proof.
-  intros M MonadM A B C. intros a f g.
   unfold Mlift.
-  rewrite -> Massociativity.
-  f_equal.
-  apply functional_extensionality.
-  intro x.
-  rewrite -> Mleft_identity.
-  unfold compose.
-  reflexivity.
+  apply functional_extensionality; intro A.
+  now rewrite -> Mright_identity.
 Qed.
 
-Lemma Mlift_identity {M} {_ : Monad M}: forall {A : Type},
-  Mlift (fun (x : A) => x) = (fun (x : M A) => x).
-Proof.
-  intros A.
-  unfold Mlift.
-  apply functional_extensionality. intros al.
-  rewrite -> Mright_identity.
-  reflexivity.
+
+Lemma Mbind_extensional {M} {_ : Monad M} {X Y : Type} :
+  forall (A : M X) (F F' : X -> M Y),
+    (forall x, F x = F' x) -> Mbind F A = Mbind F' A.
+Proof. 
+  intros A F F' H.
+  f_equal.
+  apply functional_extensionality; intro x. 
+  exact (H x). 
 Qed.
+
+Lemma Mlift_extensional {M} {_ : Monad M} {X Y : Type} : 
+  forall (A : M X) (f f' : X -> Y),
+    (forall x, f x = f' x) -> Mlift f A = Mlift f' A.
+Proof. 
+  intros A f f' H.
+  f_equal.
+  apply functional_extensionality; intro x. 
+  exact (H x). 
+Qed.
+
+
+Lemma Mbind_associative {M} {_ : Monad M} {X Y Z : Type} :
+  forall (G : Y -> M Z) (F : X -> M Y) (A : M X),
+    Mbind G (Mbind F A) = Mbind (fun x => Mbind G (F x)) A.
+Proof.
+  intros G F A. 
+  now apply Massociativity.
+Qed.
+
+Lemma Mlift_associative {M} {_ : Monad M} {X Y Z : Type} :
+  forall (g : Y -> Z) (f : X -> Y) (A : M X),
+    Mlift g (Mlift f A) = Mlift (compose g f) A.
+Proof.
+  intros g f A. unfold Mlift. 
+  rewrite -> Massociativity; unfold compose.
+  apply Mbind_extensional; intro x.
+  now rewrite -> Mleft_identity.
+Qed.
+
+Lemma Mlift_bind_associative {M} {_ : Monad M} {X Y Z : Type} : 
+  forall (A : M X) (F : X -> M Y) (g : Y -> Z),
+    Mlift g (Mbind F A) = Mbind (fun x => Mlift g (F x)) A.
+Proof. 
+  intros. unfold Mlift. 
+  now apply Massociativity. 
+Qed.
+
+Lemma Mbind_lift_associative {M} {_ : Monad M} {X Y Z : Type} : 
+  forall (A : M X) (f : X -> Y) (G : Y -> M Z),
+    Mbind G (Mlift f A) = Mbind (compose G f) A.
+Proof. 
+  intros. unfold Mlift. 
+  rewrite -> Massociativity; unfold compose. 
+  apply Mbind_extensional; intro x. 
+  now rewrite -> Mleft_identity. 
+Qed.
+
 
 Lemma Mfunctorial_compose {M} {_ : Monad M}  : forall {A B C : Type} (f : A -> B) (g : B -> C),
   Mfunctor_map (fun x => g (f x))
@@ -178,6 +221,9 @@ Proof.
   rewrite -> Mleft_identity.
   reflexivity.
 Qed.
+
+Definition Mleft_skew {M} {MonadM : Monad M} {A B : Type} (nu : B -> M A) (mu : M B) : M (prod A B) :=
+  Mbind( fun (b : B) => ( Mlift (fun (a : A) => (pair a b)) (nu b) ) ) mu.
 
 Definition Mright_skew {M} {MonadM : Monad M} {A B : Type} (mu : M A) (nu : A -> M B) : M (prod A B) :=
   Mbind( fun (a : A) => ( Mlift (fun (b : B) => (pair a b)) (nu a) ) ) mu.
