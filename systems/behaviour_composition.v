@@ -100,7 +100,6 @@ Proof.
 Qed.
 
 
-
 (* The composition of two mixed causal behaviours should be unique. *)
 Theorem composed_mixed_causal_behaviour_unique
   {UA UD Y1 Y2 : Type} :

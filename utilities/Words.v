@@ -108,6 +108,9 @@ Definition Wrds (X : Type) := forall n, Wrd n X.
 Definition null_wrd {X : Type} : Wrd 0 X :=
   fun k => match PeanoNat.Nat.nlt_0_r k.(val 0) k.(val_lt 0) with end.
 
+Definition unit_wrd {X : Type} (x0 : X) : Wrd 1 X :=
+  fun kp => x0.
+
 Lemma wrd_at : forall {X} {n:nat} (x : Wrd n X) (k1 k2 : Ordinal n),
   k1.(val n) = k2.(val n) -> x k1 = x k2.
 Proof.
