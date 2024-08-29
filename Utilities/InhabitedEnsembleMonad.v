@@ -48,11 +48,13 @@ Require Export EnsembleMonad.
 
 Section EnsembleMonads.
 
-Record InhabitedEnsemble {A:Type} : Type :=
+Record InhabitedEnsemble (A:Type) : Type :=
 {
   ensmbl :> Ensemble A;
   ensmbl_inhabited : inhabited ensmbl;
 }.
+Arguments ensmbl {A}.
+Arguments ensmbl_inhabited {A}.
 
 Lemma singleton_inhabited : forall {X : Type} (x : X), inhabited (singleton x).
 Proof. intros X x. unfold inhabited, singleton. exists x. reflexivity. Qed.
@@ -590,11 +592,28 @@ Proof.
   symmetry. apply image_singleton_apply.
 Qed.
 
+Theorem inhabited_ensemble_monad_preserves_constants :
+  preserves_constants (InhabitedEnsemble_Monad).
+Proof.
+  unfold preserves_constants.
+  intros X Y A B.
+Check inhabited_ensemble_eq.
+  apply inhabited_ensemble_eq.
+  destruct A as [A HA].
+  destruct B as [B HB].
+  unfold Mbind. simpl. unfold image.
+  apply functional_extensionality. intro y.
+  apply propositional_extensionality.
+  split.
+  - intros Hx. destruct Hx as [x [HAx HBy]]. tauto. 
+  - intros HBy. destruct HA as [x Hx]. exists x. tauto.
+Qed.
+
 Theorem inhabited_ensemble_monad_fst_skew_product_is_id :
-  fst_skew_product_is_id (@InhabitedEnsemble) (InhabitedEnsemble_Monad).
+  @fst_skew_product_is_id (@InhabitedEnsemble) (InhabitedEnsemble_Monad).
 Proof.
   unfold fst_skew_product_is_id.
-  intros X F' n An'.
+  intros X Y F' An'.
   destruct An' as [An HAn].
   unfold Mright_skew, Mlift.
   unfold Mbind, Mpure.
@@ -613,7 +632,7 @@ Proof.
     rewrite -> Hwx' in Hw. simpl in Hw.
     rewrite <- Hw in Aw'. exact Aw'.
   - intro HAw.
-    set (Fw' := F' n w).
+    set (Fw' := F' w).
     set (Fw := ensmbl Fw').
     set (HFw := ensmbl_inhabited Fw').
     destruct (HFw) as [x Hx].
@@ -633,7 +652,7 @@ Theorem inhabited_ensemble_monad_has_infinite_skew_product :
   has_infinite_skew_product (@InhabitedEnsemble) (InhabitedEnsemble_Monad).
 Proof.
   apply inverse_limits_imply_skew_products.
-  exact inhabited_ensemble_monad_fst_skew_product_is_id.
+  exact inhabited_ensemble_monad_preserves_constants.
   exact inhabited_ensemble_monad_has_inverse_limits.
 Qed.
 

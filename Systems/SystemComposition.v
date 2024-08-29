@@ -352,3 +352,4 @@ Proof.
   - exact Hb12.
   - apply composed_system_behaviour.
 Qed.
+

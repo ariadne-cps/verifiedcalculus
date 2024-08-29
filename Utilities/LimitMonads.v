@@ -45,6 +45,12 @@ Definition has_inverse_limits (M : Type -> Type) (MonadM : Monad M) := forall (X
    (A : forall (n: nat), M (Wrd n X)), is_inverse_sequence A -> 
     sig (fun Ainf : M (Seq X) => is_inverse_limit A Ainf).
 
+Definition unique_inverse_limits (M : Type -> Type) (MonadM : Monad M) := forall (X:Type)
+   (A : forall (n: nat), M (Wrd n X)) (Alim Alim' : M (Seq X)),
+     is_inverse_sequence A ->
+       is_inverse_limit A Alim -> 
+       is_inverse_limit A Alim' ->
+         Alim = Alim'.
 
 
 Definition wlcons {X : Type} : forall n, (Wrd n X * X) -> Wrd (S n) X :=
@@ -57,7 +63,12 @@ Proof.
   rewrite -> restr_at.
   unfold wlcons. simpl.
   apply cat_tail.
-Qed.  
+Qed.
+
+
+Definition preserves_constants
+  {M : Type -> Type} (Monad_M : Monad M) : Prop :=
+    forall (X Y : Type) (A : M X) (B : M Y), Mbind (fun _ => B) A = B.
 
 
 Definition is_infinite_skew_product {M : Type -> Type} {_ : Monad M} {X : Type}
@@ -83,13 +94,45 @@ Definition skew_products {M} {MonadM : Monad M} {X}
     nat_rect _ (Mpure null_wrd)
       (fun m A => Mlift (wlcons m) (Mright_skew A (F m))) n.
 
-Definition fst_skew_product_is_id (M : Type -> Type) (MonadM : Monad M) :=
+
+Definition fst_skew_product_is_id {M : Type -> Type} (MonadM : Monad M) :=
+  forall (X Y : Type) (F : X -> M Y) (A : M X), 
+    Mlift (fst) (Mright_skew A F) = A.
+
+Lemma preserves_constants_implies_fst_skew_product_is_id
+    {M : Type -> Type} (MonadM : Monad M) : 
+  (preserves_constants MonadM) ->
+    fst_skew_product_is_id MonadM.
+Proof.
+  intros Hpc X Y F A.
+  unfold preserves_constants in Hpc.
+  unfold Mright_skew.
+  unfold Mlift.
+  rewrite -> Massociativity.
+  transitivity (Mbind (fun a => Mpure a) A).
+  - f_equal. apply functional_extensionality. intro a.
+    unfold Mlift.
+    rewrite -> Massociativity.
+    transitivity (Mbind (fun b => Mpure a) (F a)).
+    -- f_equal. apply functional_extensionality. intro b.
+       now rewrite -> Mleft_identity.
+    -- now apply Hpc.
+  - now rewrite -> Mright_identity.
+Qed.
+
+
+Definition fst_skew_word_product_is_id (M : Type -> Type) (MonadM : Monad M) :=
   forall (X : Type) (F : forall n, Wrd n X -> M X), forall n An, Mlift (fst) (Mright_skew An (F n)) = An.
 
+
 Proposition inverse_limits_imply_skew_products (M : Type -> Type) (MonadM : Monad M) :
-  fst_skew_product_is_id M MonadM -> has_inverse_limits M MonadM -> has_infinite_skew_product M MonadM.
+  preserves_constants MonadM -> has_inverse_limits M MonadM -> has_infinite_skew_product M MonadM.
 Proof.
-  intros Hs Hi. intros X F.
+  intros Hc Hi. intros X F.
+  assert (fst_skew_product_is_id MonadM) as Hs. {
+    apply preserves_constants_implies_fst_skew_product_is_id.
+    exact Hc.
+  }
   set (A := skew_products F).
   assert (forall n, Mlift (restr n (PeanoNat.Nat.le_succ_diag_r n)) (A (S n)) = A n) as HSA. {
     intro n. 
