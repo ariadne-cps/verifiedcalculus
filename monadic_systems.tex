@@ -1,0 +1,162 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage{amsmath,amsfonts,amsthm}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem*{lemma*}{Lemma}
+\theoremstyle{remark}
+\newtheorem*{definition*}{Definition}
+
+\newcommand{\pure}{\delta}
+\newcommand{\bind}{\beta}
+\newcommand{\lift}{\lambda}
+\renewcommand{\skew}{\sigma}
+\newcommand{\scnj}{\gamma}
+
+\newcommand{\N}{\mathbb{N}}
+
+\newcommand{\U}{\mathbb{U}}
+\newcommand{\X}{\mathbb{X}}
+\newcommand{\Y}{\mathbb{Y}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\M}{\mathcal{M}}
+
+\newcommand{\hx}{\hat{x}}
+\newcommand{\hy}{\hat{y}}
+%\newcommand{\hy12}{\hat{y}_{12}}
+
+\newcommand{\p}{\pi}
+\newcommand{\pr}{\p_{\downarrow}}
+
+\newcommand{\nullW}{\mathrm{null}}
+\newcommand{\unitW}{\mathrm{unit}}
+\newcommand{\conjW}{\mathrm{conj}}
+\newcommand{\lastW}{\mathrm{last}}
+
+\begin{document}
+
+\begin{definition*}[Monad Operators]
+\[ \begin{aligned}
+&\pure : X \to \M\X \\
+&\bind : (X \to \M\Y) \to \M\X \to \M\Y \\
+&\lift : (X \to \Y) \to \M\X \to \M\Y \\
+&\skew : (X \to \M\Y) \to \M\X \to \M(\X\times\Y) \\[2\jot]
+&\bind\ F\ (\pure\ x) = F\ x .\\
+&\bind\ \pure\ A = A . \\
+&\bind\ G\ (\bind\ F\ A) = \bind (x \mapsto \bind\ G\ (F\ x))\ A. \\[\jot]
+&\lift\ f\ A := \bind\ (x \mapsto \pure\ (f\ x))\ A. \\
+&\bind\ G\ (\lift\ f\ A) = \bind (G \circ f)\ A \\
+&\lift\ g\ (\lift\ f\ A) = \lift (g \circ f)\ A \\
+&\lift\ g\ (\bind\ F\ A) = \bind (x \to \lift\ g\ (F\ x))\ A. \\[\jot]
+&\skew\ F\ A := \bind\ \bigl(x \mapsto \lift\ (y \mapsto \langle x,y\rangle)\ (F\ x)\bigr)\ A.
+\end{aligned} \]
+\end{definition*}
+
+\begin{definition*}[Behaviour-theoretic operators]
+\[ \begin{aligned}
+&\scnj: (\X\to\M\X) \to \M\X^{n+1} \to \X^{n+2} \\
+&\scnj\ F\ A \to \bind \bigl( x_* \to \lift\;(x \to \conjW\ x_*\ x)\;(F\ (\lastW\ x_*)) \bigr)\ A. \\[2\jot]
+&T\ (f:\X\times\U\to\M\X)\ (e:\M\X)\ (u:\U^0) = \lift\ \mathrm{unit}\ e : \M\X^{1}; \\
+&T\ (f:\X\times\U\to\M\X)\ (e:\M\X)\ (u:\U^{n+1}) = \skew\ ((x\mapsto f\ x\ u[n])\circ l)\ (T\ f\ e\ (\pr u)) : \M\X^{n+2} . \\[2\jot]
+&S\ (h:X\times\U\to\Y)\ (x:X^n)\ (u:\U^n) = (k \mapsto h\ x[k]\ u[k]) : \Y^n . \\[2\jot]
+&B\ (f:\X\times\U\to\M\X)\ (h:X\times\U\to\Y)\ (e:\M\X)\ (u:\U^{n+1}) = \\ & \qquad \lift\ (\tilde{x}\to S\ h\ \tilde{x}\ u)\ (T\ f\ e\ (\pr u)) : \M\Y^{n+1}.
+\end{aligned} \]
+\end{definition*}
+
+
+\begin{definition*}[System composition]
+\[ \begin{aligned}
+& f_1 : \X_1 \times \Y_2 \to \M\X_1; \quad h_1:\X_1\to\Y_1; \quad e_1:\M\X_1 \\
+& f_2 : \X_2 \times \Y_1 \to \M\X_2; \quad h_2:\X_2\times\Y_1\to\Y_2; \quad e_2:\M\X_2 \\[3\jot]
+& e_{12} := e_1 \times e_2 : \M(\X_1\times\X_2) \\
+& h_{12} := (x_1,x_2) \mapsto (h_1(x_1),h_2(x_2,h_1(x_1))) : \X_1\times\X_2 \to \Y_1\times \Y_2 ; \\
+& f_{12} := (x_1,x_2) \mapsto f_1(x_1,h_2(x_2,h_1(x_1))) \times f_2(x_2,h_1(x_1)) : (\X_1\times\X_2) \to \M(\X_1\times\X_2)  \\[\jot]
+& f_{12} := (x_1,x_2) \mapsto \begin{aligned}[t] &[y_1:=h_1(x_1);\ y_2:=h_2(x_2,y_1)] f_1(x_1,y_2) \times f_2(x_2,y_1) \\ & \qquad : (\X_1\times\X_2) \to \M(\X_1\times\X_2) \end{aligned} \\[\jot]
+& f_{1}' := (x_1,x_2) \mapsto [y_1:=h_1(x_1)] f_1(x_1,y_1) : (\X_1\times\X_2) \to \M\X_1 \\
+& f_{2}' := (x_1,x_2) \mapsto [y_2:=h_2(x_2,h_1(x_1)] f_2(x_2,y_2) : (\X_1\times\X_2) \to \M\X_2 \\[\jot]
+\end{aligned} \]
+\end{definition*}
+
+\begin{definition*}[Composed behaviour]
+\[ \begin{gathered}
+B_1 : \Y_2^n \to \M\Y_1^{n+1} ; \qquad B_2 : \Y_1^{n+1} \to \M\Y_2 ^{n+1};
+\\ B_{12} : (n:\N) \to \M (\Y_1\times\Y_2)^{n+1} . \\
+\\ B_{12} : \M (\Y_1\times\Y_2)^{\omega} . \\[\jot]
+\hy_{12} := B_{12}; \quad \hy_1 := p_1 \hy_{12}; \quad \hy_2 := p_2 \hy_{12} \\[\jot]
+\skew (B_1 \circ \pr)\ (\lift\;(p_2\circ\pi_{\leq n})\;\hy_{12}) = \lift\ \pi_{\leq n}\ \hy_{12}; \\
+\skew\ (\lift\;(p_2\circ \pi_{\leq n})\;\hy_{12})\ (B_2) = \lift\ \pi_{\leq n}\  \hy_{12} \\
+\skew (B_1 \circ \pr)\ (\lift\;(p_2\circ\pi_{\leq n})\;\hy_{12}) = \lift\ \pi_{\leq n}\ \hy_{12}; \\
+\skew\ (B_1 \circ \pr)\ (\hy_{2;\leq n}) = \hy_{12;\leq n} \ \wedge \
+\skew\ (\hy_{1;\leq n})\  (B_2) = \hy_{12;\leq n} \\[2\jot]
+\bind\ (B_1)\ (\hy_{2;< n}) = \hy_{1;\leq n} \ \wedge \
+\bind\ (B_2)\ (\hy_{1;\leq n}) = \hy_{2;\leq n}
+\end{gathered}\]
+\end{definition*}
+
+
+\[ \nullW\U:\U^0; \quad \unitW\ u : \U^1 . \]
+
+\newpage
+
+\newcommand{\my}[1]{\hat{y}_{#1}}
+\renewcommand{\b}[1]{b_{#1}}
+\newcommand{\restrprec}{\pi_{\downarrow}}
+
+\begin{lemma*}
+$n=0:\ \bind \b1 (\lift \restrprec \my2) = \my1$
+\end{lemma*}
+\begin{proof}
+\begin{eqnarray*}
+\bind b_1 (\lift \restrprec \hy_2)
+  &=& \bind b_1 ( \lift \restrprec (\lift p_2 \hy_{12}) ) \\
+  &=& \bind b_1 ( \pure (\nullW {Y_2}) ) \\
+  &=& b_1 (\nullW {Y_2}) \\
+  &=& \lift s_1 (\lift \unitW e_1) \\
+  &=& \lift (s_1 \circ \unitW) e_1 \\
+  &=& \lift (\unitW \circ h_1) e_1 \\
+\hy_1
+  &=& \lift p_1 \hy_{12} \\
+  &=& \lift p_1 (\lift s_{12} \hx_{12}) \\
+  &=& \lift p_1 (\lift s_{12} (\lift \unitW (e1 \times e2))) \\
+%
+%  &=& \bind b_1 ( \lift \restrprec (\lift p_2 \hy_{12}) ) \\
+%  &=& \bind b_1 ( \lift \restrprec (\lift p_2 (\lift h_{12} \hx_{12}) )
+\end{eqnarray*}
+\end{proof}
+
+\newpage
+
+\begin{lemma*}
+$\lift\ \pi_0\ (\lift\ p_1\ \hy_{12}) = \lift\ \unitW\ e_1$.
+\end{lemma*}
+\begin{proof}
+\begin{eqnarray*}
+\lift \pi_0 (\lift p_1 \hy_{12})
+  &=& \lift \pi_0 (\lift p_1 (\lift S_{12} \hx_{12})) \\
+  &=& \lift (\pi_0 \circ p_1 \circ S_{12}) \hx_{12} \\
+  &=& \lift (p_1 \circ S_{12} \circ \pi_0) \hx_{12} \\
+  &=& \lift (p_1 \circ S_{12})\ (\lift\ \pi_0\ \hx_{12}) \\
+  &=& \lift (p_1 \circ S_{12})\ (\lift\ \unitW\ e_{12}) \\
+  &=& \lift (p_1 \circ S_{12}\circ\unitW) e_{12} \\
+  &=& \lift (\unitW \circ p_1 \circ h_{12}) e_{12} \\
+  &=& \lift \unitW (\lift (p_1 \circ h_{12}) e_{12}) \\
+  &=& \lift \unitW (\lift (h_1 \circ p_1) e_{12}) \\
+  &=& \lift \unitW (\lift (h_1 \circ p_1) (e_1\times e_2)) \\
+  &=& \lift \unitW (\lift h_1 (\lift p_1 (e_1\times e_2))) \\
+  &=& \lift \unitW (\lift h_1 e_1)) \\
+  &=& \lift S_1 (T_1 (\nullW\U))))
+\end{eqnarray*}
+\end{proof}
+
+\begin{lemma*}
+\end{lemma*}
+\begin{proof}
+\begin{eqnarray*}
+\lift \pi_1 (\lift p_1 \hy_{12})
+  &=& \bind (y_2 \mapsto B_1 (\pi_0 y_2)) (\lift p_2 \hy_{12}) \\
+  &=& \bind (B_1) (\lift (\pi_0\circ p_2)\hy_{12}) \\
+  &=& \bind B_1 \bigl(\lift\;(x_{12} \mapsto \unitW\ (h_2 x_2 (h_1 x_1)))\;(e_1\times e_2) \bigr) \\[2\jot]
+\end{eqnarray*}
+\end{proof}
+
+\end{document}
