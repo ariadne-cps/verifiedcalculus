@@ -58,10 +58,18 @@
 &\scnj\ F\ A \to \bind \bigl( x_* \to \lift\;(x \to \conjW\ x_*\ x)\;(F\ (\lastW\ x_*)) \bigr)\ A. \\[2\jot]
 &T\ (f:\X\times\U\to\M\X)\ (e:\M\X)\ (u:\U^0) = \lift\ \mathrm{unit}\ e : \M\X^{1}; \\
 &T\ (f:\X\times\U\to\M\X)\ (e:\M\X)\ (u:\U^{n+1}) = \skew\ ((x\mapsto f\ x\ u[n])\circ l)\ (T\ f\ e\ (\pr u)) : \M\X^{n+2} . \\[2\jot]
-&S\ (h:X\times\U\to\Y)\ (x:X^n)\ (u:\U^n) = (k \mapsto h\ x[k]\ u[k]) : \Y^n . \\[2\jot]
+&S\ (h:X\times\U\to\Y)\ (x:\X^n)\ (u:\U^n) = (k \mapsto h\ x[k]\ u[k]) : \Y^n . \\[2\jot]
 &B\ (f:\X\times\U\to\M\X)\ (h:X\times\U\to\Y)\ (e:\M\X)\ (u:\U^{n+1}) = \\ & \qquad \lift\ (\tilde{x}\to S\ h\ \tilde{x}\ u)\ (T\ f\ e\ (\pr u)) : \M\Y^{n+1}.
 \end{aligned} \]
 \end{definition*}
+
+\begin{lemma*}[Input-free behaviour-theoretic operators]
+\[ \begin{aligned}
+&T\ (f:\X\to\M\X)\ (e:\M\X)\ (0) = \lift\ \mathrm{unit}\ e : \M\X^{1}; \\
+&T\ (f:\X\to\M\X)\ (e:\M\X)\ (n+1) = \skew\ ((x\mapsto f\ x)\circ l)\ (T\ f\ e n) : \M\X^{n+2} \\
+& \qquad\qquad = \bind \bigl(x_* : X^{n+1} \mapsto \lift (x:X\mapsto \langle x_*;x\rangle)\,(f(\lastW\;x_*))\bigr) (T\ f\ e\ n)\\
+\end{aligned} \]
+\end{lemma*}
 
 
 \begin{definition*}[System composition]
@@ -148,11 +156,37 @@ $\lift\ \pi_0\ (\lift\ p_1\ \hy_{12}) = \lift\ \unitW\ e_1$.
 \end{eqnarray*}
 \end{proof}
 
+\newpage
 \begin{lemma*}
+\[ \begin{gathered}
+     \bind\ B_1\ (\lift\ (q_2 \circ \restrprec)\ \hy_{12}^{(n+1)}) = \lift\ q_1\ \hy_{12}^{(n+1)} \\
+     \bind\ B_2\ (\lift\ q_1\ \hy_{12}^{(n+1)}) = \lift\ q_2\ \hy_{12}^{(n+1)} \\
+   \end{gathered} \]
 \end{lemma*}
+\noindent
+Note $B_1 : \Y_2^n \to \M(\Y_1^{n+1})$, $B_2 : \Y_1^{n+1}\to \M(\Y_2^{n+1})$, $B_{12}:\M((\Y_1\times\Y_2)^{n+1})$.
 \begin{proof}
+Take $n=1$, $\hx_{12} = (T\ f_{12}\ e_{12}\ 1) : \M((\X_1\times\X_2)^{2})$.
+\\
+Need to show $\bind\ B_1\ (\lift\ (q_2 \circ \restrprec)\ \hy_{12}^{(n+1)}) = \lift\ q_1\ \hy_{12}^{(n+1)}$.
+\\
+Can assume $\bind\ B_2\ (\lift\ q_1\ \hy_{12}^{(n)}) = \lift\ q_2\ \hy_{12}^{(n)}$.
 \begin{eqnarray*}
-\lift \pi_1 (\lift p_1 \hy_{12})
+\lift q_1 \hy_{12}^{(n+1)}
+  &=& \lift q_1 ( \lift S_{12} \hx_{12}^{(n+1)} )  \\
+  &=& \lift S_1 ( \lift p_1 \hx_{12}^{(n+1)} )  \\
+  &=& \lift S_1 ( \lift p_1 (\scnj f_{12} \hx_{12}^{(n)} ) ) \\
+\end{eqnarray*}
+\begin{eqnarray*}
+\bind\ B_1\ (\lift\ q_2\ (\lift \restrprec\ \hy_{12}^{(n+1)}))
+  &=& \lift\ S_1\ (\bind\ T_1\ (\lift\ q_2\ (\lift \restrprec\ \hy_{12}^{(n+1)}))) \\[\jot]
+%
+  &=& \bind\ B_1\ (\lift\ q_2\ (\lift\ \restrprec\ (\lift\ S_{12}\ \hx_{12}^{(n+1)}))) \\
+  &=& \bind\ B_1\ (\lift\ q_2\ (\lift\ S_{12}\ \hx_{12}^{(n)})) \\
+  &=& \lift\ S_1\ (\bind\ T_1\ (\lift\ q_2\ (\lift\ S_{12}\ \hx_{12}^{(n)}))) \\
+\end{eqnarray*}
+\begin{eqnarray*}
+\lift p_1 \hy_{12}
   &=& \bind (y_2 \mapsto B_1 (\pi_0 y_2)) (\lift p_2 \hy_{12}) \\
   &=& \bind (B_1) (\lift (\pi_0\circ p_2)\hy_{12}) \\
   &=& \bind B_1 \bigl(\lift\;(x_{12} \mapsto \unitW\ (h_2 x_2 (h_1 x_1)))\;(e_1\times e_2) \bigr) \\[2\jot]
