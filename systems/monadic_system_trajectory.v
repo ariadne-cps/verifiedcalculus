@@ -1,5 +1,5 @@
 (******************************************************************************
- *  systems/monadic_system.v
+ *  systems/monadic_system_trajectory.v
  *
  *  Copyright 2023 Sacha L. Sindorf
  *  Copyright 2023-24 Pieter Collins
@@ -107,8 +107,6 @@ Qed.
 Definition restr_prec {X n} : Wrd (S n) X -> Wrd n X :=
   fun (x : Wrd (S n) X) => restr n (Nat.le_succ_diag_r n) x.
 
-Check wrd_at.
-Check wrd_at_eq.
 
 Lemma restr_prec_cat {X n} : forall (xw : Wrd n X) (x : X),
   restr_prec (cat xw x) = xw.
@@ -123,6 +121,7 @@ Proof.
 Qed.
 
 Context `{M : Type -> Type } `{Monad_M : Monad M}
+  `{commutative_M : @Mcommutative M Monad_M}
   `{has_inverse_limits_M : @has_inverse_limits M Monad_M}
   `{unique_inverse_limits_M : @unique_inverse_limits M Monad_M}
   `{preserves_constants_M : @preserves_constants M Monad_M}.
@@ -172,33 +171,39 @@ Definition is_finite_composed_behaviour {Y1 Y2 : Type}
 
 
 
-Inductive System (U X Y : Type) : Type :=
-  | state_space_model (f:X->U->M X) (h:X->U->Y) (e:M X).
-Arguments state_space_model {U X Y}.
+Inductive WeaklyCausalSystem (U X : Type) : Type :=
+  | weakly_causal_state_space_model (f:X->U->M X) (e:U -> M X).
+Arguments weakly_causal_state_space_model {U X}.
 
-Inductive StrictlyCausalSystem (U X Y : Type) : Type :=
-  | strictly_causal_state_space_model (f:X->U->M X) (h:X->Y) (e:M X).
-Arguments strictly_causal_state_space_model {U X Y}.
+Inductive StrictlyCausalSystem (U X : Type) : Type :=
+  | strictly_causal_state_space_model (f:X->U->M X) (e:M X).
+Arguments strictly_causal_state_space_model {U X}.
 
-Inductive InputFreeSystem (X Y : Type) : Type :=
-  | input_free_state_space_model (f:X->M X) (h:X->Y) (e:M X).
-Arguments input_free_state_space_model {X Y}.
-
-
+Inductive InputFreeSystem (X : Type) : Type :=
+  | input_free_state_space_model (f:X->M X) (e:M X).
+Arguments input_free_state_space_model {X}.
 
 Definition last {X} {n} (xw : Wrd (S n) X) : X :=
   xw (ord n (Nat.lt_succ_diag_r n)).
 
-
 Definition pair_cat {X} {n} (xlx: Wrd n X * X) : Wrd (S n) X :=
   cat (fst xlx) (snd xlx).
 
-Fixpoint finite_trajectory {U X : Type} {n:N}
+Fixpoint finite_weakly_causal_trajectory {U X : Type} {n:N}
+  (f:X->U->M X) (e:U->M X) : (Wrd (S n) U) -> M (Wrd (S n) X) :=
+    match n with
+    | O => fun u => Mlift unit_wrd (e (last u))
+    | S m => fun (u:Wrd (S (S m)) U) =>
+      let xm := finite_weakly_causal_trajectory f e (restr_prec u) in
+        Mlift pair_cat (Mright_skew xm (fun (x:Wrd (S m) X) => f (last x) (last u)))
+    end.
+
+Fixpoint finite_strictly_causal_trajectory {U X : Type} {n:N}
   (f:X->U->M X) (e:M X) : (Wrd n U) -> M (Wrd (S n) X) :=
     match n with
-    | O => fun _ => Mlift (@unit_wrd X) e
+    | O => fun u => Mlift unit_wrd e
     | S m => fun u =>
-      let xm := finite_trajectory f e (restr_prec u) in
+      let xm := finite_strictly_causal_trajectory f e (restr_prec u) in
         Mlift pair_cat (Mright_skew xm (fun x => f (last x) (last u)))
     end.
 
@@ -211,43 +216,26 @@ Fixpoint finite_input_free_trajectory {X : Type}
         Mlift pair_cat (Mright_skew xm (fun x => f (last x)))
     end.
 
-Definition finite_signal {X U Y : Type} {n : N}
-  (h:X->U->Y) (u:Wrd n U) (x:Wrd n X) : Wrd n Y :=
-    fun k => h (x k) (u k).
-
-Definition finite_strictly_causal_signal {X Y : Type} {n : N}
-  (h:X->Y) (x:Wrd n X) : Wrd n Y :=
-    fun k => h (x k).
-
-Definition finite_behaviour {U X Y}
-  (s : System U X Y) : forall n, Wrd (S n) U -> M (Wrd (S n) Y) :=
-    match s with | state_space_model f h e => fun n u => 
-      Mlift (finite_signal h u) (finite_trajectory f e (restr_prec u))
-    end.
-
-Definition finite_strictly_causal_behaviour {U X Y}
-  (s : StrictlyCausalSystem U X Y)
-    : forall n, Wrd n U -> M (Wrd (S n) Y) :=
-    match s with | strictly_causal_state_space_model f h e => fun n u => 
-      Mlift (finite_strictly_causal_signal h) (finite_trajectory f e u)
-    end.
-
-Definition finite_input_free_behaviour {X Y}
-  (s : InputFreeSystem X Y)
-    : forall n, M (Wrd (S n) Y) :=
-    match s with | input_free_state_space_model f h e => fun n => 
-      Mlift (finite_strictly_causal_signal h) (finite_input_free_trajectory f e n)
-    end.
-
-Lemma finite_trajectory_null {U X : Type} :
- forall (f:X->U->M X) (e:M X) (u:Wrd O U),
-   finite_trajectory f e u = Mlift unit_wrd e.
+Lemma finite_weakly_causal_trajectory_null {U X : Type} :
+ forall (f:X->U->M X) (e:U->M X) (u:Wrd 1 U),
+   finite_weakly_causal_trajectory f e u = Mlift unit_wrd (e (last u)).
 Proof. intros. trivial. Qed.
 
-Lemma finite_trajectory_succ {U X : Type} {n:N} :
+Lemma finite_weakly_causal_trajectory_succ {U X : Type} {n:N} :
+ forall (f:X->U->M X) (e:U->M X) (u:Wrd (S (S n)) U),
+   finite_weakly_causal_trajectory f e u =
+     Mlift pair_cat (Mright_skew (finite_weakly_causal_trajectory f e (restr_prec u)) (fun x => f (last x) (last u))).
+Proof. intros. trivial. Qed.
+
+Lemma finite_strictly_causal_trajectory_null {U X : Type} :
+ forall (f:X->U->M X) (e:M X) (u:Wrd O U),
+   finite_strictly_causal_trajectory f e u = Mlift unit_wrd e.
+Proof. intros. trivial. Qed.
+
+Lemma finite_strictly_causal_trajectory_succ {U X : Type} {n:N} :
  forall (f:X->U->M X) (e:M X) (u:Wrd (S n) U),
-   finite_trajectory f e u =
-     Mlift pair_cat (Mright_skew (finite_trajectory f e (restr_prec u)) (fun x => f (last x) (last u))).
+   finite_strictly_causal_trajectory f e u =
+     Mlift pair_cat (Mright_skew (finite_strictly_causal_trajectory f e (restr_prec u)) (fun x => f (last x) (last u))).
 Proof. intros. trivial. Qed.
 
 Lemma finite_input_free_trajectory_null {X : Type} :
@@ -277,13 +265,41 @@ Proof.
   now apply wrd_at_eq. lia.
 Qed.
 
-Proposition finite_trajectory_spec {U X : Type} :
+Proposition finite_weakly_causal_trajectory_spec {U X : Type} :
+  forall (f:X->U->M X) (e:U->M X) (t : forall n, (Wrd (S n) U) -> M (Wrd (S n) X)),
+       (forall (u : Wrd 1 U), let x0 := t 0 u in x0 = Mlift unit_wrd (e (last u))) -> 
+         (forall (n:N) (u : Wrd (S (S n)) U), let u' := restr_prec u in
+           let x := t (S n) u in let x' := t n u' in
+             x = Mlift pair_cat (Mright_skew x' (fun (x' : Wrd (S n) X) => f (last x') (last u)))) -> 
+               forall n (u : Wrd (S n) U), t n u = finite_weakly_causal_trajectory f e u.
+Proof.
+  intros f e t He Hf.
+  assert (forall n (u : Wrd (S (S n)) U), t n (restr_prec u) = Mlift restr_prec (t (S n) u)) as Ht. {
+    intros n u.
+    rewrite -> (Hf n u).
+    rewrite -> Mlift_associative.
+    rewrite <- Mlift_extensional with (f := @fst (Wrd (S n) X) X).
+    rewrite -> ((preserves_constants_implies_fst_skew_product_is_id Monad_M) preserves_constants_M).
+    reflexivity.
+    - unfold compose. intros xs_x. now rewrite -> restr_prec_pair_cat.
+  }
+  induction n.
+  - intro u. specialize (He u). simpl in He.
+    rewrite -> finite_weakly_causal_trajectory_null. 
+    exact He.
+  - intros u. specialize (Hf n u). simpl in Hf.
+    rewrite -> finite_weakly_causal_trajectory_succ.
+    rewrite <- (IHn (restr_prec u)).
+    exact Hf.
+Qed.
+
+Proposition finite_strictly_causal_trajectory_spec {U X : Type} :
   forall (f:X->U->M X) (e:M X) (t : forall n, (Wrd n U) -> M (Wrd (S n) X)),
        (forall (u : Wrd O U), let x0 := t O u in x0 = Mlift unit_wrd e) ->
          (forall (n:N) (u : Wrd (S n) U), let u' := restr_prec u in
            let x := t (S n) u in let x' := t n u' in
              x = Mlift pair_cat (Mright_skew x' (fun (x' : Wrd (S n) X) => f (last x') (last u)))) -> 
-               forall n (u : Wrd n U), t n u = finite_trajectory f e u.
+               forall n (u : Wrd n U), t n u = finite_strictly_causal_trajectory f e u.
 Proof.
   intros f e t He Hf.
   assert (forall n (u : Wrd (S n) U), t n (restr_prec u) = Mlift restr_prec (t (S n) u)) as Ht. {
@@ -297,10 +313,10 @@ Proof.
   }
   induction n.
   - intro u. specialize (He u). simpl in He.
-    rewrite -> finite_trajectory_null. 
+    rewrite -> finite_strictly_causal_trajectory_null. 
     exact He.
   - intros u. specialize (Hf n u). simpl in Hf.
-    rewrite -> finite_trajectory_succ.
+    rewrite -> finite_strictly_causal_trajectory_succ.
     rewrite <- (IHn (restr_prec u)).
     exact Hf.
 Qed.
@@ -332,41 +348,27 @@ Proof.
     exact Hf.
 Qed.
 
-(*
-Conjecture finite_trajectory_pair_spec {U X : Type} :
-  forall (f:X->U->M X) (e:M X) (t : forall n, (Wrd n U) -> M (Wrd (S n) X)),
-     Mlift frst (t 0 (@null_wrd U)) = e -> 
-       (forall (n:N) (u : Wrd (S n) U), let x := t (S n) u in
-         Mlift last_pair x = Mright_skew (Mlift last (Mlift restr_prec x)) (fun x => f x (last u))) ->
-           forall n (u : Wrd n U), t n u = finite_trajectory f e u.
-*)
 
-
-
+Check WeaklyCausalSystem.
 
 (* Define the composition of state space models. *)
-Definition compose_systems {X1 X2 Y1 Y2 : Type}
-  (s1 : StrictlyCausalSystem Y2 X1 Y1)
-  (s2 : System Y1 X2 Y2)
-  : (InputFreeSystem (X1*X2) (Y1*Y2)) :=
-    match s1 with | strictly_causal_state_space_model f1 h1 e1 =>
-    match s2 with | state_space_model f2 h2 e2 =>
-      let e12 : M (X1*X2) := Mproduct e1 e2 in
+Definition compose_systems {X1 X2 : Type}
+  (s1 : StrictlyCausalSystem X2 X1)
+  (s2 : WeaklyCausalSystem X1 X2)
+  : (InputFreeSystem (X1*X2)) :=
+    match s1 with | strictly_causal_state_space_model f1 e1 =>
+      match s2 with | weakly_causal_state_space_model f2 e2 =>
+        let e12 : M (X1*X2) := Mright_skew e1 e2 in
 
-      let h_y1 : X1*X2->Y1 :=
-        fun x12 => h1 (fst x12) in
-      let h_y2 : X1*X2->Y2 :=
-        fun x12 => h2 (snd x12) (h_y1 x12) in
-      let h12 : X1*X2->Y1*Y2 :=
-        fun x12 => (h_y1 x12, h_y2 x12) in
-
-      let f_x1 : X1*X2->M X1 :=
-        fun x12 => f1 (fst x12) (h_y2 x12) in
-      let f_x2:  X1*X2->M X2 :=
-        fun x12 => f2 (snd x12) (h_y1 x12) in
-      let f12 := fun x => Mproduct (f_x1 x) (f_x2 x) in
-        input_free_state_space_model f12 h12 e12
-    end
+        let f_x1 : X1*X2->M X1 :=
+          fun x12 => f1 (fst x12) (snd x12) in
+        let f_x2:  X1*X2->M X2 :=
+          fun x12 => f2 (snd x12) (fst x12) in
+      
+        let f12 : X1*X2->M (X1*X2) :=
+          fun x12 => Mbind (fun x1':X1 => Mlift (fun x2':X2 => (x1',x2')) (f_x2 (x1',snd x12))) (f_x1 (fst x12,snd x12)) in
+            input_free_state_space_model f12 e12
+      end
     end
 .
 
@@ -418,9 +420,6 @@ Proof.
   simpl. reflexivity.
 Qed.
 
-
-
-
 Lemma product_function {X1 X2 Y} : forall (f : (X1 * X2) -> Y) (A1 : M X1) (A2 : M X2),
   Mlift f (Mproduct A1 A2) = Mbind (fun x1 => Mlift (fun x2 => f (x1,x2)) A2) A1.
 Proof.
@@ -431,6 +430,20 @@ Proof.
   rewrite -> Mlift_bind_associative.
   unfold Mlift.
   apply Mbind_extensional; intro x2.
+  rewrite -> Mleft_identity.
+  reflexivity.
+Qed.
+
+Lemma product_function_r {X1 X2 Y} : Mcommutative (Monad_M) -> forall (f : (X1 * X2) -> Y) (A1 : M X1) (A2 : M X2),
+  Mlift f (Mproduct A1 A2) = Mbind (fun x2 => Mlift (fun x1 => f (x1,x2)) A1) A2.
+Proof.
+  intros commutative_M f A1 A2.
+  unfold Mproduct. rewrite <- commutative_M. unfold Mleft_product.
+  rewrite -> Mlift_bind_associative.
+  apply Mbind_extensional; intro x2.
+  rewrite -> Mlift_bind_associative.
+  unfold Mlift.
+  apply Mbind_extensional; intro x1.
   rewrite -> Mleft_identity.
   reflexivity.
 Qed.
@@ -454,83 +467,104 @@ Qed.
 
 
 
-Variable (X1 X2 Y1 Y2 : Type).
-Variable (f1 : X1 -> Y2 -> M X1) (f2 : X2 -> Y1 -> M X2) (e1 : M X1) (e2 : M X2) (h1 : X1 -> Y1) (h2 : X2 -> Y1 -> Y2).
-Definition s1 {n:N} : Wrd n X1 -> Wrd n Y1 := fun x1 => (fun kp => h1 (x1 kp)). 
-Definition s2 {n:N} : Wrd n Y1 -> Wrd n X2 -> Wrd n Y2 := fun y1 x2 => (fun kp => h2 (x2 kp) (y1 kp)). 
+Variable (X1 X2 : Type).
+Variable (f1 : X1 -> X2 -> M X1) (f2 : X2 -> X1 -> M X2) (e1 : M X1) (e2 : X1 -> M X2).
 
-Fixpoint t1 {n:N} : Wrd n Y2 -> M (Wrd (S n) X1) := match n with 
-  | S m => fun y2 => Mbind (fun w1:Wrd (S m) X1 => Mlift (fun x1:X1=>cat w1 x1) (f1 (last w1) (last y2))) (t1 (restr_prec y2))
-  | O => fun _ => Mlift unit_wrd e1 end.        
-Fixpoint t2 {n:N} : Wrd n Y1 -> M (Wrd (S n) X2) := match n with 
-  | S m => fun y1 => Mbind (fun w2:Wrd (S m) X2 => Mlift (fun x2:X2=>cat w2 x2) (f2 (last w2) (last y1))) (t2 (restr_prec y1))
-  | O => fun _ => Mlift unit_wrd e2 end.        
-Definition b1 {n:N} : (Wrd n Y2) -> M (Wrd (S n) Y1) := fun y2 => Mlift s1 (t1 y2).
-Definition b2 {n:N} : Wrd (S n) Y1 -> M (Wrd (S n) Y2) := fun y1  => Mlift (s2 y1) (t2 (restr_prec y1)).
+Print finite_strictly_causal_trajectory.
+Print finite_weakly_causal_trajectory.
 
-Definition f12 : (X1*X2) -> M (X1*X2) := fun x12 => Mproduct (f1 (fst x12) (h2 (snd x12) (h1 (fst x12)))) (f2 (snd x12) (h1 (fst x12))).
-Definition e12 : M (X1*X2) := Mproduct e1 e2.
-Definition h12 : X1*X2 -> Y1*Y2 := fun x12 => (h1 (fst x12), h2 (snd x12) (h1 (fst x12))).
-Definition s12 {n:N} : Wrd n (X1*X2) -> Wrd n (Y1*Y2) := fun x12 => (fun kp => h12 (x12 kp)). 
-
-Definition Mscat {X} {n:N} (F:X->M X) (x:Wrd (S n) X) : M (Wrd (S (S n)) X) :=
+Definition Mscatif {X} {n:N} (F:X->M X) (x:Wrd (S n) X) : M (Wrd (S (S n)) X) :=
   Mlift (fun xf:X=>cat x xf) (F (last x)).
 
-Definition Mscatu {U X} {n:N} (F:X->U->M X) (u:Wrd (S n) U) (x:Wrd (S n) X) : M (Wrd (S (S n)) X) :=
+Definition Mscatsc {U X} {n:N} (F:X->U->M X) (u:Wrd (S n) U) (x:Wrd (S n) X) : M (Wrd (S (S n)) X) :=
+  Mlift (fun xf:X=>cat x xf) (F (last x) (last u)).
+
+Definition Mscatwc {U X} {n:N} (F:X->U->M X) (u:Wrd (S (S n)) U) (x:Wrd (S n) X) : M (Wrd (S (S n)) X) :=
   Mlift (fun xf:X=>cat x xf) (F (last x) (last u)).
 
 
+(*
+Definition t1 {n:N} : Wrd (n) X2 -> M (Wrd (S n) X1) := 
+  fun x2 => finite_strictly_causal_trajectory f1 e1 x2.
+*)
+(*
+Fixpoint t1 {n:N} : Wrd n X2 -> M (Wrd (S n) X1) := 
+  match n with 
+  | S m => fun x2 => Mbind (fun w1:Wrd (S m) X1 => Mlift (fun x1:X1=>cat w1 x1) (f1 (last w1) (last x2))) (t1 (restr_prec x2))
+  | O => fun _ => Mlift unit_wrd e1 end.  
+*)
+Fixpoint t1 {n:N} : Wrd n X2 -> M (Wrd (S n) X1) := 
+  match n with 
+  | S m => fun x2 => Mbind (Mscatsc f1 x2) (t1 (restr_prec x2))
+  | O => fun _ => Mlift unit_wrd e1 end.  
+
+(*
+Definition t2 {n:N} : Wrd (S n) X1 -> M (Wrd (S n) X2) := 
+  fun x1 => finite_weakly_causal_trajectory f2 e2 x1.
+*)
+
+Fixpoint t2 {n:N} : Wrd (S n) X1 -> M (Wrd (S n) X2) := 
+  match n with
+  | S m => fun x1 => Mbind (Mscatwc f2 x1) (t2 (restr_prec x1))
+  | O => fun x1 => Mlift unit_wrd (e2 (last x1)) end.
+
+Definition f12 : X1*X2->M (X1*X2) := 
+  fun x12 => let (x1,x2) := x12 in
+    Mbind (fun x1':X1 => 
+      Mlift (fun x2':X2 => (x1',x2')) (f2 x2 x1')) (f1 x1 x2).
+Definition e12 : M (X1*X2) :=
+  Mbind (fun x1 => Mlift (fun x2 => (x1,x2)) (e2 x1)) e1.
+
+(*
+Definition t12 (n:N) : M (Wrd (S n) (X1*X2)) :=
+  finite_input_free_trajectory f12 e12 n.
+*)
 Fixpoint t12 (n:N) : M (Wrd (S n) (X1*X2)) := match n with 
-  | S m => Mbind (Mscat f12) (t12 m)
+  | S m => Mbind (Mscatif f12) (t12 m)
   | O => Mlift unit_wrd e12 end.
 
-Lemma t1_succ : forall n (y2 : Wrd (S n) Y2), 
-  t1 y2 = Mbind (Mscatu f1 y2) (t1 (restr_prec y2)).
-Proof. intros n y2; trivial. Qed.
-Lemma t2_succ : forall n (y1 : Wrd (S n) Y1), 
-  t2 y1 = Mbind (Mscatu f2 y1) (t2 (restr_prec y1)).
-Proof. intros n y1; trivial. Qed.
-Lemma t12_succ : forall n, t12 (S n) = Mbind (Mscat f12) (t12 n). 
+Lemma t1_succ : forall n (x2 : Wrd (S n) X2), 
+  t1 x2 = Mbind (Mscatsc f1 x2) (t1 (restr_prec x2)).
+Proof. intros n x2; trivial. Qed.
+Lemma t2_succ : forall n (x1 : Wrd (S (S n)) X1), 
+  t2 x1 = Mbind (Mscatwc f2 x1) (t2 (restr_prec x1)).
+Proof. intros n x1; trivial. Qed.
+Lemma t12_succ : forall n, t12 (S n) = Mbind (Mscatif f12) (t12 n). 
 Proof. intro n; trivial. Qed.
 
-Lemma t1_null : forall (y2 : Wrd O Y2), t1 y2 = Mlift unit_wrd e1.
-Proof. intro y2; trivial. Qed.
-Lemma t2_null : forall (y1 : Wrd 0 Y1), t2 y1 = Mlift unit_wrd e2.
-Proof. intro y1; trivial. Qed.
+Lemma t1_null : forall (x2 : Wrd O X2), t1 x2 = Mlift unit_wrd e1.
+Proof. intro x2; trivial. Qed.
+Lemma t2_null : forall (x1 : Wrd 1 X1), t2 x1 = Mlift unit_wrd (e2 (last x1)).
+Proof. intro x1; trivial. Qed.
 Lemma t12_null : t12 O = Mlift unit_wrd e12.
 Proof. trivial. Qed.
 
-
-Variable t1' : forall n, (Wrd n Y2 -> M (Wrd (S n) X1)).
-
-Variable y2 : Wrd O Y2.
-
-Check Mlift (@unit_wrd X1) e1.
-Check t1' O y2.
-
-(*
-  t1 y2 = Mbind (Mscatu f1 y2) (t1 (restr_prec y2)).
-*)
-
-Proposition t1_spec : forall (t1' : forall {n}, (Wrd n Y2 -> M (Wrd (S n) X1))),
-  (forall (y2 : Wrd O Y2), t1' y2 = Mlift (@unit_wrd X1) e1) ->
-    (forall (n : N) (y2 : Wrd (S n) Y2), t1' y2 = Mbind (Mscatu f1 y2) (t1 (restr_prec y2))) ->
-      (forall {n:N} (y2 : Wrd n Y2), t1' y2 = t1 y2).
-(*
-      @t1' = @t1.
-      forall (n : N), @t1' n = @t1 n.
-*)
+Proposition t1_spec : forall ( t1' : forall {n}, (Wrd n X2 -> M (Wrd (S n) X1)) ),
+  (forall (x2 : Wrd O X2), t1' x2 = Mlift (@unit_wrd X1) e1) ->
+    (forall (n : N) (x2 : Wrd (S n) X2), t1' x2 = Mbind (Mscatsc f1 x2) (t1 (restr_prec x2))) ->
+      (forall {n:N} (x2 : Wrd n X2), t1' x2 = t1 x2).
 Proof.
   intros t1' HO HS.
   induction n.
-  - intro y2. rewrite -> t1_null. rewrite -> HO. reflexivity.
-  - intro y2. rewrite -> t1_succ. rewrite -> HS. reflexivity.
+  - intro x2. rewrite -> t1_null. rewrite -> HO. reflexivity.
+  - intro x2. rewrite -> t1_succ. rewrite -> HS. reflexivity.
+Qed.
+
+Proposition t2_spec : forall ( t2' : forall {n}, (Wrd (S n) X1 -> M (Wrd (S n) X2)) ),
+  (forall (x1 : Wrd (S O) X1), t2' x1 = Mlift (@unit_wrd X2) (e2 (last x1))) ->
+    (forall (n : N) (x1 : Wrd (S (S n)) X1), t2' x1 = Mbind (Mscatwc f2 x1) (t2 (restr_prec x1))) ->
+      (forall {n:N} (x1 : Wrd (S n) X1), t2' x1 = t2 x1).
+Proof.
+  intros t2' HO HS.
+  induction n.
+  - intro x1. rewrite -> t2_null. rewrite -> HO. reflexivity.
+  - intro x1. rewrite -> t2_succ. rewrite -> HS. reflexivity.
 Qed.
 
 Lemma restr_prec_t12 : forall n, 
   Mlift restr_prec (t12 (S n)) = t12 n.
 Proof.
-  intro n. rewrite -> t12_succ. unfold Mscat. 
+  intro n. rewrite -> t12_succ. unfold Mscatif. 
   rewrite -> Mlift_bind_associative. 
   rewrite <- Mbind_extensional with (F := fun x => Mpure x).
   now rewrite -> Mright_identity.
@@ -540,21 +574,6 @@ Proof.
     unfold Mlift. now rewrite -> preserves_constants_M.
 Qed.
 
-Lemma restr_prec_b12 : forall n, 
-  Mlift restr_prec (Mlift s12 (t12 (S n))) = Mlift s12 (t12 n).
-Proof.
-  intro n. rewrite <- (restr_prec_t12 n). 
-  repeat rewrite -> Mlift_associative; unfold compose.
-  apply Mlift_extensional; intro x12.
-  unfold s12, restr_prec, restr. simpl.
-  apply wrd_eq; intro kp. destruct kp as [k p]. simpl.
-  now repeat f_equal.
-Qed.
-
-Lemma s12_unit_word : forall (x12 : X1*X2), s12 (unit_wrd x12) = unit_wrd (h12 x12).
-Proof. intro x12. unfold s12. apply wrd_1_eq. now repeat rewrite -> unit_wrd_at. Qed.
-Lemma s2_unit_word : forall (x2 : X2) (y1 : Y1), s2 (unit_wrd y1) (unit_wrd x2) = unit_wrd (h2 x2 y1).
-Proof. intros x2 y1. unfold s2. apply wrd_1_eq. now repeat rewrite -> unit_wrd_at. Qed.
 Lemma unzip_unit_word {X1 X2} : forall (x12 : X1*X2), unzip (unit_wrd x12) = (unit_wrd (fst x12), unit_wrd (snd x12)).
 Proof. intro x12. apply pair_equal_spec. split. all: apply wrd_1_eq; now repeat rewrite -> unit_wrd_at. Qed.
 Lemma fst_unzip_unit_word {X1 X2} : forall (x12 : X1*X2), fst (unzip (unit_wrd x12)) = unit_wrd (fst x12).
@@ -563,10 +582,9 @@ Lemma snd_unzip_unit_word {X1 X2} : forall (x12 : X1*X2), snd (unzip (unit_wrd x
 Proof. intro x12. now rewrite -> unzip_unit_word. Qed.
 
 Definition m0x12 := Mlift unit_wrd e12.
-Definition m0y12 := Mlift s12 m0x12.
-Definition m0y1y2 := Mlift unzip m0y12.
-Definition m0y1 := Mlift fst m0y1y2.
-Definition m0y2 := Mlift snd m0y1y2.
+Definition m0x1x2 := Mlift unzip m0x12.
+Definition m0x1 := Mlift fst m0x1x2.
+Definition m0x2 := Mlift snd m0x1x2.
 
 Lemma restr_prec_unzip {X1 X2} {n} : forall x12 : (Wrd (S n) (X1*X2)),
   (restr_prec (fst (unzip x12)), restr_prec (snd (unzip x12))) = unzip (restr_prec x12).
@@ -584,43 +602,58 @@ Proof.
   intro x12. unfold snd_unzip. rewrite <- restr_prec_unzip. reflexivity.  Qed.
 
 
-Lemma compose0 : Mbind b1 (Mlift restr_prec m0y2) = m0y1 /\  Mbind b2 m0y1 = m0y2.
+Lemma compose0 : Mbind t1 (Mlift restr_prec m0x2) = m0x1 /\  Mbind t2 m0x1 = m0x2.
 Proof.
   split.
-  - unfold m0y1, m0y2, m0y1y2, m0y12, m0x12, e12.
-    replace (Mlift restr_prec m0y2) with (Mpure (@null_wrd Y2)).
-    2: { unfold Mlift. rewrite <- Mbind_extensional with (F := fun _ : Wrd 1 Y2 => Mpure (@null_wrd Y2)).
-         now rewrite -> preserves_constants_M . intros y2. f_equal. now apply wrd_0_eq. }
+  - unfold m0x1, m0x2, m0x1x2, m0x12, e12.
+    replace (Mlift restr_prec m0x2) with (Mpure (@null_wrd X2)).
+    2: { unfold Mlift. rewrite <- Mbind_extensional with (F := fun _ : Wrd 1 X2 => Mpure (@null_wrd X2)).
+         now rewrite -> preserves_constants_M . intros x2. f_equal. now apply wrd_0_eq. }
     rewrite -> Mleft_identity.
-    unfold b1, t1.
+    unfold t1.
     rewrite -> Mlift_associative; unfold compose.
-    rewrite <- Mlift_extensional with (f := compose unit_wrd h1).
-    2: { intro x1. unfold compose. apply wrd_1_eq. now repeat rewrite -> unit_word_at. }
     repeat rewrite -> Mlift_associative; unfold compose.
-    rewrite <- Mlift_extensional with (f := fun x12 : X1*X2 => unit_wrd (fst (h12 x12))).
+    rewrite <- Mlift_extensional with (f := fun x12 : X1*X2 => unit_wrd (fst x12)).
     2: { intro x12. unfold unzip. simpl. apply wrd_1_eq. now repeat rewrite -> unit_word_at. }
-    rewrite <- Mlift_extensional with (f := fun x12 : X1*X2 => unit_wrd (h1 (fst x12))).
-    2: { intro x12. apply unit_wrd_eq with (x1:=h1 (fst x12)). now unfold h12. }
-    rewrite <- Mlift_extensional with (f := compose (fun x1 => unit_wrd (h1 x1)) (@fst X1 X2)).
+     rewrite <- Mlift_extensional with (f := compose (fun x1 => unit_wrd x1) (@fst X1 X2)).
     2: { intro x12. trivial. }
     rewrite <- Mlift_associative.
-    replace (Mlift fst (Mproduct e1 e2)) with e1.
-    2: now rewrite -> fst_Mproduct. 
-    reflexivity.
-  - unfold b2, t2, m0y1, m0y2, m0y1y2, m0y12, m0x12, e12.
+    replace (Mlift fst (Mbind (fun x1:X1 => Mlift (fun x2 : X2 => (x1,x2)) (e2 x1)) e1)) with e1.
+    2: { rewrite -> Mlift_bind_associative. 
+         rewrite <- Mbind_extensional 
+           with (F:=fun x1:X1 =>Mpure x1).
+         now rewrite -> Mright_identity.
+         intro x1. 
+         rewrite -> Mlift_associative; unfold compose.
+         rewrite <- Mlift_extensional with (f:=fun x2:X2 => x1)
+           by trivial.
+         unfold Mlift. now rewrite -> preserves_constants_M.
+    }
+    now apply Mlift_extensional.
+  - unfold t2, m0x1, m0x2, m0x1x2, m0x12, e12.
     repeat rewrite -> Mlift_associative; rewrite -> Mbind_lift_associative; unfold compose.
-    rewrite <- Mlift_extensional with (f:=compose unit_wrd (fun x12:X1*X2=>snd(h12 x12))).
-    2: { intro x12; rewrite -> s12_unit_word; now rewrite -> unzip_unit_word. }
-    rewrite <- Mbind_extensional with (F:=fun x12:X1*X2=>Mlift (compose unit_wrd (fun x2=>snd(h12 (fst x12,x2)))) e2).
-    2: { intro x12. rewrite -> Mlift_associative; unfold compose. apply Mlift_extensional; intro x2.
-         rewrite -> s12_unit_word, -> fst_unzip_unit_word, s2_unit_word. now unfold h12. }
-    rewrite <- Mbind_extensional with (F:=compose (fun x1:X1=>Mlift (fun x2=>unit_wrd(snd(h12 (x1,x2)))) e2) fst).
-    2: { intro x12; now unfold compose. }
-    rewrite <- Mbind_lift_associative.
+    rewrite <- Mlift_extensional with (f:=compose unit_wrd (fun x12:X1*X2=>snd x12)).
+    2: { intro x12; now rewrite -> unzip_unit_word. }
+    rewrite <- Mbind_extensional with (F:=fun x12:X1*X2=>Mlift  unit_wrd (e2 (fst x12))).
+    2: { intro x12. apply Mlift_extensional; intro x2.
+         reflexivity. }
+    rewrite -> Mbind_associative.
+    rewrite -> Mlift_bind_associative.
+    apply Mbind_extensional; intro x1.
+    rewrite -> Mbind_lift_associative; unfold compose.
+    rewrite -> Mlift_associative; unfold compose.
+    unfold Mlift.
+    apply Mbind_extensional; intro x2.
+
+    rewrite -> Mright_identity.
+    rewrite -> Mleft_identity.
+
+    rewrite <- Mbind_extensional with (F:=fun x2:X2=>Mlift  unit_wrd (e2 (fst x12))).
+    rewrite -> Mleft_identity.
+    
     rewrite -> fst_Mproduct.
     unfold Mproduct, Mright_product. unfold compose.
     rewrite -> Mlift_bind_associative.
-    apply Mbind_extensional; intro x1.
     rewrite -> Mlift_bind_associative.
     unfold Mlift. apply Mbind_extensional; intro x2.
     rewrite -> Mleft_identity.

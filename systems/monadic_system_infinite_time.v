@@ -107,9 +107,6 @@ Qed.
 Definition restr_prec {X n} : Wrd (S n) X -> Wrd n X :=
   fun (x : Wrd (S n) X) => restr n (Nat.le_succ_diag_r n) x.
 
-Check wrd_at.
-Check wrd_at_eq.
-
 Lemma restr_prec_cat {X n} : forall (xw : Wrd n X) (x : X),
   restr_prec (cat xw x) = xw.
 Proof. 
@@ -148,9 +145,6 @@ Definition mixed_causal {UA UD Y : Type} (b : Tr (UA*UD) -> M (Tr Y)) :=
      (proj (S n) ua1 ≡ proj (S n) ua2) -> (proj n ud1 ≡ proj n ud2) ->
        (Mlift (proj (S n)) (b u1) = Mlift (proj (S n)) (b u2)).
 
-Definition FiniteMixedBehaviour (UA UD Y : Type) : Type :=
-  forall n, Wrd (S n) UA -> Wrd n UD -> M (Wrd (S n) Y).
-
 Definition is_composed_behaviour {Y1 Y2 : Type}
   (b1 : Seq Y2 -> M (Seq Y1))
   (b2 : Seq Y1 -> M (Seq Y2))
@@ -159,17 +153,6 @@ Definition is_composed_behaviour {Y1 Y2 : Type}
         let my1 := (Mlift fst my1y2) : M (Seq Y1) in
         let my2 := (Mlift snd my1y2) : M (Seq Y2) in
           Mleft_skew b1 my2 = my1y2 /\ Mright_skew my1 b2 = my1y2.
-
-Definition is_finite_composed_behaviour {Y1 Y2 : Type}
-  (b1 : forall n, (Wrd n Y2) -> M (Wrd (S n) Y1))
-  (b2 : forall n, (Wrd (S n) Y1) -> M (Wrd (S n) Y2))
-  (b12 : forall n, M (Wrd (S n) (Y1*Y2))) : Prop :=
-    forall (n : N),
-        let y1y2 := Mlift unzip (b12 n) : M ((Wrd (S n) Y1) * (Wrd (S n) Y2)) in
-        let y1 := Mlift fst y1y2 : M (Wrd (S n) Y1) in
-        let y2 := Mlift snd y1y2 : M (Wrd (S n) Y2) in
-          Mbind (b1 n) (Mlift restr_prec y2) = y1 /\ Mbind (b2 n) y1 = y2.
-
 
 
 Inductive System (U X Y : Type) : Type :=
@@ -202,6 +185,8 @@ Fixpoint finite_trajectory {U X : Type} {n:N}
         Mlift pair_cat (Mright_skew xm (fun x => f (last x) (last u)))
     end.
 
+
+
 Fixpoint finite_input_free_trajectory {X : Type} 
   (f:X->M X) (e:M X) (n:N) : M (Wrd (S n) X) :=
     match n with
@@ -210,6 +195,86 @@ Fixpoint finite_input_free_trajectory {X : Type}
       let xm := finite_input_free_trajectory f e m in
         Mlift pair_cat (Mright_skew xm (fun x => f (last x)))
     end.
+
+Definition pad_empty {X} (A : forall n, M (Wrd (S n) X)) :
+    forall n, M (Wrd n X) :=
+  fun n => match n with | O => Mpure (@null_wrd X) | S m => A m end.
+
+Lemma restr_prec_finite_input_free_trajectory {X : Type} :
+  forall (f:X->M X) (e:M X), 
+  forall n:N, Mlift restr_prec (finite_input_free_trajectory f e (S n)) = (finite_input_free_trajectory f e n).
+Proof.
+  intros f e n.
+  set (Hpc := preserves_constants_M).
+  rewrite -> finite_input_free_trajectory_succ. simpl.
+  remember (finite_input_free_trajectory f e n) as xwn eqn:Exwn.
+  rewrite -> Mlift_associative.
+  replace (compose restr_prec pair_cat) with (@fst (Wrd n X) X).
+  - set (Hsk := preserves_constants_implies_fst_skew_product_is_id _ Hpc).
+    now apply Hsk.
+  - unfold compose, restr_prec, pair_cat.
+    apply functional_extensionality. intro xnx.
+    destruct xnx as [xn x]. simpl.
+    symmetry; now apply restr_cat_id.
+Qed.
+
+Proposition restr_finite_trajectory {U X : Type} :
+  forall (f:X->U->M X) (e:M X) (u : nat -> U), 
+  forall (m n:nat) (p:m<=n), Mlift (restr m p) (finite_trajectory f e u n) = (finite_trajectory f e u m).
+Proof.
+  intros f e u.
+  set (Hpc := preserves_constants_M).
+  remember (finite_trajectory f e u) as ft eqn:Eft.
+  intro m. 
+  assert (forall k (p:m<=m+k),
+    Mlift (restr m p) (ft (m+k)) = ft m) as H. {
+    induction k.
+    - replace (m+0) with m. intro p.
+      replace (restr m p) with (fun (x:Wrd m X)=>x).
+      unfold Mlift.
+      now rewrite -> Mright_identity.
+      apply functional_extensionality. intro xw.
+      now rewrite -> restr_id.
+      symmetry; now apply Nat.add_0_r.
+    - replace (m+S k) with (S (m+k)) by lia. 
+      intro p.
+      assert (m <= m+k) as q. lia.
+      transitivity (Mlift (restr m q) (Mlift restr_prec (ft (S (m+k))))).
+      -- rewrite -> Mlift_associative.
+         f_equal. unfold compose, restr_prec.
+         apply functional_extensionality. intro x.
+         rewrite -> restr_restr. f_equal. now apply proof_irrelevance.
+      -- rewrite <- (IHk q).
+         f_equal. rewrite -> Eft.
+         now apply restr_prec_finite_trajectory.
+   }
+   intros n p. set (k := n - m). 
+   assert (n = m+k) as Hn by lia.
+   revert p. rewrite -> Hn. now apply H.
+Qed.
+
+
+Definition input_free_trajectory {X : Type} 
+    (f:X->M X) (e:M X) : M (Seq X) :=
+  let xw := finite_trajectory f e u in
+     let Hxw := restr_finite_trajectory f e n in
+       let xs := has_inverse_limits_M X xw Hxw in
+         proj1_sig xs.
+
+Definition trajectory {U X : Type} (f:X->U->M X) (e:M X) (u:nat->U) : M (Seq X) :=
+   let xw := finite_trajectory f e u in
+     let Hxw := restr_finite_trajectory f e u in
+       let xs := has_inverse_limits_M X xw Hxw in
+(*          proj1_sig xs.
+ *)
+
+match n with
+    | O => Mlift (@unit_wrd X) e
+    | S m => 
+      let xm := finite_input_free_trajectory f e m in
+        Mlift pair_cat (Mright_skew xm (fun x => f (last x)))
+    end.
+
 
 Definition finite_signal {X U Y : Type} {n : N}
   (h:X->U->Y) (u:Wrd n U) (x:Wrd n X) : Wrd n Y :=
@@ -231,6 +296,8 @@ Definition finite_strictly_causal_behaviour {U X Y}
     match s with | strictly_causal_state_space_model f h e => fun n u => 
       Mlift (finite_strictly_causal_signal h) (finite_trajectory f e u)
     end.
+
+
 
 Definition finite_input_free_behaviour {X Y}
   (s : InputFreeSystem X Y)
