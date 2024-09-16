@@ -222,6 +222,11 @@ Proof.
   reflexivity.
 Qed.
 
+Definition Mcommutative {M} (MonadM: Monad M) :=
+  forall (A B : Type), forall (a : M A) (b : M B),
+    Mleft_product a b = Mright_product a b.
+ 
+
 Definition Mleft_skew {M} {MonadM : Monad M} {A B : Type} (nu : B -> M A) (mu : M B) : M (prod A B) :=
   Mbind( fun (b : B) => ( Mlift (fun (a : A) => (pair a b)) (nu b) ) ) mu.
 
