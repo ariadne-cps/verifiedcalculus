@@ -70,12 +70,20 @@ Definition unzip {T X1 X2} (s : T -> (X1*X2)) := (fun t=>fst (s t), fun t => snd
 Definition fst_unzip {T X1 X2} := fun x12 : T-> (X1*X2) => fst (unzip x12).
 Definition snd_unzip {T X1 X2} := fun x12 : T -> (X1*X2) => snd (unzip x12).
 
-Lemma zip_unzip {X1 X2} :
-  forall (x12 : Tr (X1*X2)),
+Lemma zip_unzip {T X1 X2} :
+  forall (x12 : T -> (X1*X2)),
     zip (fst (unzip x12)) (snd (unzip x12)) ≡ x12.
 Proof.
   intros x12 n. unfold zip,unzip. simpl.
   now rewrite <- surjective_pairing.
+Qed.
+
+Lemma unzip_zip {T X1 X2} :
+  forall (x1 : T -> X1) (x2 : T -> X2),
+    unzip (zip x1 x2) = (x1,x2).
+Proof.
+  intros x1 x2. unfold zip,unzip. simpl.
+  apply pair_equal_spec. split; now apply functional_extensionality.
 Qed.
 
 Inductive sig_pair {A B : Type} (P : A -> B -> Prop) : Type :=
@@ -104,9 +112,9 @@ Proof.
   - apply (f_equal snd) in H. simpl in H. now rewrite -> H.
 Qed.
 
+
 Definition restr_prec {X n} : Wrd (S n) X -> Wrd n X :=
   fun (x : Wrd (S n) X) => restr n (Nat.le_succ_diag_r n) x.
-
 
 Lemma restr_prec_cat {X n} : forall (xw : Wrd n X) (x : X),
   restr_prec (cat xw x) = xw.
@@ -120,11 +128,13 @@ Proof.
     contradiction (Nat.lt_neq _ _ p e).
 Qed.
 
+
 Context `{M : Type -> Type } `{Monad_M : Monad M}
   `{commutative_M : @Mcommutative M Monad_M}
   `{has_inverse_limits_M : @has_inverse_limits M Monad_M}
   `{unique_inverse_limits_M : @unique_inverse_limits M Monad_M}
   `{preserves_constants_M : @preserves_constants M Monad_M}.
+
 
 Definition Mproduct {X1 X2} : M X1 -> M X2 -> M (X1*X2) := @Mright_product M Monad_M X1 X2.
 
@@ -601,109 +611,320 @@ Lemma restr_prec_snd_unzip {X1 X2} {n} : forall x12 : (Wrd (S n) (X1*X2)),
 Proof.
   intro x12. unfold snd_unzip. rewrite <- restr_prec_unzip. reflexivity.  Qed.
 
+Definition cat_fst {X1 X2} {n:N} := 
+  fun x1x2 : (Wrd n X1) * (Wrd n X2) => fun x1 : X1 => (cat (fst x1x2) x1, snd x1x2).
+
 
 Lemma compose0 : Mbind t1 (Mlift restr_prec m0x2) = m0x1 /\  Mbind t2 m0x1 = m0x2.
 Proof.
   split.
-  - unfold m0x1, m0x2, m0x1x2, m0x12, e12.
-    replace (Mlift restr_prec m0x2) with (Mpure (@null_wrd X2)).
-    2: { unfold Mlift. rewrite <- Mbind_extensional with (F := fun _ : Wrd 1 X2 => Mpure (@null_wrd X2)).
-         now rewrite -> preserves_constants_M . intros x2. f_equal. now apply wrd_0_eq. }
-    rewrite -> Mleft_identity.
-    unfold t1.
-    rewrite -> Mlift_associative; unfold compose.
-    repeat rewrite -> Mlift_associative; unfold compose.
-    rewrite <- Mlift_extensional with (f := fun x12 : X1*X2 => unit_wrd (fst x12)).
-    2: { intro x12. unfold unzip. simpl. apply wrd_1_eq. now repeat rewrite -> unit_word_at. }
-     rewrite <- Mlift_extensional with (f := compose (fun x1 => unit_wrd x1) (@fst X1 X2)).
-    2: { intro x12. trivial. }
-    rewrite <- Mlift_associative.
-    replace (Mlift fst (Mbind (fun x1:X1 => Mlift (fun x2 : X2 => (x1,x2)) (e2 x1)) e1)) with e1.
-    2: { rewrite -> Mlift_bind_associative. 
-         rewrite <- Mbind_extensional 
-           with (F:=fun x1:X1 =>Mpure x1).
-         now rewrite -> Mright_identity.
-         intro x1. 
-         rewrite -> Mlift_associative; unfold compose.
-         rewrite <- Mlift_extensional with (f:=fun x2:X2 => x1)
-           by trivial.
-         unfold Mlift. now rewrite -> preserves_constants_M.
-    }
-    now apply Mlift_extensional.
+  - unfold t1, m0x1, m0x2, m0x1x2, m0x12, e12.
+    repeat rewrite -> Mlift_associative; rewrite -> Mbind_lift_associative; unfold compose.
+    rewrite <- Mlift_extensional with (f:=compose unit_wrd (@fst X1 X2)).
+    2: { intro x12; apply wrd_1_eq; now repeat rewrite -> unit_wrd_at. }
+    rewrite <- Mlift_associative'. 
+    rewrite -> Mlift_bind_associative. 
+    rewrite -> preserves_constants_M.
+    f_equal.
+    rewrite <- Mbind_extensional with (F:=fun x1:X1=>Mlift (fun _:X2=>x1) (e2 x1)).
+    2: intro x1; now rewrite -> Mlift_associative.
+    rewrite <- Mbind_extensional with (F:=fun x1:X1=>Mpure x1).
+    2: intro x1; unfold Mlift; now rewrite -> preserves_constants_M.
+    now rewrite -> Mright_identity.
   - unfold t2, m0x1, m0x2, m0x1x2, m0x12, e12.
     repeat rewrite -> Mlift_associative; rewrite -> Mbind_lift_associative; unfold compose.
-    rewrite <- Mlift_extensional with (f:=compose unit_wrd (fun x12:X1*X2=>snd x12)).
-    2: { intro x12; now rewrite -> unzip_unit_word. }
-    rewrite <- Mbind_extensional with (F:=fun x12:X1*X2=>Mlift  unit_wrd (e2 (fst x12))).
-    2: { intro x12. apply Mlift_extensional; intro x2.
-         reflexivity. }
+    rewrite <- Mbind_extensional with (F:=fun x12:X1*X2=>Mlift unit_wrd (e2 (fst x12)))  
+      by trivial.
     rewrite -> Mbind_associative.
+    rewrite <- Mlift_extensional with (f:=fun x12:X1*X2=>unit_wrd (snd x12)) by trivial.
     rewrite -> Mlift_bind_associative.
     apply Mbind_extensional; intro x1.
-    rewrite -> Mbind_lift_associative; unfold compose.
     rewrite -> Mlift_associative; unfold compose.
-    unfold Mlift.
-    apply Mbind_extensional; intro x2.
-
-    rewrite -> Mright_identity.
-    rewrite -> Mleft_identity.
-
-    rewrite <- Mbind_extensional with (F:=fun x2:X2=>Mlift  unit_wrd (e2 (fst x12))).
-    rewrite -> Mleft_identity.
-    
-    rewrite -> fst_Mproduct.
-    unfold Mproduct, Mright_product. unfold compose.
-    rewrite -> Mlift_bind_associative.
-    rewrite -> Mlift_bind_associative.
-    unfold Mlift. apply Mbind_extensional; intro x2.
-    rewrite -> Mleft_identity.
-    reflexivity.
+    rewrite <- Mlift_extensional with (f:=@unit_wrd X2) by trivial.
+    rewrite -> Mbind_lift_associative; unfold compose.
+    rewrite <- Mbind_extensional with (F:=fun _:X2=>Mlift unit_wrd (e2 x1)) by trivial.
+    now rewrite -> preserves_constants_M.
 Qed.
- 
 
+
+Definition restr_prec_snd {X1 X2} {n} := fun x1x2 : (Wrd (S n) X1) * (Wrd (S n) X2) =>
+  (fst x1x2, restr_prec (snd x1x2)).
+
+Definition restr_prec_fst {X1 X2} {n} := fun x1x2 : (Wrd (S n) X1) * (Wrd n X2) =>
+  (restr_prec (fst x1x2), snd x1x2).
+
+
+
+Check t1_spec.
+
+Check Mscatsc.
+
+(* Probably false; would require some independence between x1[n] and x2[n]. *)
+Lemma t1_skew_spec :
+  forall ( t1' : forall {n:N}, Wrd n X2 -> M (Wrd (S n) X1) )
+      ( mx2 : forall n:N, M (Wrd n X2) ), 
+         (mx2 O = Mpure (@null_wrd X2)) -> (forall n, Mlift restr_prec (mx2 (S n)) = mx2 n) -> 
+           (Mbind t1' (mx2 O) = Mlift unit_wrd e1) ->
+             (forall n, Mbind t1' (mx2 (S n)) = 
+                 Mbind (fun x2 : Wrd (S n) X2 => Mbind (Mscatsc f1 x2) (t1' (restr_prec x2))) (mx2 (S n)) ) ->
+               forall (n : N), Mleft_skew (t1') (mx2 n) = Mleft_skew t1 (mx2 n).
+Proof.
+  intros t1' mx2 Hmx2O Hmx2S HO HS.
+  induction n.
+  - unfold Mleft_skew.
+    symmetry; rewrite <- Mbind_extensional with ( F := fun x2 : Wrd 0 X2 => Mlift (fun x1 : Wrd 1 X1 => (x1,@null_wrd X2)) (t1 (@null_wrd X2)) ); symmetry.
+    2: { replace (t1 x) with (t1 (@null_wrd X2)). 2: f_equal; now apply wrd_0_eq.
+         apply Mlift_extensional; intro x1. apply pair_equal_spec; split. reflexivity. now apply wrd_0_eq. }
+    rewrite -> preserves_constants_M.
+    rewrite -> t1_null.
+    rewrite <- Mbind_extensional with ( F := fun _ : Wrd 0 X2 => Mlift (fun x1 : Wrd 1 X1 => (x1,@null_wrd X2)) (t1' 0 (@null_wrd X2)) ).
+    2: { intro x2. replace (t1' 0 x2) with (t1' 0 (@null_wrd X2)). 2: f_equal; now apply wrd_0_eq.
+         apply Mlift_extensional; intro x1. apply pair_equal_spec; split. reflexivity. now apply wrd_0_eq. }
+    rewrite -> preserves_constants_M.
+    f_equal.
+    rewrite <- HO. rewrite -> Hmx2O. now rewrite -> Mleft_identity. 
+Admitted.
+
+
+Lemma skew_compose_zero : 
+  let mx12 := t12 O in let mx1x2 := Mlift unzip mx12 in let mx1 := Mlift fst mx1x2 in let mx2 := Mlift snd mx1x2 in
+    Mleft_skew t1 (Mlift restr_prec mx2) = Mlift restr_prec_snd (Mlift unzip mx12) /\
+      Mright_skew mx1 t2 = Mlift unzip mx12.
+Proof.
+Admitted.
+
+Lemma fst_unzip_cat  {X1 X2} {n} : forall (x1x2 : Wrd n (X1*X2)) (x12 : X1*X2), 
+  fst (unzip (cat x1x2 x12)) = cat (fst (unzip x1x2)) (fst x12).
+Proof. 
+  intros x1x2 x12. apply wrd_eq; intro kp. unfold cat; simpl.
+  destruct (Compare_dec.le_lt_eq_dec kp n); reflexivity.
+Qed.
+Lemma snd_unzip_cat  {X1 X2} {n} : forall (x1x2 : Wrd n (X1*X2)) (x12 : X1*X2), 
+  snd (unzip (cat x1x2 x12)) = cat (snd (unzip x1x2)) (snd x12).
+Proof.
+  intros x1x2 x12. apply wrd_eq; intro kp. unfold cat; simpl.
+  destruct (Compare_dec.le_lt_eq_dec kp n); reflexivity.
+Qed.
+
+Lemma last_cat {X} {n} : forall (xw : Wrd n X) (x : X),
+  last (cat xw x) = x.
+Proof. intros xw x. unfold last, cat. simpl.
+  destruct (Compare_dec.le_lt_eq_dec n n _).
+  contradiction (Nat.lt_irrefl n l). reflexivity.
+Qed.
+
+Definition restr_prec_both {X1 X2 n1 n2} : (Wrd (S n1) X1) * (Wrd (S n2) X2) -> (Wrd n1 X1) * (Wrd n2 X2) :=
+  fun x1x2 => pair (restr_prec (fst x1x2)) (restr_prec (snd x1x2)).
+
+Definition rev_pair {A B} : B -> A -> A*B := fun b a => (a,b).
 
 Lemma skew_compose : forall n, 
-  let mx12 := t12 n in let my12 := Mlift s12 mx12 in 
-  let my1 := Mlift fst_unzip my12 in let my2 := Mlift snd_unzip my12 in
-    Mleft_skew (fun y2 => b1 (restr_prec y2)) my2 = Mlift unzip my12 /\
-      Mright_skew my1 b2 = Mlift unzip my12.
+  let mx12 := t12 n in let mx1x2 := Mlift unzip mx12 in let mx1 := Mlift fst mx1x2 in let mx2 := Mlift snd mx1x2 in
+    Mleft_skew t1 (Mlift restr_prec mx2) = Mlift restr_prec_snd mx1x2 /\
+      Mright_skew mx1 t2 = mx1x2.
 Proof.
   induction n.
-  admit.
-  intros mx12 my12 my1 my2.
-  destruct IHn as [IHn1 IHn2].
+  exact skew_compose_zero.
+(*
+  remember (t12 (S n)) as mx12 eqn:Emx12. 
+  remember (Mlift unzip mx12) as mx1x2 eqn:Emx1x2. 
+  remember (Mlift fst mx1x2) as mx1 eqn:Emx1. 
+  remember (Mlift snd mx1x2) as mx2 eqn:Emx2. 
+*)
+  intros mx12 mx1x2 mx1 mx2.
   remember (t12 n) as mx12' eqn:Emx12'. 
-  remember (Mlift s12 mx12') as my12' eqn:Emy12'. 
-  remember (Mlift fst_unzip my12') as my1' eqn:Emy1'. 
-  remember (Mlift snd_unzip my12') as my2' eqn:Emy2'. 
+  remember (Mlift unzip mx12') as mx1x2' eqn:Emx1x2'. 
+  remember (Mlift fst mx1x2') as mx1' eqn:Emx1'. 
+  remember (Mlift snd mx1x2') as mx2' eqn:Emx2'. 
+  destruct IHn as [IHn1 IHn2].
+  rewrite <- Emx1x2', <- Emx1', <- Emx2' in *.
   assert (Mlift restr_prec mx12 = mx12') as Hmx12'. {
     unfold mx12. rewrite -> Emx12'. 
     now apply restr_prec_t12. }
-  assert (Mlift restr_prec my12 = my12') as Hmy12'. {
-    unfold my12, mx12. rewrite -> Emy12', Emx12'. 
-    now apply restr_prec_b12. }
-  assert (Mlift restr_prec my1 = my1') as Hmy1'. {
-    unfold my1. rewrite -> Emy1', <- Hmy12'.
+  assert (Mlift restr_prec mx1 = mx1') as Hmx1'. {
+    unfold mx1, mx1x2. rewrite -> Emx1', Emx1x2'. rewrite <- Hmx12'. 
     repeat rewrite -> Mlift_associative; unfold compose.
-    apply Mlift_extensional. symmetry; now apply restr_prec_fst_unzip. } 
-  assert (Mlift restr_prec my2 = my2') as Hmy2'. {
-    unfold my2. rewrite -> Emy2', <- Hmy12'.
+    apply Mlift_extensional; intro x12. 
+    rewrite <- restr_prec_unzip; simpl. reflexivity. }
+  assert (Mlift restr_prec mx2 = mx2') as Hmx2'. {
+    unfold mx2, mx1x2. rewrite -> Emx2', Emx1x2'. rewrite <- Hmx12'. 
     repeat rewrite -> Mlift_associative; unfold compose.
-    apply Mlift_extensional. symmetry; now apply restr_prec_snd_unzip. } 
-  
-  split.
-  - 
-    (* RHS *)
-    unfold my12, mx12.
-    rewrite -> t12_succ.
-    replace (t12 n) with mx12' by admit.
+    apply Mlift_extensional; intro x12. 
+    rewrite <- restr_prec_unzip; simpl. reflexivity. }
+  revert IHn1 IHn2; intros IHn1 IHn2.
 
-    (* LHS *)
-    unfold my2.
-    unfold Mleft_skew.
-    unfold my2, my12.
-    
+  remember (Mlift restr_prec_snd mx1x2) as mx1_x2 eqn:Emx1_x2.
+  assert (Mlift restr_prec_fst mx1_x2 = mx1x2') as Hmx1_x2. {
+    rewrite -> Emx1_x2. unfold mx1x2. rewrite -> Emx1x2', <- Hmx12'.
+    repeat rewrite -> Mlift_associative.
+    apply Mlift_extensional; intro x12.
+    unfold restr_prec_fst, restr_prec_snd.
+    rewrite <- restr_prec_unzip. simpl. 
+    reflexivity. }
+ 
+  assert (Mleft_skew t1 (Mlift restr_prec mx2) = Mlift restr_prec_snd mx1x2) as R1.
+  -- set (Hmx12 := t12_succ n). 
+     set (Ht1 := t1_succ n). 
+     set (Ht2 := t2_succ n). 
+
+     (* RHS *) 
+     unfold mx1x2, mx12. rewrite -> Hmx12. rewrite <- Emx12'.
+     replace mx12' with (Mlift zip_pair mx1x2').
+     2: { rewrite -> Emx1x2'. rewrite -> Mlift_associative.
+          rewrite <- Mlift_extensional with (f:=fun x=>x).
+          now rewrite -> Mlift_identity.  
+          intros x12. unfold compose, zip_pair.
+          apply wrd_eq; intro kp.
+          symmetry; now exact (zip_unzip x12 kp).
+     }
+     unfold Mscatif.
+     rewrite -> Mbind_lift_associative; unfold compose.
+     rewrite -> Mlift_bind_associative.
+     rewrite -> Mlift_bind_associative.
+     rewrite <- Mbind_extensional with 
+       (F:=fun x1x2:(Wrd (S n) X1)*(Wrd (S n) X2)=>Mlift (fun x12:X1*X2 => cat_fst x1x2 (fst x12)) (f12 (last (fst x1x2), last (snd x1x2)))).
+     2: { intro x1x2. repeat rewrite -> Mlift_associative; unfold compose.
+          unfold zip_pair.
+          replace (last (zip (fst x1x2) (snd x1x2))) with (last (fst x1x2), last (snd x1x2)) by trivial.
+          apply Mlift_extensional; intro x12. 
+          unfold restr_prec_snd.
+          apply pair_equal_spec; split.
+          rewrite -> (fst_unzip_cat (fst x1x2;snd x1x2)).
+          rewrite -> unzip_zip. simpl. reflexivity.
+          rewrite -> (snd_unzip_cat (fst x1x2;snd x1x2)).
+          rewrite -> restr_prec_cat.
+          rewrite -> unzip_zip. simpl. reflexivity.
+        }
+     rewrite <- Mbind_extensional with 
+       (F:=fun x1x2:(Wrd (S n) X1)*(Wrd (S n) X2)=>Mlift (cat_fst x1x2) (Mlift fst (f12 (last (fst x1x2), last (snd x1x2))))).
+     2: { intro x1x2; now rewrite -> Mlift_associative. }
+
+     assert (forall x1 x2, Mlift fst (f12 (x1,x2)) = f1 x1 x2) as Hf1. {
+       unfold f12.
+       intros x1 x2. rewrite -> Mlift_bind_associative.
+       rewrite <- Mbind_extensional with (F:=fun x1=>Mpure x1).
+       now rewrite -> Mright_identity.
+       - intro x1'. rewrite -> Mlift_associative; unfold compose. simpl. 
+         unfold Mlift. now rewrite -> preserves_constants_M. 
+     }
+     rewrite <- Mbind_extensional with (F:=fun x1x2 => Mlift (cat_fst x1x2) (f1 (last (fst x1x2)) (last (snd x1x2)))).
+     2: { intro x1x2; now rewrite -> Hf1. }
+     clear Hf1.
+
+     (* LHS *)
+     unfold Mleft_skew.
+     rewrite <- Mbind_extensional with (F:=fun x2 => Mlift (rev_pair x2) (Mbind (Mscatsc f1 x2) (t1 (restr_prec x2)))). 
+     2: { intros x2; now rewrite -> t1_succ. }
+     rewrite -> Hmx2'. 
+     replace mx2' with (Mlift (fun x2wf:(Wrd n X2)*X2=>cat(fst x2wf) (snd x2wf)) (Mlift (fun x2:Wrd (S n) X2=>(restr_prec x2,last x2)) mx2')).
+     2: { rewrite -> Mlift_associative; unfold compose. 
+          rewrite <- Mlift_extensional with (f:=fun x2=>x2).  
+          now rewrite -> Mlift_identity.
+          intro x2. simpl. symmetry. now apply (cat_head_tail x2). }
+     unfold Mscatsc, rev_pair. 
+     rewrite -> Emx2'.
+     rewrite <- Mbind_extensional with 
+       (F:=fun x2 : Wrd (S n) X2 => Mbind (fun x1:Wrd (S n) X1=>Mlift (fun x1f:X1 => (cat x1 x1f, x2)) (f1 (last x1) (last x2))) (t1 (restr_prec x2))).
+     2: { intros x2. unfold rev_pair. rewrite -> Mlift_bind_associative. apply Mbind_extensional; intro x1. 
+          now rewrite -> Mlift_associative. }
+
+     (* Work on a combination IHn12 of IHn1 and IHn2. *)
+     remember IHn1 as IHn12; clear HeqIHn12; rewrite <- IHn2 in IHn12.
+     unfold Mleft_skew, Mright_skew in IHn12.
+     rewrite -> Mlift_bind_associative in IHn12.
+     rewrite -> Mbind_lift_associative in IHn12; unfold compose in IHn12.
+     rewrite <- Mbind_extensional with (F:=fun x1:Wrd (S n) X1=>Mlift (compose restr_prec_snd (fun x2=>(x1,x2))) (t2 x1)) in IHn12.
+     2: { intro x1; now rewrite -> Mlift_associative. }
+     unfold compose, restr_prec_snd in IHn12. simpl in IHn12.
+     rewrite <- Mbind_extensional with (F:=fun x1:Wrd (S n) X1=>Mlift (fun x2=>(x1,x2)) (Mlift restr_prec (t2 x1))) in IHn12.
+     2: { intro x1; now rewrite -> Mlift_associative. }
+     rewrite <- Mbind_extensional with (F:=compose (fun x2:Wrd n X2=>Mlift (fun x1=>(x1,x2)) (t1 x2)) (restr_prec)) in IHn12.
+     2: { intro x2; trivial. }
+     rewrite <- Mbind_lift_associative in IHn12.
+     clear IHn12.
+
+(* Try substiting IHn2 in both sides to separate restr_prec x2' and last x2'. *)
+(* May be easier to do this earlier. *)
+     rewrite <- IHn2.
+     unfold Mright_skew.
+
+     (* LHS *) 
+     rewrite -> Mbind_lift_associative.
+     rewrite -> Mbind_associative.
+     rewrite -> Mlift_associative.
+     rewrite -> Mbind_lift_associative.
+     simpl.
+     rewrite -> Mbind_associative.
+
+     rewrite <- Mbind_extensional with 
+       ( F:=fun x1:Wrd (S n) X1 => Mbind (fun x2: Wrd (S n) X2 => Mbind (fun x1' => Mlift (cat_fst (x1',x2)) (f1 (last x1') (last x2)))
+             (t1 (restr_prec x2))) (t2 x1) ).
+     2: { intro x1. rewrite -> Mbind_lift_associative.
+          apply Mbind_extensional; intro x2. 
+          rewrite -> restr_prec_cat. 
+          apply Mbind_extensional; intro x1'. 
+          rewrite -> last_cat. 
+          apply Mlift_extensional; intro x1f.
+          apply pair_equal_spec; split. 
+          reflexivity. symmetry; now apply (cat_head_tail x2). 
+     }
+
+     (* RHS *)
+     symmetry.
+     rewrite <- Mbind_extensional with 
+       ( F:=fun x1:Wrd (S n) X1 => Mbind (fun x2: Wrd (S n) X2 => Mlift (cat_fst (x1,x2)) (f1 (last x1) (last x2))) (t2 x1) ).
+     symmetry.
+     2: { intro x1; now rewrite -> Mbind_lift_associative. }
+
+     (* LHS *)
+     (* This is a minor modification of the previous step. *)
+     rewrite <- Mbind_extensional with 
+       ( F:=fun x1:Wrd (S n) X1 => Mbind (fun x2: Wrd (S n) X2 => Mbind (fun x1' => Mlift (rev_pair x2) (Mlift (cat x1') (f1 (last x1') (last x2))))
+             (t1 (restr_prec x2))) (t2 x1) ).
+     2: { intro x1; apply Mbind_extensional; intro x2; apply Mbind_extensional; intro x1'.
+          rewrite -> Mlift_associative.
+          apply Mlift_extensional; intro x1f.
+          unfold rev_pair, cat_fst. simpl. reflexivity.
+     }
+(*
+     rewrite <- Mbind_extensional with 
+       ( F:=fun x1:Wrd (S n) X1 => Mbind (fun x2: Wrd (S n) X2 => Mlift (fun x1'':Wrd (S (S n)) X1 => (x1'',x2)) (Mbind (fun x1':Wrd (S n) X1 => Mlift (cat x1') (f1 (last x1') (last x2))) 
+             (t1 (restr_prec x2))) ) (t2 x1) ).
+     2: { admit. }
+*)
+     rewrite <- Mbind_extensional with 
+       ( F:=fun x1:Wrd (S n) X1 => Mbind (fun x2: Wrd (S n) X2 => Mlift (fun x1'':Wrd (S (S n)) X1 => (x1'',x2)) (t1 x2)) (t2 x1) ).
+     2: { intro x1; apply Mbind_extensional; intro x2.
+          rewrite -> Ht1. rewrite -> Mlift_bind_associative. apply Mbind_extensional; intro x1'.
+          unfold Mscatsc, rev_pair. now repeat rewrite -> Mlift_associative. }
+     (* Not sure this is going anywhere. I think we somehow need to appl IHn1. But we have at least applied Ht1. *)
+     admit.
+
+  -- assert (Mright_skew mx1 t2 = mx1x2) as R2.
+  *- (* RHS *)
+     replace mx1x2 with (Mlift unzip mx12) by trivial.
+     unfold mx12; rewrite -> t12_succ; rewrite <- Emx12'.
+     replace mx12' with (Mlift zip_pair mx1x2'). 
+     2: { rewrite -> Emx1x2', -> Mlift_associative. transitivity (Mlift (fun x12:Wrd (S n) (X1*X2) => x12) mx12').
+          apply Mlift_extensional; intro x12. unfold zip_pair. 
+          apply wrd_eq; intro kp. now apply zip_unzip.
+          now rewrite -> Mlift_identity. }
+
+     (* LHS *)
+     unfold Mright_skew.
+     rewrite <- Mbind_extensional with 
+       (F:=fun x1=>Mlift (fun x2=>(x1,x2)) (Mbind (Mscatwc f2 x1) (t2 (restr_prec x1)))).
+     2: { intro x1; now rewrite -> t2_succ. }
+     
+     (* RHS: Apply inductive hypothesis. *)
+     rewrite <- IHn2.
+
+     replace mx1 with (Mlift fst mx1_x2). 2: admit.
+     rewrite <- Emx1_x2 in R1. rewrite <- R1.
+     rewrite -> Hmx2'. rewrite -> Emx2'.
+
 Admitted.
+
 
 Lemma compose : forall n, 
   let mx12 := t12 n in let my12 := Mlift s12 mx12 in 

@@ -140,7 +140,7 @@ Proof.
     unfold skew_products.
     simpl.
     rewrite -> Mlift_associative. 
-    replace (compose (restr n (PeanoNat.Nat.le_succ_diag_r n)) (wlcons n)) with (@fst (Wrd n X) X).
+    replace (fun x => restr n (PeanoNat.Nat.le_succ_diag_r n) (wlcons n x)) with (@fst (Wrd n X) X).
     rewrite -> Hs.
     reflexivity.
     - apply functional_extensionality. intro wx. destruct wx as [w x]. simpl.
