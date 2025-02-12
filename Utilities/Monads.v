@@ -98,10 +98,10 @@ Qed.
 
 Lemma Mlift_associative {M} {_ : Monad M} {X Y Z : Type} :
   forall (g : Y -> Z) (f : X -> Y) (A : M X),
-    Mlift g (Mlift f A) = Mlift (compose g f) A.
+    Mlift g (Mlift f A) = Mlift (fun x => g (f x)) A.
 Proof.
   intros g f A. unfold Mlift. 
-  rewrite -> Massociativity; unfold compose.
+  rewrite -> Massociativity.
   apply Mbind_extensional; intro x.
   now rewrite -> Mleft_identity.
 Qed.
@@ -115,6 +115,26 @@ Proof.
 Qed.
 
 Lemma Mbind_lift_associative {M} {_ : Monad M} {X Y Z : Type} : 
+  forall (A : M X) (f : X -> Y) (G : Y -> M Z),
+    Mbind G (Mlift f A) = Mbind (fun x => G (f x)) A.
+Proof. 
+  intros. unfold Mlift. 
+  rewrite -> Massociativity. 
+  apply Mbind_extensional; intro x. 
+  now rewrite -> Mleft_identity. 
+Qed.
+
+Lemma Mlift_associative' {M} {_ : Monad M} {X Y Z : Type} :
+  forall (g : Y -> Z) (f : X -> Y) (A : M X),
+    Mlift g (Mlift f A) = Mlift (compose g f) A.
+Proof.
+  intros g f A. unfold Mlift. 
+  rewrite -> Massociativity; unfold compose.
+  apply Mbind_extensional; intro x.
+  now rewrite -> Mleft_identity.
+Qed.
+
+Lemma Mbind_lift_associative' {M} {_ : Monad M} {X Y Z : Type} : 
   forall (A : M X) (f : X -> Y) (G : Y -> M Z),
     Mbind G (Mlift f A) = Mbind (compose G f) A.
 Proof. 
