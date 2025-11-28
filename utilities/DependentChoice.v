@@ -1,4 +1,4 @@
-(******************************************************************************
+ (******************************************************************************
  *  utilities/DependentChoice.v
  *
  *  Copyright 2023 Pieter Collins
@@ -24,7 +24,7 @@
 
 
 Require Import List.
-Require Import Arith_base.
+Require Import Coq.Arith.PeanoNat.
 
 Require Import Words.
 
@@ -255,11 +255,12 @@ Proof.
          apply is_choice_prefix_of_list with (n:=(length xl - m)).
          replace (m + (length xl - m)) with (length xl).
          apply Hl.
-         rewrite -> (Arith_base.le_plus_minus_r_stt _ _ Hm).
+         rewrite -> Nat.add_comm.
+         rewrite -> (Nat.sub_add _ _ Hm).
          reflexivity.
        }
        apply (Hc (S n)).
-       apply Arith_base.lt_le_S_stt.
+       apply Nat.le_succ_l.
        exact Hnltl.
     -- unfold xs.
        assert (exists m:nat, n=length xl + m) as Hm. {
