@@ -66,3 +66,5 @@ Definition and s1 s2 :=
     sier (and_seq s1 s2) (all_after_and s1 s2 p1 p2)
   end end.
 
+End S.
+
