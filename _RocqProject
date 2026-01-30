@@ -37,6 +37,7 @@ utilities/InhabitedEnsembleMonad.v
 
 logic/Topologic.v
 logic/Sierpinskian.v
+logic/Kleenean.v
 
 numbers/R_addenda.v
 numbers/Analysis.v
