@@ -25,11 +25,11 @@
 
 
 Require Export PolynomialModels.
-Require Import Recdef.
-Require Import Lia.
-Require Import Lra.
-Require Import Ring.
-
+From Stdlib Require Import Recdef.
+From Stdlib Require Import Lia.
+From Stdlib Require Import Lra.
+From Stdlib Require Import Ring.
+From Stdlib Require Import Arith.Compare_dec.
 
 Section Polynomial_Model_Add.
 

@@ -23,7 +23,7 @@
  *)
 
 
-Require Import Floats.
+From Stdlib Require Import Floats.
 
 
 Require Export QArith.

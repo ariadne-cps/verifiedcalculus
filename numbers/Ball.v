@@ -23,8 +23,8 @@
  *)
 
 
-Require Import Reals.
-Require Import Lia.
+From Stdlib Require Import Reals.
+From Stdlib Require Import Lia.
 
 Require Import R_addenda.
 Require Import Floats.

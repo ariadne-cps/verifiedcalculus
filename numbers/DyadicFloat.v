@@ -23,19 +23,20 @@
  *)
 
 
-Require Import Reals.
-Require Import Reals.Rbase.
-Require Import Reals.Rfunctions.
-Require Import Reals.Rbasic_fun.
-Require Import Reals.Rbasic_fun.
-Require Import Reals.Rdefinitions.
+From Stdlib Require Import Reals.
+From Stdlib Require Import Reals.Rbase.
+From Stdlib Require Import Reals.Rfunctions.
+From Stdlib Require Import Reals.Rbasic_fun.
+From Stdlib Require Import Reals.Rbasic_fun.
+From Stdlib Require Import Reals.Rdefinitions.
 
 Require Export R_addenda.
 Require Export Floats.
 
-Require Import QArith.
-
-
+From Stdlib Require Import QArith.
+From Stdlib Require Import ZArith.Zorder.
+From Stdlib Require Import ZArith.Zbool.
+From Stdlib Require Import ZArith.ZArith_dec.
 
 Open Scope Z_scope.
 

@@ -31,7 +31,7 @@
  *)
 
 
-Require Import Coq.Arith.PeanoNat.
+From Stdlib Require Import Arith.PeanoNat.
 
 Require Export causality.
 Require Export behaviour_composition.

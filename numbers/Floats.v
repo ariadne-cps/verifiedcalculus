@@ -24,14 +24,14 @@
  *)
 
 
-Require Import Reals.
-Require Import Reals.Rbase.
-Require Import Reals.Rfunctions.
-Require Import Reals.Rbasic_fun.
-Require Import Reals.Rbasic_fun.
-Require Import Reals.Rdefinitions.
+From Stdlib Require Import Reals.
+From Stdlib Require Import Reals.Rbase.
+From Stdlib Require Import Reals.Rfunctions.
+From Stdlib Require Import Reals.Rbasic_fun.
+From Stdlib Require Import Reals.Rbasic_fun.
+From Stdlib Require Import Reals.Rdefinitions.
 
-Require Import List.
+From Stdlib Require Import List.
 
 Require Export R_addenda.
 

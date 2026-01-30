@@ -26,7 +26,7 @@
 
 Require Export PolynomialModels.
 
-Require Import Lra.
+From Stdlib Require Import Lra.
 
 Section Polynomial_Model_Monomial_Scale.
 

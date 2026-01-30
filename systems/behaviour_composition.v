@@ -32,7 +32,7 @@
 
 (* ---------------------------------------------------------------- *)
 
-Require Import Coq.Arith.PeanoNat.
+From Stdlib Require Import Arith.PeanoNat.
 
 Require Export causality.
 

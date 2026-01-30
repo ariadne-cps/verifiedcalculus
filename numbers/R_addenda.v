@@ -26,14 +26,14 @@
 
 (* This file contains various properties of R that are not in the standard library. *)
 
-Require Import Reals.
-Require Import Reals.Rbase.
-Require Import Reals.Rfunctions.
-Require Import Reals.Rbasic_fun.
-Require Import Reals.Rbasic_fun.
-Require Import Reals.Rdefinitions.
+From Stdlib Require Import Reals.
+From Stdlib Require Import Reals.Rbase.
+From Stdlib Require Import Reals.Rfunctions.
+From Stdlib Require Import Reals.Rbasic_fun.
+From Stdlib Require Import Reals.Rbasic_fun.
+From Stdlib Require Import Reals.Rdefinitions.
 
-Require Import Lra.
+From Stdlib Require Import Lra.
 
 Open Scope R_scope.
 

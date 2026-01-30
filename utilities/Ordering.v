@@ -24,9 +24,9 @@
  *)
 
 
-Require Import PeanoNat.
-Require Import Coq.Arith.Compare_dec.
-Require Import Classes.RelationClasses.
+From Stdlib Require Import PeanoNat.
+From Stdlib Require Import Arith.Compare_dec.
+From Stdlib Require Import Classes.RelationClasses.
 
 
 Declare Scope WSO_scope.

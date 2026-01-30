@@ -23,8 +23,8 @@
  *)
 
 
-Require Import Coq.Logic.FunctionalExtensionality.
-Require Import Coq.Logic.PropExtensionality.
+From Stdlib Require Import Logic.FunctionalExtensionality.
+From Stdlib Require Import Logic.PropExtensionality.
 
 Require Export Words.
 Require Export Monads.

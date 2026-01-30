@@ -23,7 +23,7 @@
  *)
 
 
-Require Import Coq.Logic.FunctionalExtensionality.
+From Stdlib Require Import Logic.FunctionalExtensionality.
 
 Require Import Monads.
 

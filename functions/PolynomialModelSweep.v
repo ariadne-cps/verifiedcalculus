@@ -27,8 +27,8 @@
 Require Export R_addenda.
 Require Export Floats.
 Require Export PolynomialModels.
-Require Import Recdef.
-Require Import Lia.
+From Stdlib Require Import Recdef.
+From Stdlib Require Import Lia.
 
 
 Section Polynomial_Model_Sweep.

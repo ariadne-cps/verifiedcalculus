@@ -23,11 +23,11 @@
  *)
 
 
-Require Import Coq.Logic.FunctionalExtensionality.
-Require Import Coq.Logic.ProofIrrelevance.
+From Stdlib Require Import Logic.FunctionalExtensionality.
+From Stdlib Require Import Logic.ProofIrrelevance.
 
-Require Import Coq.Arith.PeanoNat.
-Require Import Coq.Arith.Compare_dec.
+From Stdlib Require Import Arith.PeanoNat.
+From Stdlib Require Import Arith.Compare_dec.
 
 
 Section Words.

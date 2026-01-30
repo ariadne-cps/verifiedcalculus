@@ -23,13 +23,13 @@
  *)
 
 
-Require Import Rbase.
-Require Import Rdefinitions.
-Require Import Rbasic_fun.
-Require Import Rfunctions.
+From Stdlib Require Import Rbase.
+From Stdlib Require Import Rdefinitions.
+From Stdlib Require Import Rbasic_fun.
+From Stdlib Require Import Rfunctions.
 
-Require Import PartSum.
-Require Import Lra.
+From Stdlib Require Import PartSum.
+From Stdlib Require Import Lra.
 
 Require Export R_addenda.
 

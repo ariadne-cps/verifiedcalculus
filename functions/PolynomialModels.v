@@ -24,17 +24,17 @@
  *)
 
 
-Require Export Reals.
-Require Export Reals.Rbase.
-Require Export Reals.Rfunctions.
-Require Export Reals.Rbasic_fun.
-Require Export Reals.Rbasic_fun.
-Require Export Reals.Rdefinitions.
+From Stdlib Require Export Reals.
+From Stdlib Require Export Reals.Rbase.
+From Stdlib Require Export Reals.Rfunctions.
+From Stdlib Require Export Reals.Rbasic_fun.
+From Stdlib Require Export Reals.Rbasic_fun.
+From Stdlib Require Export Reals.Rdefinitions.
 
-Require Export List.
+From Stdlib Require Export List.
 
-Require Import Recdef.
-Require Import Lia.
+From Stdlib Require Import Recdef.
+From Stdlib Require Import Lia.
 
 Require Export R_addenda.
 Require Export Floats.

@@ -23,8 +23,8 @@
  *)
 
 
-Require Import List.
-Require Import Coq.Arith.PeanoNat.
+From Stdlib Require Import List.
+From Stdlib Require Import Arith.PeanoNat.
 
 Require Import Words.
 

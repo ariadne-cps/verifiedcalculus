@@ -24,9 +24,9 @@
  *)
 
 
-Require Import List.
-Require Import PeanoNat.
-Require Import Recdef.
+From Stdlib Require Import List.
+From Stdlib Require Import PeanoNat.
+From Stdlib Require Import Recdef.
 
 Require Export Ordering.
 

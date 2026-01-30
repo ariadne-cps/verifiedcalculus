@@ -29,9 +29,9 @@ Require Export PolynomialModelAdd.
 Require Export PolynomialModelScale.
 Require Export PolynomialModelMonomialScale.
 
-Require Import Recdef.
-Require Import Lia.
-Require Import Lra.
+From Stdlib Require Import Recdef.
+From Stdlib Require Import Lia.
+From Stdlib Require Import Lra.
 
 
 Section Polynomial_Model_Multiply.

@@ -23,13 +23,13 @@
  *)
 
 
-Require Import Coq.Logic.FunctionalExtensionality.
-Require Import Coq.Logic.PropExtensionality.
+From Stdlib Require Import Logic.FunctionalExtensionality.
+From Stdlib Require Import Logic.PropExtensionality.
 
-Require Import Coq.Logic.ProofIrrelevance.
+From Stdlib Require Import Logic.ProofIrrelevance.
 
-Require Import Coq.Lists.List.
-Require Import Coq.Sets.Ensembles.
+From Stdlib Require Import Lists.List.
+From Stdlib Require Import Sets.Ensembles.
 
 Require Import DependentChoice.
 

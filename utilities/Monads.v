@@ -23,8 +23,8 @@
  *)
 
 
-Require Import Coq.Logic.FunctionalExtensionality.
-Require Import Coq.Logic.ProofIrrelevance.
+From Stdlib Require Import Logic.FunctionalExtensionality.
+From Stdlib Require Import Logic.ProofIrrelevance.
 
 
 Section Monads.

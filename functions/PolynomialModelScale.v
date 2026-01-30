@@ -26,9 +26,9 @@
 
 Require Export PolynomialModels.
 
-Require Import Recdef.
-Require Import Lia.
-Require Import Lra.
+From Stdlib Require Import Recdef.
+From Stdlib Require Import Lia.
+From Stdlib Require Import Lra.
 
 
 
