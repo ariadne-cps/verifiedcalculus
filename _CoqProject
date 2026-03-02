@@ -35,7 +35,9 @@ utilities/LimitMonads.v
 utilities/EnsembleMonad.v
 utilities/InhabitedEnsembleMonad.v
 
+numbers/Z_addenda.v
 numbers/R_addenda.v
+numbers/Dyadic.v
 numbers/Analysis.v
 numbers/Sum.v
 numbers/Floats.v
