@@ -27,6 +27,10 @@ Notation tru := (known true).
 Notation indt := (unknown).
 Notation fls := (known false).
 
+Definition definitely (tb : Tribool) : B :=
+  match tb with | known true => true | _ => false end.
+Definition possibly (tb : Tribool) : B :=
+  match tb with | known false => false | _ => true end.
 
 Definition refines (tb1 tb2 : Tribool) : Prop :=
   match tb1, tb2 with
@@ -775,6 +779,32 @@ Qed.
 
 Definition PartialKleenean (n : nat) := 
   @PreKleenean (RestrictedNat.NatLe n) (RestrictedNat.Lattice_NatLe n).
+
+Definition PKimpl {n : nat} (pk1 pk2 : PartialKleenean n) : PartialKleenean n :=
+  impl pk1 pk2.
+
+Import BasicTopologic.
+
+Definition restrict (k : Kleenean) (n : nat) : PartialKleenean n :=
+  let s := Kleeneans.tbs k in 
+    let Hms := proper k in 
+      let w := BasicTopologic.restrict_seq n s in
+        let Hmw := BasicTopologic.restrict_seq_monotone n s Hms in 
+          mkPreKleenean w Hmw.
+
+Notation NatLe := RestrictedNat.NatLe.
+Print RestrictedNat.NatLe.
+
+Definition check (k : Kleenean) (n : nat) : Tribools.TB := k n.
+
+Definition get_basic {n : nat} (vk : PartialKleenean n) : Tribools.TB :=
+  vk (exist (fun m => Nat.le m n) n (Nat.le_refl n)).
+
+Definition definitely' {n : nat} (vk : PartialKleenean n) : bool :=
+  Tribools.definitely (get_basic vk).
+
+Definition possibly' {n : nat} (vk : PartialKleenean n) : bool :=
+  Tribools.possibly (get_basic vk).
 
 
 Module Abstract.

@@ -413,4 +413,56 @@ End Equivalence.
 
 End MonotoneEquivalence.
 
+Section EffectiveValidated.
+
+
+Context `{BS : Set} {BS_Basis : Basis BS}.
+
+Instance Lattice_NatLe {n : nat} : Lattice (RestrictedNat.NatLe n) :=
+  (RestrictedNat.Lattice_NatLe n).
+
+
+Definition Effective := { seq : nat -> BS | is_monotone seq }.
+Definition Validated (n : nat) := { wrd : (RestrictedNat.NatLe n) -> BS | is_monotone wrd }.
+
+Lemma NatLe_le_nat {n : nat} : forall (m1 m2 : RestrictedNat.NatLe n),
+  le m1 m2 <-> proj1_sig m1 <= proj1_sig m2.
+Proof.
+  intros m1 m2. destruct m1 as [m1 H1], m2 as [m2 H2].
+  unfold le. simpl. unfold RestrictedNat.le. simpl. 
+  tauto.
+Qed.
+
+Notation NatLe := RestrictedNat.NatLe.
+
+Definition restrict_seq (n : nat) (seq : nat -> BS) : (NatLe n) -> BS :=
+  fun m => seq (proj1_sig m).  
+Lemma restrict_seq_monotone (n : nat) :
+  forall (seq : nat -> BS), is_monotone seq -> is_monotone (restrict_seq n seq).
+Proof.
+  intros seq Hs.
+  unfold is_monotone in *.
+  unfold restrict_seq.
+  unfold le; simpl. unfold RestrictedNat.le. simpl.
+  intros m1 m2 Hm1lem2.
+  apply Hs.
+  exact Hm1lem2.
+Qed.
+
+
+Definition restrict_eff (n : nat) (x : Effective) : (Validated n) :=
+  let s := proj1_sig x in let ms := proj2_sig x in
+    let w := restrict_seq n s in let mw := restrict_seq_monotone n s ms in
+      exist is_monotone w mw.
+
+
+Print restrict_eff.
+
+End EffectiveValidated.
+
+Print restrict_eff.
+
 End BasicTopologic.
+
+Print BasicTopologic.restrict_eff.
+
