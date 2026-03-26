@@ -46,6 +46,9 @@ Numbers/Floats.v
 Numbers/DyadicFloat.v
 Numbers/Bounds.v
 Numbers/Ball.v
+Numbers/ConstructiveReals.v
+Numbers/ConstructiveRealComparison.v
+Numbers/ConstructiveDedekindReal.v
 
 Functions/PolynomialModels.v
 Functions/PolynomialModelSweep.v
