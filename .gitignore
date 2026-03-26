@@ -3,6 +3,8 @@
 *.vos
 *.glob
 *.aux
+*.conf
 .lia.cache
 makefile
-makefile.conf
+.makefile.d
+sandbox/
