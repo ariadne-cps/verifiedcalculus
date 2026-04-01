@@ -129,6 +129,9 @@ Proof.
   - assert (i12 <= i13) as Hi12lei13 by (apply Nat.le_max_l). apply (Nat.le_trans _ i13); assumption.
 Qed.
 
+Lemma seq_eq_eqv : forall s1 s2 : S, (forall i, s1 i = s2 i) -> s1 == s2.
+Proof. unfold eqv. intros s1 s2 H. exists 0. intros j _. exact (H j). Qed.
+
 
 Definition definitely (s : Sierpinskian) : Prop := exists n, s n = tru.
 
@@ -278,7 +281,6 @@ Proof.
   destruct (s1 j); destruct (s2 j); destruct (s3 j); reflexivity.
 Qed.
   
-
 Definition or_seq (s1 s2 : N -> SB) := fun n => SBor (s1 n) (s2 n).
 
 Lemma next_after_or : forall (s1 s2 : N -> SB), 
@@ -364,6 +366,12 @@ Proof.
 Qed.
 
 
+(*
+Bool.orb_andb_distrib_l : forall b1 b2 b3 : B, ((b1 && b2) || b3) = ((b1 || b3) && (b2 || b3))
+Bool.andb_orb_distrib_r : forall b1 b2 b3 : B, (b1 && (b2 || b3)) = ((b1 && b2) || (b1 && b3))
+Bool.andb_orb_distrib_l : forall b1 b2 b3 : B, ((b1 || b2) && b3) = ((b1 && b3) || (b2 && b3))
+Bool.orb_andb_distrib_r : forall b1 b2 b3 : B, (b1 || (b2 && b3)) = ((b1 || b2) && (b1 || b3))
+*)
 
 Fixpoint one_of_le (seq : N -> SB) (n : N) : SB :=
   match n with
@@ -376,6 +384,7 @@ Lemma one_of_le_succ : forall seq n,
 Proof. intros; auto. Qed.
 
 Import PeanoNat.
+
 Lemma one_of_le_iff_exists : forall seq n, (one_of_le seq n = tru) <-> exists i, (i <= n /\ seq i = tru).
 Proof.
   intro seq. intro m; revert m. 
