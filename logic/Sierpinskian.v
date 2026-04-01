@@ -74,7 +74,19 @@ Notation S := Sierpinskian.
 
 Lemma all_ge : forall (p : N -> Prop) (i : N), 
   (p i) -> (forall j, p j -> p (succ j)) -> (forall j, i <= j -> p j).
-Proof. Admitted.
+Proof. 
+  intros p i pi ps.
+  assert (forall k, p (i + k)) as H. {
+    induction k.
+    - rewrite -> Nat.add_0_r; exact pi.
+    - rewrite -> Nat.add_succ_r. apply ps. exact IHk.
+  } 
+  intros j Hj.
+  pose proof (Nat.le_exists_sub i j Hj) as [k Hk].
+  rewrite -> (proj1 Hk).
+  rewrite -> Nat.add_comm.
+  exact (H k).
+Qed.
 
 Lemma next_implies_all_after : forall seq : N -> SB, 
   next_after seq -> all_after seq.
@@ -113,6 +125,9 @@ Proof.
   - assert (i23 <= i13) as Hi23lei13 by (apply Nat.le_max_r). apply (Nat.le_trans _ i13); assumption.
   - assert (i12 <= i13) as Hi12lei13 by (apply Nat.le_max_l). apply (Nat.le_trans _ i13); assumption.
 Qed.
+
+Lemma seq_eq_eqv : forall s1 s2 : S, (forall i, s1 i = s2 i) -> s1 == s2.
+Proof. unfold eqv. intros s1 s2 H. exists 0. intros j _. exact (H j). Qed.
 
 
 Definition definitely (s : Sierpinskian) : Prop := exists n, s n = tru.
@@ -186,7 +201,17 @@ Proof.
     exists 0. reflexivity.
 Qed.
 
+Lemma and_comm : forall (s1 s2 : S), and s1 s2 == and s2 s1.
+Proof. 
+  intros s1 s2. unfold and, and_seq, eqv. exists 0; intros j _; simpl.
+  destruct (s1 j); destruct (s2 j); reflexivity.
+Qed.
 
+Lemma and_assoc : forall (s1 s2 s3 : S), (and s1 (and s2 s3)) == (and (and s1 s2) s3).
+Proof. 
+  intros s1 s2 s3. unfold and, and_seq, eqv. exists 0; intros j Hj; simpl.
+  destruct (s1 j); destruct (s2 j); destruct (s3 j); reflexivity.
+Qed.
 
 Definition or_seq (s1 s2 : N -> SB) := fun n => SBor (s1 n) (s2 n).
 
@@ -238,8 +263,37 @@ Proof.
        unfold or_seq. rewrite -> H2. rewrite -> SBor_tru. right. reflexivity. exact Hij.
 Qed.
 
+Lemma or_comm : forall (s1 s2 : S), or s1 s2 == or s2 s1.
+Proof. 
+  intros s1 s2. unfold or, or_seq, eqv. exists 0; intros j _; simpl.
+  destruct (s1 j); destruct (s2 j); reflexivity.
+Qed.
+
+Lemma or_assoc : forall (s1 s2 s3 : S), (or s1 (or s2 s3)) == (or (or s1 s2) s3).
+Proof.
+  intros s1 s2 s3. unfold or, or_seq, eqv. exists 0; intros j _; simpl.
+  destruct (s1 j); destruct (s2 j); destruct (s3 j); reflexivity.
+Qed.
+
+Lemma and_or_distrib_r : forall s1 s2 s3 : Sierpinskian, and s1 (or s2 s3) == or (and s1 s2) (and s1 s3).
+Proof. 
+  intros s1 s2 s3. unfold or, or_seq, and, and_seq, eqv. exists 0; intros j _; simpl.
+  destruct (s1 j); destruct (s2 j); destruct (s3 j); reflexivity.
+Qed.
+
+Lemma or_and_distrib_r : forall s1 s2 s3 : Sierpinskian, or s1 (and s2 s3) == and (or s1 s2) (or s1 s3).
+Proof. 
+  intros s1 s2 s3. unfold or, or_seq, and, and_seq, eqv. exists 0; intros j _; simpl.
+  destruct (s1 j); destruct (s2 j); destruct (s3 j); reflexivity.
+Qed.
 
 
+(*
+Bool.orb_andb_distrib_l : forall b1 b2 b3 : B, ((b1 && b2) || b3) = ((b1 || b3) && (b2 || b3))
+Bool.andb_orb_distrib_r : forall b1 b2 b3 : B, (b1 && (b2 || b3)) = ((b1 && b2) || (b1 && b3))
+Bool.andb_orb_distrib_l : forall b1 b2 b3 : B, ((b1 || b2) && b3) = ((b1 && b3) || (b2 && b3))
+Bool.orb_andb_distrib_r : forall b1 b2 b3 : B, (b1 || (b2 && b3)) = ((b1 || b2) && (b1 || b3))
+*)
 
 Fixpoint one_of_le (seq : N -> SB) (n : N) : SB :=
   match n with
