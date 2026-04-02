@@ -25,7 +25,12 @@
 
 From Stdlib Require Import PeanoNat.
 
+
 Module Sierpinski.
+
+(* The Limited Principle of Omniscence for propositions *)
+Definition LPO := forall p : nat -> Prop, (forall n : nat, (p n) \/ (~ p n)) ->
+  ( exists n : nat, p n ) \/ (forall n : nat, ~ p n).
 
 Notation B := bool.
 Notation N := nat.
@@ -75,17 +80,16 @@ Notation S := Sierpinskian.
 Lemma all_ge : forall (p : N -> Prop) (i : N), 
   (p i) -> (forall j, p j -> p (succ j)) -> (forall j, i <= j -> p j).
 Proof. 
-  intros p i pi ps.
-  assert (forall k, p (i + k)) as H. {
+  intros p i Hpi Hps.
+  assert (forall k, p (i + k)) as Hk. {
     induction k.
-    - rewrite -> Nat.add_0_r; exact pi.
-    - rewrite -> Nat.add_succ_r. apply ps. exact IHk.
-  } 
+    - rewrite -> Nat.add_0_r. exact Hpi.
+    - rewrite -> Nat.add_succ_r. apply Hps. exact IHk. 
+  }
   intros j Hj.
-  pose proof (Nat.le_exists_sub i j Hj) as [k Hk].
-  rewrite -> (proj1 Hk).
-  rewrite -> Nat.add_comm.
-  exact (H k).
+  pose proof (Nat.le_exists_sub i j Hj) as He.
+  destruct He as [k [He _]].
+  rewrite He. rewrite -> Nat.add_comm. now apply Hk.
 Qed.
 
 Lemma next_implies_all_after : forall seq : N -> SB, 
@@ -125,9 +129,6 @@ Proof.
   - assert (i23 <= i13) as Hi23lei13 by (apply Nat.le_max_r). apply (Nat.le_trans _ i13); assumption.
   - assert (i12 <= i13) as Hi12lei13 by (apply Nat.le_max_l). apply (Nat.le_trans _ i13); assumption.
 Qed.
-
-Lemma seq_eq_eqv : forall s1 s2 : S, (forall i, s1 i = s2 i) -> s1 == s2.
-Proof. unfold eqv. intros s1 s2 H. exists 0. intros j _. exact (H j). Qed.
 
 
 Definition definitely (s : Sierpinskian) : Prop := exists n, s n = tru.
@@ -174,6 +175,49 @@ Definition true_from (n : nat) : Sierpinskian :=
 
 Definition true := mkSierpinskian (fun _ : N => tru) (next_after_cnst tru).
 Definition indeterminate := mkSierpinskian (fun _ : N => indt) (next_after_cnst indt).
+
+Lemma true_iff_exists : forall s : Sierpinskian, 
+  s == true <-> exists i, s i = tru.
+Proof. 
+  intro s; unfold eqv; simpl; split.
+  - intros [i Hi]. exists i. apply Hi. exact (Nat.le_refl i).
+  - intros [i Hi]. exists i. exact ( (all_after_sier s) i Hi ).
+Qed.
+
+Lemma indeterminate_iff_forall : forall s : Sierpinskian, 
+  s == indeterminate <-> (forall i, s i = indt).
+Proof. 
+  intro s; unfold eqv; simpl; split.
+  - pose proof (all_after_sier s) as Ht; unfold all_after in Ht.
+    intros [k Hk] i. specialize (Ht i).
+    destruct (s i).
+    -- set (j := max i k).
+       specialize (Ht (eq_refl tru) j (Nat.le_max_l i k)).
+       specialize (Hk j (Nat.le_max_r i k)).
+       now rewrite <- Ht, <- Hk.
+    -- reflexivity.
+  - intro Hi. exists 0. intros j Hj. exact (Hi j).
+Qed.
+
+Lemma not_true_and_indeterminate : forall s : Sierpinskian, s == true -> s == indeterminate -> False.
+Proof.
+  intros s HT HI.
+  apply true_iff_exists in HT as HTe.
+  pose proof (proj1 (indeterminate_iff_forall s) HI) as HIa.
+  destruct HTe as [i HTe]; specialize (HIa i). rewrite -> HTe in HIa. discriminate HIa.
+Qed.
+
+Lemma true_or_indeterminate : LPO -> forall s : Sierpinskian, s == true \/ s == indeterminate. 
+Proof.
+  intros lpo s.
+  assert (forall n, s n = tru \/ ~ (s n = tru)) as HD. {
+    intro n; destruct (s n). left; reflexivity. right; intro HF; discriminate HF. }
+  pose proof (lpo (fun n => s n = tru) HD) as H.
+  destruct H as [HT|HI].
+  - left; now apply true_iff_exists.
+  - right. apply indeterminate_iff_forall. intro i; specialize (HI i).
+    destruct (s i). contradiction. reflexivity.
+Qed.
 
 
 
@@ -223,17 +267,18 @@ Proof.
     exists 0. reflexivity.
 Qed.
 
-Lemma and_comm : forall (s1 s2 : S), and s1 s2 == and s2 s1.
-Proof. 
-  intros s1 s2. unfold and, and_seq, eqv. exists 0; intros j _; simpl.
+Lemma and_comm : forall s1 s2 : Sierpinskian, and s1 s2 == and s2 s1.
+Proof.
+  intros s1 s2; unfold and, and_seq, eqv. exists 0; intros j H0j. simpl.
   destruct (s1 j); destruct (s2 j); reflexivity.
 Qed.
 
-Lemma and_assoc : forall (s1 s2 s3 : S), (and s1 (and s2 s3)) == (and (and s1 s2) s3).
-Proof. 
-  intros s1 s2 s3. unfold and, and_seq, eqv. exists 0; intros j Hj; simpl.
+Lemma and_assoc : forall s1 s2 s3 : Sierpinskian, and (and s1 s2) s3 == and s1 (and s2 s3).
+Proof.
+  intros s1 s2 s3; unfold and, and_seq, eqv. exists 0; intros j H0j. simpl.
   destruct (s1 j); destruct (s2 j); destruct (s3 j); reflexivity.
 Qed.
+  
 
 Definition or_seq (s1 s2 : N -> SB) := fun n => SBor (s1 n) (s2 n).
 
@@ -285,37 +330,48 @@ Proof.
        unfold or_seq. rewrite -> H2. rewrite -> SBor_tru. right. reflexivity. exact Hij.
 Qed.
 
-Lemma or_comm : forall (s1 s2 : S), or s1 s2 == or s2 s1.
-Proof. 
-  intros s1 s2. unfold or, or_seq, eqv. exists 0; intros j _; simpl.
+Lemma or_comm : forall s1 s2 : Sierpinskian, or s1 s2 == or s2 s1.
+Proof.
+  intros s1 s2; unfold or, or_seq, eqv. exists 0; intros j H0j. simpl.
   destruct (s1 j); destruct (s2 j); reflexivity.
 Qed.
 
-Lemma or_assoc : forall (s1 s2 s3 : S), (or s1 (or s2 s3)) == (or (or s1 s2) s3).
+Lemma or_assoc : forall s1 s2 s3 : Sierpinskian, or (or s1 s2) s3 == or s1 (or s2 s3).
 Proof.
-  intros s1 s2 s3. unfold or, or_seq, eqv. exists 0; intros j _; simpl.
-  destruct (s1 j); destruct (s2 j); destruct (s3 j); reflexivity.
-Qed.
-
-Lemma and_or_distrib_r : forall s1 s2 s3 : Sierpinskian, and s1 (or s2 s3) == or (and s1 s2) (and s1 s3).
-Proof. 
-  intros s1 s2 s3. unfold or, or_seq, and, and_seq, eqv. exists 0; intros j _; simpl.
-  destruct (s1 j); destruct (s2 j); destruct (s3 j); reflexivity.
-Qed.
-
-Lemma or_and_distrib_r : forall s1 s2 s3 : Sierpinskian, or s1 (and s2 s3) == and (or s1 s2) (or s1 s3).
-Proof. 
-  intros s1 s2 s3. unfold or, or_seq, and, and_seq, eqv. exists 0; intros j _; simpl.
+  intros s1 s2 s3; unfold or, or_seq, eqv. exists 0; intros j H0j. simpl.
   destruct (s1 j); destruct (s2 j); destruct (s3 j); reflexivity.
 Qed.
 
 
 (*
-Bool.orb_andb_distrib_l : forall b1 b2 b3 : B, ((b1 && b2) || b3) = ((b1 || b3) && (b2 || b3))
-Bool.andb_orb_distrib_r : forall b1 b2 b3 : B, (b1 && (b2 || b3)) = ((b1 && b2) || (b1 && b3))
-Bool.andb_orb_distrib_l : forall b1 b2 b3 : B, ((b1 || b2) && b3) = ((b1 && b3) || (b2 && b3))
-Bool.orb_andb_distrib_r : forall b1 b2 b3 : B, (b1 || (b2 && b3)) = ((b1 || b2) && (b1 || b3))
+Lemma andb_orb_distrib_r : forall b1 b2 b3:bool, b1 && (b2 || b3) = b1 && b2 || b1 && b3.
+Lemma andb_orb_distrib_l : forall b1 b2 b3:bool, (b1 || b2) && b3 = b1 && b3 || b2 && b3.
+Lemma orb_andb_distrib_r : forall b1 b2 b3:bool, b1 || b2 && b3 = (b1 || b2) && (b1 || b3).
+Lemma orb_andb_distrib_l : forall b1 b2 b3:bool, b1 && b2 || b3 = (b1 || b3) && (b2 || b3).
 *)
+
+Lemma and_or_distrib_r : forall s1 s2 s3 : Sierpinskian, and s1 (or s2 s3) == or (and s1 s2) (and s1 s3).
+Proof. 
+  intros s1 s2 s3; unfold and, and_seq, or, or_seq, eqv. exists 0; intros j H0j. simpl.
+  destruct (s1 j); destruct (s2 j); destruct (s3 j); reflexivity.
+Qed.
+Lemma and_or_distrib_l : forall s1 s2 s3 : Sierpinskian, and (or s1 s2) s3 == or (and s1 s3) (and s2 s3).
+Proof. 
+  intros s1 s2 s3; unfold and, and_seq, or, or_seq, eqv. exists 0; intros j H0j. simpl.
+  destruct (s1 j); destruct (s2 j); destruct (s3 j); reflexivity.
+Qed.
+Lemma or_and_distrib_r : forall s1 s2 s3 : Sierpinskian, or s1 (and s2 s3) == and (or s1 s2) (or s1 s3).
+Proof. 
+  intros s1 s2 s3; unfold and, and_seq, or, or_seq, eqv. exists 0; intros j H0j. simpl.
+  destruct (s1 j); destruct (s2 j); destruct (s3 j); reflexivity.
+Qed.
+Lemma or_and_distrib_l : forall s1 s2 s3 : Sierpinskian, or (and s1 s2) s3 == and (or s1 s3) (or s2 s3).
+Proof. 
+  intros s1 s2 s3; unfold and, and_seq, or, or_seq, eqv. exists 0; intros j H0j. simpl.
+  destruct (s1 j); destruct (s2 j); destruct (s3 j); reflexivity.
+Qed.
+
+
 
 Fixpoint one_of_le (seq : N -> SB) (n : N) : SB :=
   match n with
@@ -410,6 +466,7 @@ Qed.
 Definition disj (ss : N -> S) : S :=
   mkSierpinskian (disj_seq ss) (next_after_disj ss (fun n => proper (ss n))).
 
+
 Lemma disj_correct : forall ss : N -> S,
   eqv (disj ss) true <-> exists n, eqv (ss n) true.
   intros ss.
@@ -448,5 +505,26 @@ Lemma disj_correct : forall ss : N -> S,
     apply one_of_le_iff_exists.
     exists k. split. exact (Nat.le_max_l k i). now rewrite -> Hkij. exact Hjlel.
 Qed.
+
+
+Lemma disj_respectful : LPO -> forall (ss ss' : N -> S), 
+  (forall n, ss n == ss' n) -> (disj ss) == (disj ss').
+Proof.
+  intros lpo.
+  assert (forall s, ~ (s == true) <-> s == indeterminate) as HNT. {
+    intros s. split.
+    - intro HNT. destruct (true_or_indeterminate lpo s). contradiction. assumption.
+    - intros HI HT. exact (not_true_and_indeterminate s HT HI). }
+  assert (forall ss ss', (forall n, ss n == ss' n) -> disj ss == true -> disj ss' == true) as HT. {
+    intros ss ss' HE H. apply disj_correct in H as [n Hn]. apply disj_correct; exists n.
+    apply (eqv_trans _ (ss n) _). apply eqv_sym; exact (HE n). exact Hn. }
+  intros ss ss' He.
+  destruct (true_or_indeterminate lpo (disj ss)).
+  - apply (eqv_trans _ true _). exact H. apply eqv_sym; exact (HT ss ss' He H).
+  - apply (eqv_trans _ indeterminate _). assumption. apply eqv_sym.
+    apply HNT in H; apply HNT. intro H'. apply H. 
+    refine (HT ss' ss _ H'); intro n; exact (eqv_sym _ _ (He n)).
+Qed.
+
 
 End Sierpinski.

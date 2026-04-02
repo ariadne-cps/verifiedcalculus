@@ -27,16 +27,18 @@ Require Import Sierpinskian.
 
 Module Sets.
 
+Notation N := nat.
 Notation S := Sierpinski.Sierpinskian.
+Notation Strue := Sierpinski.true.
 Notation Sand := Sierpinski.and.
 Notation Sor := Sierpinski.or.
+Notation Sdisj := Sierpinski.disj.
 Infix "==" := Sierpinski.eqv (at level 70, no associativity).
 
 
 Module OpenSets.
 
 Definition OpenSet (X : Set) : Set := X -> S.
-
 
 Definition equivalent {X : Set} (U1 U2 : OpenSet X) : Prop :=
   forall x : X, Sierpinski.eqv (U1 x) (U2 x).
@@ -75,13 +77,41 @@ Proof.
   exact (H1 x). exact (H2 x).
 Qed.
 
+Definition denumerable_union {X : Set} (U : N -> OpenSet X) : OpenSet X :=
+  fun x => Sdisj (fun n => (U n x)).
+
+Lemma denumerable_union_respectful {X : Set} : 
+  Sierpinski.LPO -> forall (U U' : N -> OpenSet X), (forall n, U n === U' n) -> 
+     denumerable_union U === denumerable_union U'.
+Proof.
+  unfold equivalent, denumerable_union.
+  intros plpo U U' H x.
+  apply (Sierpinski.disj_respectful plpo).
+  intro n; exact (H n x).
+Qed.
+
+
+
+Theorem quantifier_monotone {X : Set} :
+  forall Q : (X -> S) -> S, forall U V : X -> S, 
+    (forall x, (U x == Strue) -> (V x == Strue)) -> Q U == Strue -> Q V == Strue.
+Proof. Admitted.
+ 
+Theorem quantifier_continuous {X : Set} :
+  forall Q : (X -> S) -> S, forall U : N -> X -> S, 
+    (forall n, (forall x, (U n x == Strue) -> (U (Nat.succ n) x == Strue))) -> 
+      Q (denumerable_union U) == Strue <-> exists n, Q (U n) == Strue.
+Proof. Admitted.
+ 
 End OpenSets.
+
 
 Definition effective_discrete (X : Set) : Set :=
   { equal : X -> X -> Sierpinski.Sierpinskian | forall x1 x2, (equal x1 x2 == Sierpinski.true) <-> (x1 = x2) }.
 
 Definition effective_hausdorff (X : Set) : Set :=
   { apart : X -> X -> Sierpinski.Sierpinskian | forall x1 x2, (apart x1 x2 == Sierpinski.true) <-> (x1 <> x2) }.
+
 
 Module CompactSets.
 
@@ -120,6 +150,21 @@ Proof.
   - apply HR2. exact HU.
 Qed.
 
+Lemma Sinner_and_comm : forall p11 p12 p21 p22 : S, 
+  Sand (Sand p11 p12) (Sand p21 p22) == Sand (Sand p11 p21) (Sand p12 p22).
+Proof.
+  intros p11 p12 p21 p22;
+  apply (Sierpinski.eqv_trans _ (Sand (Sand (Sand p11 p12) p21) p22) _).
+    apply Sierpinski.eqv_sym. apply Sierpinski.and_assoc.
+  apply (Sierpinski.eqv_trans _ (Sand (Sand p11 (Sand p12 p21)) p22) _).
+    apply Sierpinski.and_respectful. apply Sierpinski.and_assoc. apply Sierpinski.eqv_refl. 
+  apply (Sierpinski.eqv_trans _ (Sand (Sand p11 (Sand p21 p12)) p22) _).
+    apply Sierpinski.and_respectful. apply Sierpinski.and_respectful. apply Sierpinski.eqv_refl. apply Sierpinski.and_comm. apply Sierpinski.eqv_refl. 
+  apply (Sierpinski.eqv_trans _ (Sand (Sand (Sand p11 p21) p12) p22) _).
+    apply Sierpinski.and_respectful. apply Sierpinski.eqv_sym. apply Sierpinski.and_assoc. apply Sierpinski.eqv_refl.
+  now apply Sierpinski.and_assoc. 
+Qed.
+
 Lemma union_proper {X} (c1 c2 : OpenSet X -> S) : 
   compact_proper c1 -> compact_proper c2 -> compact_proper (union_op c1 c2).
 Proof.
@@ -130,16 +175,7 @@ Proof.
   unfold union_op.
   apply (Sierpinski.eqv_trans _ (Sand (Sand (c1 U1) (c1 U2)) (Sand (c2 U1) (c2 U2))) _).
   - apply Sierpinski.and_respectful. exact HP1. exact HP2.
-  - set (p11 := c1 U1); set (p12 := c1 U2); set (p21 := c2 U1); set (p22 := c2 U2).
-    apply (Sierpinski.eqv_trans _ (Sand (Sand (Sand p11 p12) p21) p22) _).
-      apply Sierpinski.and_assoc.
-    apply (Sierpinski.eqv_trans _ (Sand (Sand p11 (Sand p12 p21)) p22) _).
-      apply Sierpinski.and_respectful. apply Sierpinski.eqv_sym. apply Sierpinski.and_assoc. apply Sierpinski.eqv_refl. 
-    apply (Sierpinski.eqv_trans _ (Sand (Sand p11 (Sand p21 p12)) p22) _).
-      apply Sierpinski.and_respectful. apply Sierpinski.and_respectful. apply Sierpinski.eqv_refl. apply Sierpinski.and_comm. apply Sierpinski.eqv_refl. 
-    apply (Sierpinski.eqv_trans _ (Sand (Sand (Sand p11 p21) p12) p22) _).
-      apply Sierpinski.and_respectful. apply Sierpinski.and_assoc. apply Sierpinski.eqv_refl.
-    apply Sierpinski.eqv_sym. now apply Sierpinski.and_assoc. 
+  - now apply Sinner_and_comm.
 Qed.
 
 
@@ -228,6 +264,22 @@ Proof.
   - apply HR2. exact HU.
 Qed.
 
+
+Lemma Sinner_or_comm : forall p11 p12 p21 p22 : S, 
+  Sor (Sor p11 p12) (Sor p21 p22) == Sor (Sor p11 p21) (Sor p12 p22).
+Proof.
+  intros p11 p12 p21 p22;
+  apply (Sierpinski.eqv_trans _ (Sor (Sor (Sor p11 p12) p21) p22) _).
+    apply Sierpinski.eqv_sym. apply Sierpinski.or_assoc.
+  apply (Sierpinski.eqv_trans _ (Sor (Sor p11 (Sor p12 p21)) p22) _).
+    apply Sierpinski.or_respectful. apply Sierpinski.or_assoc. apply Sierpinski.eqv_refl. 
+  apply (Sierpinski.eqv_trans _ (Sor (Sor p11 (Sor p21 p12)) p22) _).
+    apply Sierpinski.or_respectful. apply Sierpinski.or_respectful. apply Sierpinski.eqv_refl. apply Sierpinski.or_comm. apply Sierpinski.eqv_refl. 
+  apply (Sierpinski.eqv_trans _ (Sor (Sor (Sor p11 p21) p12) p22) _).
+    apply Sierpinski.or_respectful. apply Sierpinski.eqv_sym. apply Sierpinski.or_assoc. apply Sierpinski.eqv_refl.
+  now apply Sierpinski.or_assoc. 
+Qed.
+
 Lemma union_proper {X} (v1 v2 : OpenSet X -> S) : 
   overt_proper v1 -> overt_proper v2 -> overt_proper (union_op v1 v2).
 Proof.
@@ -238,16 +290,7 @@ Proof.
   unfold union_op.
   apply (Sierpinski.eqv_trans _ (Sor (Sor (v1 U1) (v1 U2)) (Sor (v2 U1) (v2 U2))) _).
   - apply Sierpinski.or_respectful. exact HP1. exact HP2.
-  - set (p11 := v1 U1); set (p12 := v1 U2); set (p21 := v2 U1); set (p22 := v2 U2).
-    apply (Sierpinski.eqv_trans _ (Sor (Sor (Sor p11 p12) p21) p22) _).
-      apply Sierpinski.or_assoc.
-    apply (Sierpinski.eqv_trans _ (Sor (Sor p11 (Sor p12 p21)) p22) _).
-      apply Sierpinski.or_respectful. apply Sierpinski.eqv_sym. apply Sierpinski.or_assoc. apply Sierpinski.eqv_refl. 
-    apply (Sierpinski.eqv_trans _ (Sor (Sor p11 (Sor p21 p12)) p22) _).
-      apply Sierpinski.or_respectful. apply Sierpinski.or_respectful. apply Sierpinski.eqv_refl. apply Sierpinski.or_comm. apply Sierpinski.eqv_refl. 
-    apply (Sierpinski.eqv_trans _ (Sor (Sor (Sor p11 p21) p12) p22) _).
-      apply Sierpinski.or_respectful. apply Sierpinski.or_assoc. apply Sierpinski.eqv_refl.
-    apply Sierpinski.eqv_sym. now apply Sierpinski.or_assoc. 
+  - now apply Sinner_or_comm.
 Qed.
 
 Definition union {X} (V1 V2 : OvertSet X) : OvertSet X :=
