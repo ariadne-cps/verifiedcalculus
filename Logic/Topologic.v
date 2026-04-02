@@ -1,7 +1,31 @@
+(******************************************************************************
+ *  logic/Topologic
+ *
+ *  Copyright 2025-26 Pieter Collins
+ *
+ ******************************************************************************)
+
+(*
+ * This file is part of the Verified Calculus Library.
+ *
+ * The Verified Calculus Library is free software: you can redistribute it
+ * and/or modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation, either version 3 of the License,
+ * or (at your option) any later version.
+ *
+ * The Verified Calculus Library is distributed in the hope that it will be
+ * useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+ * Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * the Verified Calculus Library. If not, see <https://www.gnu.org/licenses/>.
+ *)
+
 (* Require Import Coq.Classes.RelationClasses. *)
 From Stdlib Require Import Logic.ConstructiveEpsilon.
 From Stdlib Require Import PeanoNat.
-
+From Stdlib Require Import Peano_dec.
 
 Definition mkEqualityPartialOrder {X : Type} {le : X -> X -> Prop}
   (le_PreOrder : RelationClasses.PreOrder le)
@@ -122,9 +146,15 @@ End ExtendedNat.
 
 Module RestrictedNat.
 
-Axiom propositional_extensionality : forall (P : Prop), forall (p q : P), p = q.
-
 Definition NatLe (n : nat) : Set :=  { m : nat | Nat.le m n }.
+
+Lemma nat_le_eq (n : nat) : forall (m1 m2 : NatLe n), 
+  (proj1_sig m1  = proj1_sig m2) -> m1 = m2.
+Proof.
+  intros m1 m2; destruct m1 as [k1 p1], m2 as [k2 p2]. simpl.
+  intro Hk. revert p1 p2. rewrite <- Hk. intros p1 p2.
+  f_equal. exact (Peano_dec.le_unique k1 n p1 p2).
+Qed.
 
 Definition le {n : nat} (m1 m2 : NatLe n) : Prop := Nat.le (proj1_sig m1) (proj1_sig m2).
 Lemma le_refl {n : nat} : forall (m : NatLe n), le m m.
@@ -132,8 +162,8 @@ Proof. intro m. unfold le. exact (Nat.le_refl (proj1_sig m)). Qed.
 Lemma le_antisymm {n : nat} : forall (m1 m2 : NatLe n), le m1 m2 -> le m2 m1 -> m1 = m2.
 Proof. 
   intros m1 m2. unfold le. intros H12 H21.
-  apply eq_sig_hprop. intros x. now apply propositional_extensionality.
-   now rewrite (@Nat.le_antisymm _ _ H12 H21).
+  apply eq_sig_hprop. intros x. now apply Peano_dec.le_unique.
+  now rewrite (@Nat.le_antisymm _ _ H12 H21).
 Qed.
 Lemma le_trans {n : nat} : forall (m1 m2 m3 : NatLe n), le m1 m2 -> le m2 m3 -> le m1 m3.
 Proof. intros m1 m2 m3. unfold le. intros H12 H23. exact (Nat.le_trans _ _ _ H12 H23). Qed.
@@ -456,13 +486,13 @@ Definition restrict_eff (n : nat) (x : Effective) : (Validated n) :=
       exist is_monotone w mw.
 
 
-Print restrict_eff.
+(* Print restrict_eff. *)
 
 End EffectiveValidated.
 
-Print restrict_eff.
+(* Print restrict_eff. *)
 
 End BasicTopologic.
 
-Print BasicTopologic.restrict_eff.
+(* Print BasicTopologic.restrict_eff. *)
 
