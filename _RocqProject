@@ -42,6 +42,7 @@ Logic/Sierpinskian.v
 Logic/Kleenean.v
 Logic/Omniscience.v
 Logic/Continuity.v
+Logic/TestLogic.v
 
 Numbers/RealAddenda.v
 Numbers/Analysis.v

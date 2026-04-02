@@ -24,10 +24,10 @@
 
 
 From Stdlib Require Import Logic.FunctionalExtensionality.
-From Stdlib Require Import Logic.ProofIrrelevance.
 
 From Stdlib Require Import Arith.PeanoNat.
 From Stdlib Require Import Arith.Compare_dec.
+From Stdlib Require Import Arith.Peano_dec.
 
 
 Section Words.
@@ -83,7 +83,7 @@ Proof.
   revert p1 p2.
   rewrite <- H.
   intros p1 p2.
-  rewrite (proof_irrelevance _ p1 p2).
+  rewrite (Peano_dec.le_unique _ _ p1 p2).
   reflexivity.
 Qed.
 
@@ -175,13 +175,21 @@ Proof.
   exact (Hkp k p p).
 Qed.
 
+Axiom nat_eq_unique : forall {m n : nat} (p1 p2 : m = n), p1 = p2.
+
+Lemma nat_le_unique : forall {m n : nat} (p1 p2 : m <= n), p1 = p2.
+Proof. now apply Peano_dec.le_unique. Qed.
+Lemma nat_lt_unique : forall {m n : nat} (p1 p2 : m < n), p1 = p2.
+Proof. unfold lt. intros m n. remember (S m) as k. now apply nat_le_unique. Qed.
+
+
 Lemma cast_wrd_id : forall {X n} (w : Wrd n X), cast_wrd (eq_refl n) w = w.
 Proof. intros X n w. unfold cast_wrd. reflexivity. Qed. 
 
 Lemma cast_wrd_id' : forall {X n} {e : n=n} (w : Wrd n X), cast_wrd e w = w.
 Proof. 
-  intros X n e w. 
-  replace e with (eq_refl n) by (apply proof_irrelevance).
+  intros X n e w.
+  replace e with (eq_refl n) by (apply nat_eq_unique).
   exact (cast_wrd_id w).
 Qed.
 
@@ -272,7 +280,7 @@ Proof.
   apply f_equal.
   simpl.
   f_equal.
-  apply proof_irrelevance.
+  now apply nat_le_unique.
 Qed.
 
 Lemma restr_eq' : forall {X} {m n1 n2} (e : n1=n2) (p1 : m<=n1) (p2 : m<=n2) (x1 : Wrd n1 X) (x2 : Wrd n2 X), cast_wrd e x1 = x2 -> restr m p1 x1 = restr m p2 x2.
@@ -298,7 +306,7 @@ Proof.
   apply f_equal.
   simpl.
   f_equal.
-  apply proof_irrelevance.
+  apply nat_le_unique.
 Qed.
 
 Lemma lt_eq  {l m n : nat} : m<=n -> m=l -> l<=n. 
