@@ -1,7 +1,7 @@
 (******************************************************************************
  *  logic/Sierpinskian.v
  *
- *  Copyright 2023 Pieter Collins
+ *  Copyright 2023-26 Pieter Collins
  *
  ******************************************************************************)
 
@@ -149,6 +149,28 @@ Qed.
 
 Lemma next_after_cnst : forall b : SB, next_after (fun _ : N => b).
 Proof. intro b. unfold next_after. intros n H. exact H. Qed.
+
+Definition tru_from (n : nat) : nat -> Sierpinski.BasicSierpinskian := 
+  fun k => if Nat.leb n k then Sierpinski.tru else Sierpinski.indt.
+Lemma tru_from_next (n : nat) : forall k, 
+  tru_from n k = Sierpinski.tru -> tru_from n (succ k) = Sierpinski.tru.
+Proof.
+  intros k H.
+  unfold tru_from in *. 
+  remember (Nat.leb n k) as p.
+  destruct p.
+  - assert (Nat.leb n (succ k) = (true : bool)) as HnSk. {
+      apply PeanoNat.Nat.leb_le.
+      transitivity k.
+      - now apply PeanoNat.Nat.leb_le.
+      - now apply PeanoNat.Nat.le_succ_diag_r.
+    }
+    now rewrite -> HnSk.
+  - discriminate H.
+Qed.
+
+Definition true_from (n : nat) : Sierpinskian := 
+  mkSierpinskian (tru_from n) (tru_from_next n).
 
 Definition true := mkSierpinskian (fun _ : N => tru) (next_after_cnst tru).
 Definition indeterminate := mkSierpinskian (fun _ : N => indt) (next_after_cnst indt).
@@ -300,13 +322,13 @@ Fixpoint one_of_le (seq : N -> SB) (n : N) : SB :=
   | 0 => seq 0
   | succ m => SBor (one_of_le seq m) (seq (succ m))
   end. 
- 
+
 Lemma one_of_le_succ : forall seq n, 
   one_of_le seq (succ n) = SBor (one_of_le seq n) (seq (succ n)).
 Proof. intros; auto. Qed.
 
-Import PeanoNat.
-Lemma one_of_le_iff_exists : forall seq n, (one_of_le seq n = tru) <-> exists i, (i <= n /\ seq i = tru).
+Lemma one_of_le_iff_exists : 
+  forall seq n, (one_of_le seq n = tru) <-> exists i, (i <= n /\ seq i = tru).
 Proof.
   intro seq. intro m; revert m. 
   split.
