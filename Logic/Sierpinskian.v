@@ -1,7 +1,7 @@
 (******************************************************************************
  *  logic/Sierpinskian.v
  *
- *  Copyright 2023 Pieter Collins
+ *  Copyright 2023-26 Pieter Collins
  *
  ******************************************************************************)
 
@@ -378,14 +378,15 @@ Fixpoint one_of_le (seq : N -> SB) (n : N) : SB :=
   | 0 => seq 0
   | succ m => SBor (one_of_le seq m) (seq (succ m))
   end. 
- 
+
 Lemma one_of_le_succ : forall seq n, 
   one_of_le seq (succ n) = SBor (one_of_le seq n) (seq (succ n)).
 Proof. intros; auto. Qed.
 
 Import PeanoNat.
 
-Lemma one_of_le_iff_exists : forall seq n, (one_of_le seq n = tru) <-> exists i, (i <= n /\ seq i = tru).
+Lemma one_of_le_iff_exists : 
+  forall seq n, (one_of_le seq n = tru) <-> exists i, (i <= n /\ seq i = tru).
 Proof.
   intro seq. intro m; revert m. 
   split.

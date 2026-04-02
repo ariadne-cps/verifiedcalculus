@@ -38,6 +38,7 @@ Utilities/InhabitedEnsembleMonad.v
 Logic/Topologic.v
 Logic/Sierpinskian.v
 Logic/Kleenean.v
+Logic/TestLogic.v
 
 Numbers/RealAddenda.v
 Numbers/Analysis.v
