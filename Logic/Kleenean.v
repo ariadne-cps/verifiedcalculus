@@ -778,6 +778,37 @@ Qed.
 
 
 
+Definition PartialKleenean (n : nat) :=
+  @PreKleenean (RestrictedNat.NatLe n) (RestrictedNat.Lattice_NatLe n).
+
+Definition PKimpl {n : nat} (pk1 pk2 : PartialKleenean n) : PartialKleenean n :=
+  impl pk1 pk2.
+
+Import BasicTopologic.
+
+Definition restrict (k : Kleenean) (n : nat) : PartialKleenean n :=
+  let s := Kleenean.tbs k in
+    let Hms := proper k in
+      let w := BasicTopologic.restrict_seq n s in
+        let Hmw := BasicTopologic.restrict_seq_monotone n s Hms in
+          mkPreKleenean w Hmw.
+
+Notation NatLe := RestrictedNat.NatLe.
+Print RestrictedNat.NatLe.
+
+Definition check (k : Kleenean) (n : nat) : Tribools.TB := k n.
+
+Definition get_basic {n : nat} (vk : PartialKleenean n) : Tribools.TB :=
+  vk (exist (fun m => Nat.le m n) n (Nat.le_refl n)).
+
+Definition definitely' {n : nat} (vk : PartialKleenean n) : bool :=
+  Tribools.definitely (get_basic vk).
+
+Definition possibly' {n : nat} (vk : PartialKleenean n) : bool :=
+  Tribools.possibly (get_basic vk).
+
+
+
 
 Module Abstract.
 
