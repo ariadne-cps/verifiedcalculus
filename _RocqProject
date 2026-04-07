@@ -1,7 +1,7 @@
 ###############################################################################
-#  _CoqProject
+#  _RocqProject
 #
-#  Copyright 2023 Pieter Collins
+#  Copyright 2023-6 Pieter Collins
 #
 ###############################################################################
 
@@ -23,42 +23,42 @@
 
 -R . VerifiedCalculus
 
-utilities/Ordering.v
-utilities/Sorting.v
-utilities/Induction.v
-utilities/DependentChoice.v
-utilities/Words.v
-utilities/Monads.v
-utilities/SubMonads.v
-utilities/ContinuationMonads.v
-utilities/LimitMonads.v
-utilities/EnsembleMonad.v
-utilities/InhabitedEnsembleMonad.v
+Utilities/Ordering.v
+Utilities/Sorting.v
+Utilities/Induction.v
+Utilities/DependentChoice.v
+Utilities/Words.v
+Utilities/Monads.v
+Utilities/SubMonads.v
+Utilities/ContinuationMonads.v
+Utilities/LimitMonads.v
+Utilities/EnsembleMonad.v
+Utilities/InhabitedEnsembleMonad.v
 
-logic/Topologic.v
-logic/Sierpinskian.v
-logic/Kleenean.v
+Logic/Topologic.v
+Logic/Sierpinskian.v
+Logic/Kleenean.v
 
-numbers/R_addenda.v
-numbers/Analysis.v
-numbers/Sum.v
-numbers/Floats.v
-numbers/DyadicFloat.v
-numbers/Bounds.v
-numbers/Ball.v
+Numbers/RealAddenda.v
+Numbers/Analysis.v
+Numbers/Sum.v
+Numbers/Floats.v
+Numbers/DyadicFloat.v
+Numbers/Bounds.v
+Numbers/Ball.v
 
-functions/PolynomialModels.v
-functions/PolynomialModelSweep.v
-functions/PolynomialModelAdd.v
-functions/PolynomialModelSubtract.v
-functions/PolynomialModelScale.v
-functions/PolynomialModelMonomialScale.v
-functions/PolynomialModelMultiply.v
-functions/PolynomialModelDivide.v
+Functions/PolynomialModels.v
+Functions/PolynomialModelSweep.v
+Functions/PolynomialModelAdd.v
+Functions/PolynomialModelSubtract.v
+Functions/PolynomialModelScale.v
+Functions/PolynomialModelMonomialScale.v
+Functions/PolynomialModelMultiply.v
+Functions/PolynomialModelDivide.v
 
-sets/OpenCompactOvertSets.v
+Sets/OpenCompactOvertSets.v
 
-systems/causality.v
-systems/behaviour_composition.v
-systems/system_composition.v
-systems/compose_behaviours.v
+Systems/Causality.v
+Systems/BehaviourComposition.v
+Systems/SystemComposition.v
+Systems/ComposeBehaviours.v
