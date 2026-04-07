@@ -56,7 +56,9 @@ Functions/PolynomialModelMonomialScale.v
 Functions/PolynomialModelMultiply.v
 Functions/PolynomialModelDivide.v
 
-Sets/OpenCompactOvertSets.v
+Sets/OpenSets.v
+Sets/CompactSets.v
+Sets/OvertSets.v
 
 Systems/Causality.v
 Systems/BehaviourComposition.v
