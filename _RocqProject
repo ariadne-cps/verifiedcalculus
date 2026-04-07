@@ -78,3 +78,4 @@ Systems/NondeterministicFiniteTimeSystems.v
 Systems/NondeterministicSystemConversions.v
 Systems/NondeterministicMixedTimeSystems.v
 Systems/MonadicSystems.v
+Systems/ComposeNondeterministicBehaviours.v
