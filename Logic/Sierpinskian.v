@@ -24,7 +24,7 @@
 
 
 From Stdlib Require Import PeanoNat.
-
+From Stdlib Require RelationClasses.
 
 (* The Limited Principle of Omniscence for propositions *)
 Definition LPO := forall p : nat -> Prop, (forall n : nat, (p n) \/ (~ p n)) ->
@@ -127,6 +127,12 @@ Proof.
   intro Hi13lej. rewrite -> He12. rewrite <- He23. reflexivity.
   - assert (i23 <= i13) as Hi23lei13 by (apply Nat.le_max_r). apply (Nat.le_trans _ i13); assumption.
   - assert (i12 <= i13) as Hi12lei13 by (apply Nat.le_max_l). apply (Nat.le_trans _ i13); assumption.
+Qed.
+
+#[global]
+Instance eqvR : RelationClasses.Equivalence eqv.
+Proof.
+  split. exact eqv_refl. exact eqv_sym. exact eqv_trans.
 Qed.
 
 Lemma seq_eq_eqv : forall s1 s2 : S, (forall i, s1 i = s2 i) -> s1 == s2.
