@@ -25,6 +25,7 @@
 
 From Stdlib Require Import PeanoNat.
 
+Require Import Continuity.
 
 (* The Limited Principle of Omniscence for propositions *)
 Definition LPO := forall p : nat -> Prop, (forall n : nat, (p n) \/ (~ p n)) ->
@@ -32,6 +33,8 @@ Definition LPO := forall p : nat -> Prop, (forall n : nat, (p n) \/ (~ p n)) ->
 
 Notation B := bool.
 Notation N := nat.
+Notation Btrue := true.
+Notation Bfalse := false.
 
 Notation succ := S.
 
@@ -525,4 +528,126 @@ Proof.
   - apply (eqv_trans _ indeterminate _). assumption. apply eqv_sym.
     apply HNT in H; apply HNT. intro H'. apply H. 
     refine (HT ss' ss _ H'); intro n; exact (eqv_sym _ _ (He n)).
+Qed.
+
+
+
+From Stdlib Require Import Bool.
+Require Numbers.ExtendedNat.
+Require Omniscience.
+Require Continuity.
+
+Notation Ninf := ExtendedNat.Ninf.
+Notation Ninf_inf := ExtendedNat.Ninf_infinite.
+Notation Ninf_fin := ExtendedNat.Ninf_finite.
+Notation Ninf_next_after := ExtendedNat.next_after.
+
+
+Definition continuous_sier (f : S -> S) :=
+  f indeterminate == true -> f true == true.
+
+Definition respectful_sier (f : S -> S) :=
+  forall s1 s2, s1 == s2 -> f s1 == f s2.
+
+Definition sier_to_ninf_seq : (N -> SB) -> (N -> B) :=
+  fun s n => match s n with | tru => Bfalse | indt => Btrue end.
+
+Lemma sier_to_ninf_proper : forall (s : N -> SB), 
+  next_after s -> Ninf_next_after (fun n => match s n with | tru => Bfalse | indt => Btrue end).
+Proof.
+  intros s Hs n; specialize (Hs n).
+  unfold next_after in Hs. simpl.
+  remember (s n) as sn; destruct sn. 
+  - intros _. 
+    assert (s (Nat.succ n) = tru) as Hst by now apply Hs. 
+    now rewrite -> Hst.
+  - intro H. discriminate H.
+Qed.
+
+Definition sier_to_ninf (s : S) : Ninf :=
+  ExtendedNat.mkExtendedNat _ (sier_to_ninf_proper _ (proper s)).
+
+Definition ninf_to_sier_seq : (N -> B) -> (N -> SB) :=
+  fun u n => match u n with | Btrue => indt | Bfalse => tru end.
+Lemma ninf_to_sier_proper : forall (u : N -> B), 
+  ExtendedNat.next_after u -> next_after (fun n => match u n with | Btrue => indt | Bfalse => tru end).
+Proof.
+  intros u Hu n; specialize (Hu n).
+  unfold Ninf_next_after in Hu; simpl.
+  remember (u n) as un; destruct un. 
+  - intro H. discriminate H. 
+  - intros _. 
+    assert (u (succ n) = Bfalse) as Huf by now apply Hu. 
+    now rewrite -> Huf.
+Qed.
+
+Definition ninf_to_sier (u : Ninf) : S :=
+  mkSierpinskian _ (ninf_to_sier_proper _ (ExtendedNat.proper u)).
+
+Lemma sier_to_ninf_to_sier_respectful : forall s, ninf_to_sier (sier_to_ninf s) == s.
+Proof.
+  intro s. unfold sier_to_ninf, sier_to_ninf, ninf_to_sier, ninf_to_sier, eqv. simpl.
+  exists 0; intros j _. destruct (s j); auto.
+Qed. 
+
+Lemma ninf_finite_to_sier : forall n, ninf_to_sier (Ninf_fin n) == true.
+Proof.
+  unfold ninf_to_sier, true, eqv; simpl.
+  intro n. exists n. intros k Hnlek.
+  remember (k<?n) as b; apply eq_sym in Heqb. destruct b.
+  apply Nat.ltb_lt in Heqb. apply Nat.nlt_ge in Hnlek. contradiction.
+  reflexivity.
+Qed.
+
+Theorem not_wlpo_implies_continuity_sier : (Omniscience.WLPOBool N -> False) -> (MP N) ->
+  forall p : S -> S, respectful_sier p -> continuous_sier p.
+Proof.
+  intros Hnwlpo Hmp p Hpr.
+  pose proof (proj1 not_wlpo_implies_continuity_ninf Hnwlpo) as Hccts.
+  assert (forall f, continuous_ninf f) as Hcts. 
+    intro f; now apply (classical_continuous_implies_continuous_ninf Hmp f (Hccts f)). 
+  clear Hnwlpo Hccts Hmp.
+  set (f := fun u => (sier_to_ninf (p (ninf_to_sier u)))).
+  assert (sier_to_ninf indeterminate = ExtendedNat.inf) as Hindt.
+    simpl. unfold sier_to_ninf, ExtendedNat.inf. apply ExtendedNat.Ninf_eq. reflexivity.
+  assert (ninf_to_sier ExtendedNat.inf == indeterminate) as Hinf.
+    unfold ninf_to_sier, ExtendedNat.inf, indeterminate, eqv; simpl. 
+    exists 0; intro j; tauto. 
+  unfold continuous_sier.
+  intro Hpit.
+  assert (ninf_to_sier (f Ninf_inf) == true) as Hfinf.
+    unfold f. 
+    apply (eqv_trans _ (p (ninf_to_sier ExtendedNat.Ninf_infinite))).
+    apply sier_to_ninf_to_sier_respectful.
+    apply (eqv_trans _ (p indeterminate)).
+    apply Hpr; exact Hinf.
+    exact Hpit.
+  assert (exists n, ExtendedNat.seq (f ExtendedNat.Ninf_infinite) n = false).
+    unfold eqv in Hfinf.
+    destruct Hfinf as [m Hfinf]; exists m.
+    specialize (Hfinf m (Nat.le_refl m)).
+    remember (f ExtendedNat.Ninf_infinite) as finf.
+    unfold true, ninf_to_sier in Hfinf; simpl in Hfinf.
+    apply not_true_iff_false. intro Hfinfm. rewrite -> Hfinfm in Hfinf. discriminate Hfinf. 
+  destruct H as [n Hn].
+  set (fn := fun u => ExtendedNat.seq (f u) n).
+  pose proof (Hcts fn) as Hctsfn.
+  unfold continuous_ninf in Hctsfn.
+  destruct Hctsfn as [m Hctsfn].
+  specialize (Hctsfn m (Nat.le_refl m)).
+  assert (ExtendedNat.seq (f (ExtendedNat.Ninf_finite m)) n = Bfalse) as Hmn.
+    unfold fn in Hctsfn. rewrite -> Hctsfn. exact Hn. 
+  assert (exists l, f (ExtendedNat.Ninf_finite m) = ExtendedNat.Ninf_finite l).
+    apply (ExtendedNat.Ninf_le_finite_ex _ n).
+    apply ExtendedNat.Ninf_le_inj_r.
+    exact Hmn.
+  clear n Hn fn Hctsfn Hmn.
+  destruct H as [n Hmn].
+  apply (eqv_trans _ (ninf_to_sier (Ninf_fin n)) _).
+  - rewrite <- Hmn.
+    unfold f.
+    apply (eqv_trans _ (p (ninf_to_sier (Ninf_fin m))) _).
+    -- apply Hpr. apply eqv_sym. now apply ninf_finite_to_sier.
+    -- apply eqv_sym. now apply sier_to_ninf_to_sier_respectful.
+  - apply ninf_finite_to_sier.
 Qed.
