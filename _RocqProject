@@ -41,6 +41,7 @@ Logic/Topologic.v
 Logic/Sierpinskian.v
 Logic/Kleenean.v
 Logic/Omniscience.v
+Logic/Continuity.v
 
 Numbers/RealAddenda.v
 Numbers/Analysis.v
