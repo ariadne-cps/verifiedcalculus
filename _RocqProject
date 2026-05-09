@@ -40,6 +40,7 @@ Numbers/ExtendedNat.v
 Logic/Topologic.v
 Logic/Sierpinskian.v
 Logic/Kleenean.v
+Logic/Omniscience.v
 
 Numbers/RealAddenda.v
 Numbers/Analysis.v
