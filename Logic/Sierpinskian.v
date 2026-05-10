@@ -599,14 +599,13 @@ Proof.
   reflexivity.
 Qed.
 
-Theorem not_wlpo_implies_continuity_sier : (Omniscience.WLPOBool N -> False) -> (MP N) ->
-  forall p : S -> S, respectful_sier p -> continuous_sier p.
+Theorem not_wlpo_implies_continuity_sier : 
+  (Omniscience.WLPOBool N -> False) -> (Continuity.MarkovsPrinciple N) ->
+    forall p : S -> S, respectful_sier p -> continuous_sier p.
 Proof.
   intros Hnwlpo Hmp p Hpr.
-  pose proof (proj1 not_wlpo_implies_continuity_ninf Hnwlpo) as Hccts.
-  assert (forall f, continuous_ninf f) as Hcts. 
-    intro f; now apply (classical_continuous_implies_continuous_ninf Hmp f (Hccts f)). 
-  clear Hnwlpo Hccts Hmp.
+  pose proof (not_wlpo_implies_continuity_ninf Hnwlpo Hmp) as Hcts.
+  clear Hnwlpo Hmp.
   set (f := fun u => (sier_to_ninf (p (ninf_to_sier u)))).
   assert (sier_to_ninf indeterminate = ExtendedNat.inf) as Hindt.
     simpl. unfold sier_to_ninf, ExtendedNat.inf. apply ExtendedNat.Ninf_eq. reflexivity.
@@ -639,7 +638,7 @@ Proof.
     unfold fn in Hctsfn. rewrite -> Hctsfn. exact Hn. 
   assert (exists l, f (ExtendedNat.Ninf_finite m) = ExtendedNat.Ninf_finite l).
     apply (ExtendedNat.Ninf_le_finite_ex _ n).
-    apply ExtendedNat.Ninf_le_inj_r.
+    apply ExtendedNat.Ninf_le_fin_r.
     exact Hmn.
   clear n Hn fn Hctsfn Hmn.
   destruct H as [n Hmn].

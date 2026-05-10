@@ -34,6 +34,7 @@
 
 
 From Stdlib Require Import Logic.ProofIrrelevance.
+From Stdlib Require Import Logic.ConstructiveEpsilon.
 
 From Stdlib Require Import Bool.
 From Stdlib Require Import PeanoNat.
@@ -65,6 +66,26 @@ Lemma clexists_forall_impl {X  Y: Type} (p q : X -> Y -> Prop) :
   (forall x y, p x y -> q x y) -> (clexists x, forall y, p x y) -> (clexists x, forall y, q x y).
 Proof. intros Hpq. apply clexists_impl; intro x. apply forall_impl; intro y. exact (Hpq x y). Qed.
 
+(* Markov's principle for a type X. 
+ * Note that Markov's principle for N states that 
+ * given an algorithm that does not terminate, 
+ * we can find the number of steps at which it terminates.
+ * This is valid in some constructive mathematics, but is unprovable in Rocq.
+ *)
+Definition MarkovsPrinciple (X : Type) := forall p : X -> Prop, (forall x : X, {p x} + {~ p x}) ->
+  (~ forall x, ~ p x) -> { x | p x}.
+
+(* Note that this is stronger than "constructive indefinite description",
+ * which is a theorem for N.
+ *
+ * Stdlib.Logic.ClassicalEpsilon
+ * Axiom constructive_indefinite_description :
+ *   forall (A : Type) (P : A->Prop), (exists x, P x) -> { x : A | P x }.
+ * 
+ * Stdlib.Logic.ConstructiveEpsilon
+ * Definition constructive_indefinite_ground_description_nat :
+ *   (exists n, P n) -> {n:nat | P n} :=
+ *)
 
 Definition eq_up_to {X : Type} (n : N) (a b : N -> X) : Prop :=
   forall k, (k < n)%nat -> a k = b k.
@@ -158,6 +179,10 @@ Definition classical_continuity_principle_ninf :=
 Definition effective_continuity_principle_ninf :=
   forall (f : Ninf -> B), 
     { n : N | forall m, (n < m)%nat -> f (fin m) = f (inf) }.
+
+Definition continuous_ninf_to_ninf (f : Ninf -> Ninf) :=
+  (forall l, fin l <= f inf -> exists m, forall n, (m <= n)%nat -> fin l <= f (fin n))
+    /\ (forall u, f inf <= fin u -> exists m, forall n, (m <= n)%nat -> f (fin n) <= fin u).
 
 (*
 Notation r := conj_seq.
@@ -446,7 +471,7 @@ Proof.
     rewrite -> negb_false_iff in Hpx.
     rewrite -> eqb_false_iff in Hpx.
     destruct Hpx as [Hpmx Hfxnefinf].
-    apply Ninf_succ_le_inj_l in Hpmx.
+    apply Ninf_succ_le_fin_l in Hpmx.
     exfalso; apply Hfxnefinf; f_equal.
     apply not_finite_implies_inf.
     intros n Hxn.
@@ -461,13 +486,13 @@ Proof.
     rewrite -> negb_true_iff in Ha.
     rewrite -> eqb_true_iff in Ha.
     destruct Ha as [Hwm|Hwinf].
-    -- apply Ninf_le_inj_r, Ninf_le_succ_l_le in Hwm.
+    -- apply Ninf_le_fin_r, Ninf_le_succ_l_le in Hwm.
        specialize (Hl m (Nat.le_refl m)); rewrite <- Hl.
        f_equal. now apply Ninf_max_r.
     -- destruct (Ninf_le_fin_dec w m) as [Hwlem|Hmltw].
        --- rewrite -> (proj1 (Ninf_max_r w _) Hwlem).
            exact (Hl m (Nat.le_refl m)).
-       --- apply Ninf_le_succ_l_le in Hmltw.
+       --- apply Ninf_nle_ge in Hmltw.
            now rewrite -> (proj1 (Ninf_max_l w (fin m)) Hmltw).
 Qed.
 
@@ -499,25 +524,45 @@ Proof.
     apply Hv. apply Ninf_le_nat. exact Hmlen.
 Qed.
 
-Definition MP (X : Type) := forall p : X -> Prop, (forall x : X, {p x} + {~ p x}) ->
-  (~ forall x, ~ p x) -> { x | p x}.
 
-
-Corollary classical_continuous_implies_continuous_ninf : (MP N) -> forall f : Ninf -> B,
-   classically_continuous_ninf f -> continuous_ninf f.
+Corollary classical_continuous_implies_continuous_ninf : 
+  MarkovsPrinciple N -> forall f : Ninf -> B,
+    classically_continuous_ninf f -> continuous_ninf f.
 Proof.
-  unfold continuous_ninf, MP.
-  intros MP f Hccf.
+  unfold continuous_ninf, MarkovsPrinciple.
+  intros Hmp f Hccf.
   apply classically_continuous_ninf_iff in Hccf.
   destruct Hccf as [u [Hucfin Hv]].
   apply not_infinite_implies_classically_finite in Hucfin.
   assert { m | u = fin m} as Hufin. {
-    apply MP. intro m. now apply Ninf_eq_inj_dec. exact Hucfin.
+    apply Hmp. intro m. now apply Ninf_eq_fin_dec. exact Hucfin.
   }
   destruct Hufin as [m Hum]; exists m.
   intros n Hmlen. apply Hv. 
   rewrite -> Hum. now apply Ninf_le_nat.
 Qed.
+
+Corollary continuous_implies_effectively_continuous_ninf : 
+  forall f : Ninf -> B,
+    continuous_ninf f -> effectively_continuous_ninf f.
+Proof.
+  unfold continuous_ninf, effectively_continuous_ninf.
+  intros f Hcf.
+  apply constructive_indefinite_ground_description_nat.
+  2: exact Hcf.
+  intros m.
+  set (p := fun u => (m <= u) -> f u = f inf).
+  assert (forall u, {p u} + {~ p u}) as Hpdec. {
+    intro u. unfold p. destruct (Ninf_ge_fin_dec m u) as [Hmleu|Hulem].
+    - destruct (bool_dec (f u) (f inf)) as [He|Hn].
+      -- left. auto.
+      -- right. intro Hl; apply Hn. apply Hl. exact Hmleu.
+    - left. intro Hmleu. contradiction.
+  }
+  pose proof (wlpo_ninf_restr_nat_dec _ Hpdec) as Hf. unfold p in Hf; destruct Hf as [Hf|Hf].
+  - left. intros n Hmlen; apply Hf. now apply Ninf_le_nat.
+  - right. intros Hfn; apply Hf. intros n Hmlen; apply Hfn. now apply Ninf_le_nat.
+Qed. 
 
 Definition g (f : Ninf -> B) (v : Ninf) : Ninf :=
   eps (fun u => eqb (f (max u v)) (f inf)).
@@ -658,7 +703,7 @@ Theorem wlpo_implies_exists_discontinuous_ninf : (WLPOBool N) -> {f : Ninf -> B 
 Qed.
 
 
-Theorem not_wlpo_implies_continuity_ninf : (WLPOBool N -> False) <->
+Theorem not_wlpo_implies_classical_continuity_ninf : (WLPOBool N -> False) <->
   forall f : Ninf -> B, classically_continuous_ninf f.
 Proof.
   split.
@@ -672,5 +717,65 @@ Proof.
     destruct Hwlpo as [f Hdcf].
     specialize (Hc f).
     apply discontinuous_iff_not_continuous_ninf in Hdcf; contradiction.
+Qed.
+
+Theorem not_wlpo_implies_continuity_ninf : (WLPOBool N -> False) -> MarkovsPrinciple N ->
+  forall f : Ninf -> B, continuous_ninf f.
+Proof.
+  intros Hnwlpo Hmp f. apply classical_continuous_implies_continuous_ninf. 
+  exact Hmp. apply not_wlpo_implies_classical_continuity_ninf. exact Hnwlpo.
+Qed.
+
+Theorem not_wlpo_implies_continuity_ninf_to_ninf : (WLPOBool N -> False) -> MarkovsPrinciple N ->
+  forall f : Ninf -> Ninf, continuous_ninf_to_ninf f.
+Proof.
+  unfold continuous_ninf_to_ninf.
+  intros Hnwlpo Hmp f. split.
+  - intro l; destruct l.
+    -- (* Handle case l=0 separately *)
+       intros _. exists 0%nat. intros n _. now apply Ninf_le_0_l.
+    -- (* Case l=succ l' *)
+       set (pl := fun v => seq (f v) l).
+       pose proof (not_wlpo_implies_continuity_ninf Hnwlpo Hmp pl) as Hpl.
+       unfold continuous_ninf in Hpl.
+       destruct Hpl as [m Hplm]; intro HSl. exists m.
+       intros n Hmlen. 
+       specialize (Hplm n Hmlen).
+       unfold pl in Hplm.
+       apply Ninf_gt_fin_l. rewrite -> Hplm.
+       apply Ninf_gt_fin_l. exact HSl.
+  - set (p := fun k : N => f inf <= k -> exists m, forall n, (m <= n)%nat -> f n <= k).
+    intros k Hfk. 
+    set (fk := fun v => f v k). 
+    pose proof (not_wlpo_implies_continuity_ninf Hnwlpo Hmp fk) as Hfek.
+    unfold continuous_ninf in Hfek.
+    destruct Hfek as [m Hfek]; exists m.
+    intros n Hmlen; specialize (Hfek n Hmlen).
+    apply Ninf_le_fin_r. unfold fk in Hfek. rewrite -> Hfek. apply Ninf_le_fin_r. exact Hfk.
+Qed.
+
+
+Proposition continuous_ninf_to_ninf_not_inf : forall f : Ninf -> Ninf, 
+  continuous_ninf_to_ninf f -> MarkovsPrinciple N ->
+    f inf <> inf -> exists m, forall n, (m <= n)%nat -> f n <> inf.
+Proof.
+  intros f Hcts Hmp. unfold continuous_ninf_to_ninf in Hcts.
+  destruct Hcts as [_ Hcts].
+  intros Hfinf.
+  assert (exists k : N, f inf = k) as Hfinfk. {
+    apply ex_of_sig; apply Hmp.
+    intro m; now apply Ninf_eq_fin_dec.
+    intro Hffin; apply Hfinf; clear Hfinf.
+    now apply not_finite_implies_inf.
+  }
+  destruct Hfinfk as [k Hfinfk].
+  assert (f inf <= k) as Hfinflek. {
+     rewrite -> Hfinfk; now apply Ninf_le_refl.
+  }
+  specialize (Hcts k Hfinflek).
+  destruct Hcts as [m Hctsm]; exists m.
+  intros n Hmlen; specialize (Hctsm n Hmlen).
+  intro Hfn. rewrite -> Hfn in Hctsm.
+  exact (Ninf_not_le_inf_finite _ Hctsm).
 Qed.
 
