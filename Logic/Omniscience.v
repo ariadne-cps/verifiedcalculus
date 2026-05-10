@@ -39,7 +39,6 @@ From Stdlib Require Import Bool.
 From Stdlib Require Import PeanoNat.
 
 
- 
 Require Import Numbers.ExtendedNat.
 
 Axiom sequence_extensionality : forall s1 s2 : N -> B, (forall n, s1 n = s2 n) -> s1 = s2.
@@ -173,11 +172,18 @@ Qed.
 
 
 
+Definition is_full {X : Type} (e : X -> Prop) := forall x, ~ (~ e x).
 
-
-
-Definition is_full {X : Type} (e : X -> Prop) := 
+Definition is_full' {X : Type} (e : X -> Prop) := 
   forall x : X, ~ (forall y, (e y -> x <> y)).
+
+Lemma full_eqv : forall {X} (e : X -> Prop), is_full e <-> is_full' e.
+Proof. intros X e; unfold is_full, is_full'; split. 
+  - intros He x Hny. specialize (Hny x). specialize (He x). apply He.
+    intro Hex. apply (Hny Hex). reflexivity.
+  - intros He x Hnex; specialize (He x). 
+    apply He; intros y Hey Hne. apply Hnex; rewrite Hne; exact Hey.
+Qed.
 
 (* Lemma 3.4 *)
 Lemma is_full_extended_nat : 
@@ -185,14 +191,13 @@ Lemma is_full_extended_nat :
 Proof.
   unfold is_full.
   intros x Hy.
-  apply (Hy inf).
-  - right.
-    reflexivity.
-  - apply not_finite_implies_inf.
-    intros k Hk.
-    apply (Hy x).
-    -- left. exists k. exact Hk.
-    -- reflexivity.
+  apply (Decidable.not_or) in Hy.
+  apply (proj2 Hy).
+  apply not_finite_implies_inf.
+  intros k Hk.
+  apply (proj1 Hy).
+  exists k.
+  exact Hk.
 Qed.
 
 #[local]
@@ -209,8 +214,19 @@ Proof.
   unfold is_full.
   intros e He p b Hp x.
   apply bool_eq_dne. intro Hpne.
-  apply (He x). intros y Hy. intro Hxy. 
-  rewrite <- Hxy in Hy. specialize (Hp x Hy). exact (Hpne Hp).
+  apply (He x). intro Hex. apply Hpne.
+  exact (Hp x Hex). 
+Qed.
+
+Lemma full_dense_constant_prop {X : Type} : forall (e : X -> Prop), is_full e ->
+  forall p : X -> Prop, (forall x, ~ ~ p x -> p x) -> 
+    (forall x, e x -> p x) -> (forall x, p x).
+Proof.
+  unfold is_full.
+  intros e He p Hpdne Hep x.
+  apply Hpdne. intro Hpne.
+  apply (He x). intro Hex. apply Hpne.
+  exact (Hep x Hex). 
 Qed.
 
 
@@ -319,7 +335,7 @@ Proof.
     -- right. induction n. 
        --- exact Heqp0. 
        --- specialize (Hqt (fin n)). unfold q in Hqt. 
-           apply eqb_prop in Hqt. rewrite <- IHn, Hqt. rewrite -> Ninf_succ_false_from. reflexivity.
+           apply eqb_prop in Hqt. rewrite <- IHn, Hqt. rewrite -> Ninf_succ_fin. reflexivity.
     -- left. exists (fin 0). split.
        --- now apply Ninf_finite_not_inf.
        --- assumption.
@@ -342,6 +358,22 @@ Proof.
   - left; exact H.
 Qed.
 
+(* Theorem 8.2 from "Omniscient sets in constructive mathematics". *)
+Lemma wlpo_ninf_restr_nat_dec : forall p : Ninf -> Prop,
+  (forall u, {p u} + {~ p u}) ->   
+    {forall n : N, p (fin n)} + {~ forall n : N, p (fin n)}.
+Proof.
+  intros p Hpdec.
+  set (q := fun u => boolean_proposition (Hpdec u)).
+  pose proof (wlpo_ninf_restr_nat q) as Hq.
+  unfold q in Hq. destruct Hq as [Hq|Hq].
+  - left. intro n; specialize (Hq n).
+    now apply (sumbool_true (Hpdec n)) in Hq.
+  - right. intro Hp; apply Hq; clear Hq.
+    intro n; specialize (Hp n).
+    now apply (sumbool_is_true (Hpdec n)).
+Qed.
+    
 (* Theorem 9.4 from "Omniscient sets in constructive mathematics". *)
 Theorem eps_is_infemum : forall p : Ninf -> B, 
   (forall x, p x = false -> eps p <= x)

@@ -51,6 +51,8 @@ Definition Baire := N -> N.
 
 
 Module Nat.
+Lemma le_succ_le_l : forall n m : N, S n <= m -> n <= m.
+Proof. intros m n H. apply Nat.lt_le_incl. apply Nat.le_succ_l. exact H. Qed.
 Lemma ltb_lt : forall n m : N, (n <? m) = true <-> n < m.
 Proof. 
   intros n m. split.
@@ -271,7 +273,7 @@ Qed.
 
 
 
-Lemma Ninf_eq_inj_dec : forall m : N, forall u : Ninf, { u = fin m } + { u <> fin m }. 
+Lemma Ninf_eq_fin_dec : forall m : N, forall u : Ninf, { u = fin m } + { u <> fin m }. 
 Proof.
   intros m u.
   remember (u m) as um; apply eq_sym in Hequm. destruct um.
@@ -313,7 +315,7 @@ Lemma Ninf_succ_all_true : Ninf_succ Ninf_infinite = Ninf_infinite.
 Proof. unfold Ninf_succ, Ninf_infinite. apply Ninf_eq. simpl.
   apply sequence_extensionality. intro m. destruct m; reflexivity.
 Qed.
-Lemma Ninf_succ_false_from : forall n : N, Ninf_succ (Ninf_finite n) = Ninf_finite (succ n).
+Lemma Ninf_succ_fin : forall n : N, Ninf_succ (Ninf_finite n) = Ninf_finite (succ n).
 Proof. intro n. unfold Ninf_succ, Ninf_finite. apply Ninf_eq. simpl.
   apply sequence_extensionality. intro m. destruct m; intuition. Qed.
 Lemma Ninf_succ_inj : forall x y, Ninf_succ x = Ninf_succ y -> x = y.
@@ -332,6 +334,18 @@ Qed.
 
 
 Definition Ninf_le (u v : Ninf) : Prop := forall n, u n = true -> v n = true.
+
+Lemma Ninf_le_spec_false : forall (u v : Ninf),
+  Ninf_le u v <-> forall n, v n = false -> u n = false.
+Proof.
+  intros u v; unfold Ninf_le; split. 
+  - intros H n Hvn. 
+    apply not_true_iff_false; intro Hun.
+    exact (eq_true_false_abs _ (H n Hun) Hvn). 
+  - intros H n Hun. 
+    apply not_false_iff_true; intro Hvn.
+    exact (eq_true_false_abs _ Hun (H n Hvn)). 
+Qed.     
 
 Lemma Ninf_le_refl : forall u, Ninf_le u u.
 Proof. unfold Ninf_le. intros us n Hn. exact Hn. Qed.
@@ -360,26 +374,30 @@ Proof. unfold Ninf_le, inf, fin. intros n Hn.
   rewrite -> Nat.ltb_irrefl in Hn. now apply diff_false_true, Hn.
 Qed.
 
+Lemma Ninf_le_0_l : forall (u : Ninf), Ninf_le (fin 0) u.
+Proof. 
+  unfold fin, Ninf_le; simpl. intros u n H. rewrite -> Nat.ltb_lt in H. contradiction (Nat.nlt_0_r n H). Qed.
+
 Lemma Ninf_le_inf : forall u, Ninf_le u inf.
 Proof. unfold Ninf_le, inf, Ninf_infinite. intros _ n _. reflexivity. Qed.
 
-Lemma Ninf_le_inj_r : forall (u : Ninf) (m : N), u m = false <-> Ninf_le u (fin m).
+Lemma Ninf_le_fin_r : forall (u : Ninf) (m : N), u m = false <-> Ninf_le u (fin m).
 Proof. intros u m; unfold fin, Ninf_le; simpl; split.
   - intros Hum n Hun. apply Nat.ltb_lt. apply Nat.lt_nge; intro Hmlen. 
     pose proof (Ninf_after u m Hum n Hmlen) as Hu. now apply (eq_true_false_abs (seq u n)).
   - intros H. apply not_true_iff_false; intro Hum. specialize (H m Hum). rewrite -> Nat.ltb_irrefl in H. discriminate. 
 Qed.
 
-Lemma Ninf_gt_inj_l : forall (u : Ninf) (m : N), u m = true <-> Ninf_le (fin (S m)) u.
+Lemma Ninf_gt_fin_l : forall (u : Ninf) (m : N), u m = true <-> Ninf_le (fin (S m)) u.
 Proof. intros u m; unfold fin, Ninf_le; simpl; split.
   - intros Hum n Hnlem. apply Nat.ltb_lt, (Nat.lt_succ_r n m) in Hnlem.
     exact (Ninf_before u m Hum n Hnlem).
   - intros H. apply (H m). apply Nat.ltb_lt, (Nat.lt_succ_r m m). now apply Nat.le_refl.
 Qed.
 
-Lemma Ninf_ge_inj_l : forall (u : Ninf) (m : N), u m = true -> Ninf_le (fin m) u.
+Lemma Ninf_ge_fin_l : forall (u : Ninf) (m : N), u m = true -> Ninf_le (fin m) u.
 Proof. 
-  intros u m Hum. apply Ninf_gt_inj_l in Hum.
+  intros u m Hum. apply Ninf_gt_fin_l in Hum.
   apply (Ninf_le_trans _ (fin (S m)) _).
   - apply Ninf_le_nat. now apply Nat.le_succ_diag_r.
   - exact Hum.
@@ -454,7 +472,7 @@ Lemma Ninf_succ_fix : forall x, Ninf_succ x = x <-> x = Ninf_infinite.
 Proof. 
   intro x. split. 
   - intros Hfx. assert ( (forall k, x <> Ninf_finite k)) as Hnk. {
-      intros k Hk. rewrite -> Hk in Hfx. rewrite -> Ninf_succ_false_from in Hfx. 
+      intros k Hk. rewrite -> Hk in Hfx. rewrite -> Ninf_succ_fin in Hfx. 
       apply Ninf_finite_inj in Hfx.
       now apply Nat.neq_succ_diag_l in Hfx. }
     exact (not_false_from_implies_all_true_ex _ Hnk).
@@ -500,9 +518,9 @@ Qed.
 Lemma Ninf_le_succ_l_le : forall u v, Ninf_le (Ninf_succ u) v -> Ninf_le u v.
 Proof. intros u v H. apply (Ninf_le_trans _ (Ninf_succ u) _). now apply Ninf_le_succ_diag_r. exact H. Qed.  
 
-Lemma Ninf_succ_le_inj_l : forall (u : Ninf) (m : N), (Ninf_succ u) m = true <-> Ninf_le (fin m) u.
+Lemma Ninf_succ_le_fin_l : forall (u : Ninf) (m : N), (Ninf_succ u) m = true <-> Ninf_le (fin m) u.
 Proof. 
-  intros u m. rewrite -> Ninf_gt_inj_l. rewrite <- Ninf_succ_false_from. now apply (Ninf_le_succ_iff (fin m)).
+  intros u m. rewrite -> Ninf_gt_fin_l. rewrite <- Ninf_succ_fin. now apply (Ninf_le_succ_iff (fin m)).
 Qed.
 
 Lemma Ninf_nle_ge : forall (u v : Ninf), ~ (Ninf_le u v) -> Ninf_le v u.
@@ -516,17 +534,43 @@ Proof.
   now apply (Ninf_after u n).
 Qed.
 
-Lemma Ninf_le_fin_dec : forall u m, { Ninf_le u (fin m) } + { Ninf_le (Ninf_succ (fin m)) u }.
+Lemma Ninf_not_le_iff_gt : forall u m, ~ (Ninf_le u (fin m)) <-> Ninf_le (Ninf_succ (fin m)) u.
+Proof. intros u m; split.
+  - intro Hnle. rewrite -> Ninf_succ_fin. apply Ninf_succ_le_fin_l. 
+    simpl. apply not_false_iff_true. intro Hum. apply Hnle. apply Ninf_le_fin_r. exact Hum.
+  - intros HSmleu Hulem. apply Ninf_le_fin_r in Hulem. rewrite -> Ninf_succ_fin in HSmleu. 
+    apply Ninf_succ_le_fin_l in HSmleu. simpl in HSmleu. exact (eq_true_false_abs _ HSmleu Hulem).
+Qed.
+ 
+Lemma Ninf_le_fin_dec : forall u m, { Ninf_le u (fin m) } + { ~ (Ninf_le u (fin m)) }.
 Proof. 
   intros u m. remember (u m) as um; apply eq_sym in Hequm. destruct um.
-  - right. rewrite -> Ninf_succ_false_from. apply Ninf_succ_le_inj_l. simpl. exact Hequm.
-  - left. now apply Ninf_le_inj_r.
+  - right. intros Hum. apply Ninf_le_fin_r in Hum. now apply (eq_true_false_abs (seq u m)).
+  - left. now apply Ninf_le_fin_r.
+Qed.
+
+Lemma Ninf_ge_fin_dec : forall m u, { Ninf_le (fin m) u} + { ~ (Ninf_le (fin m) u) }.
+Proof. 
+  intros m u. destruct m.
+  - left. now apply Ninf_le_0_l.
+  - remember (u m) as um; apply eq_sym in Hequm. destruct um.
+    -- left. now apply Ninf_gt_fin_l.
+    -- right. intros Hmu. apply Ninf_gt_fin_l in Hmu. now apply (eq_true_false_abs (seq u m)).
+Qed.
+
+Lemma Ninf_le_fin_cases : forall u m, { Ninf_le u (fin m) } + { Ninf_le (fin m) u }.
+Proof. intros u m. destruct (Ninf_le_fin_dec u m) as [Hulem|Hugtm].
+  - left. exact Hulem.
+  - right. unfold Ninf_le. intros n Hmn.
+    apply not_false_iff_true. intro Hun. apply Hugtm.
+    destruct (Nat.le_gt_cases m n).
+    -- unfold fin in Hmn; simpl in Hmn. apply Nat.ltb_lt in Hmn. contradiction (proj1 (Nat.le_ngt m n) H Hmn).
+    -- apply Ninf_false_le. 
+       apply (Ninf_after u n Hun m). now apply Nat.lt_le_incl.
 Qed.
 
 
-
-
-Lemma max_seq_proper : forall (u v : Ninf), next_after (fun n => orb (u n) (v n)).
+Lemma max_seq_proper : forall (u v : Ninf), next_after (fun n => orb (u n) (v n)). 
 Proof. 
   intros [u Hu] [v Hv]. unfold next_after in *. 
   intro n. simpl. specialize (Hu n); specialize (Hv n). intro Huv.
@@ -789,7 +833,6 @@ Proof.
 Qed.
 
 Close Scope nat_scope.
-
 
 Definition Ninf_retr (s : Cantor) : ExtendedNat :=
   mkExtendedNat _ (conj_seq_next_after s).
