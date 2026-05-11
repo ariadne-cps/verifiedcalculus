@@ -41,10 +41,6 @@ Notation succ := PeanoNat.Nat.succ.
 Notation B := bool.
 Notation N := nat.
 
-Definition sequential_extensionality : Prop := 
-  forall s1 s2 : N -> B, (forall n, s1 n = s2 n) -> s1 = s2.
-Axiom sequence_extensionality : 
-  forall s1 s2 : N -> B, (forall n, s1 n = s2 n) -> s1 = s2.
 
 Definition Cantor := N -> B.
 Definition Baire := N -> N.
@@ -78,12 +74,6 @@ Proof.
   destruct He as [k [He _]].
   rewrite He. rewrite -> Nat.add_comm. now apply Hk.
 Qed.
-
-(* Useful lemmas about boolean cases *) 
-Lemma not_true_implies_false : forall b : B, ~ (b = true) -> b = false.
-Proof. intro b. intro H. destruct b. contradiction. reflexivity. Qed.
-Lemma not_false_implies_true : forall b : B, ~ (b = false) -> b = true.
-Proof. intro b. intro H. destruct b. reflexivity. contradiction. Qed.
 
 
 Definition next_after (s : N -> B) : Prop := 
@@ -142,6 +132,9 @@ Record ExtendedNat := mkExtendedNat {
 
 Notation Ninf := ExtendedNat.
 
+Axiom Ninf_extensionality : 
+  forall u1 u2 : Ninf, (forall n, seq u1 n = seq u2 n) -> u1 = u2.
+
 Lemma Ninf_eq : forall n1 n2 : ExtendedNat, n1 = n2 <-> seq n1 = seq n2.
 Proof. 
   intros n1 n2. split. 
@@ -154,11 +147,10 @@ Qed.
 Definition Ninf_eqv (u1 u2 : ExtendedNat) : Prop := forall k, u1 k = u2 k.
 Infix "==" := Ninf_eqv (at level 70, no associativity).
 
-Lemma Ninf_eqv_eq : sequential_extensionality -> 
+Lemma Ninf_eqv_eq : 
   forall (u1 u2 : Ninf), u1 == u2 -> u1 = u2.
 Proof. 
-  unfold sequential_extensionality, Ninf_eqv. intros SE. 
-  intros u1 u2 Hu. apply Ninf_eq. apply SE. exact Hu.
+  exact Ninf_extensionality.
 Qed. 
 
 Lemma Ninf_after : forall (u : Ninf) (m : N), u m = false -> forall n, m <= n -> u n = false.
@@ -179,34 +171,21 @@ Proof. intros n k Hnlek. unfold false_from. now apply Nat.nltb_ge. Qed.
 Lemma next_after_false_from (n : N) : next_after (fun k => k <? n).
 Proof. intros k Hkltn. now apply Nat.nltb_ge, Nat.le_le_succ_r, Nat.nltb_ge. Qed.
 
-Lemma next_after_eq : forall s, next_after s ->
-  forall n, (s = false_from n) <-> (forall k, k < n -> s k = true) /\ (forall k, n <= k -> s k = false).
+Lemma next_after_eqv : forall s, next_after s ->
+  forall n, (forall k, s k = false_from n k) <-> (forall k, k < n -> s k = true) /\ (forall k, n <= k -> s k = false).
 Proof.
+  unfold false_from. 
   intros s Hs n. split.
-  - intro H. rewrite -> H. clear H.
-    split. exact (false_from_lt_is_true n). exact (false_from_ge_is_false n).
-  - intros [Ht Hf]. unfold false_from.
-    apply sequence_extensionality; intro k. apply eq_sym. simpl.
+  - intro H. split. 
+    -- intro k. rewrite -> H. exact (false_from_lt_is_true n k). 
+    -- intro k. rewrite -> H. exact (false_from_ge_is_false n k).
+  - intros [Ht Hf].
+    intro k. apply eq_sym. simpl.
     destruct (Nat.lt_ge_cases k n) as [Hkltn|Hnlek]. 
     -- rewrite -> (Ht k Hkltn). now apply Nat.ltb_lt.
     -- rewrite -> (Hf k Hnlek). now apply Nat.nltb_ge.
 Qed.
 
-Lemma next_after_when_first_false : forall s, next_after s -> 
-  s zero = false -> s = false_from zero.
-Proof.
-  intros s Hs Hs0. apply (next_after_eq s Hs). split.
-  - intros k Hklt0. contradiction (Nat.nlt_0_r k Hklt0).
-  - intros k H0lek. exact (proj1 (next_after_iff_all_after s) Hs 0 Hs0 k H0lek).
-Qed.
-
-Lemma next_after_when_succ_false : forall s n, next_after s -> 
-  s n = true /\ s (succ n) = false -> s = false_from (succ n).
-Proof.
-  intros s n Hs [Hst Hsf]. apply (next_after_eq s Hs). split.
-  - intros k Hk. apply (Nat.lt_succ_r k) in Hk. exact (proj1 (next_after_iff_all_before s) Hs n Hst k Hk).
-  - intros k Hk. exact (proj1 (next_after_iff_all_after s) Hs (succ n) Hsf k Hk).
-Qed.
 
 Definition all_true : N -> B := fun _ => true.
 
@@ -236,7 +215,7 @@ Proof.
   - intro H. rewrite -> H. clear H.
     split. exact (Ninf_finite_lt n). exact (Ninf_finite_ge n).
   - intros [Hf Ht].
-    apply Ninf_eq; apply sequence_extensionality. intro k. apply eq_sym. simpl.
+    apply Ninf_extensionality. intro k. apply eq_sym. simpl.
     destruct (Nat.lt_ge_cases k n) as [Hkltn|Hnlek]. 
     -- rewrite -> (Hf k Hkltn). now apply Nat.ltb_lt.
     -- rewrite -> (Ht k Hnlek). now apply Nat.nltb_ge.
@@ -312,15 +291,15 @@ Definition Ninf_succ : Ninf -> Ninf :=
   fun u => mkExtendedNat _ (prepend_true_proper _ (proper u)).
 
 Lemma Ninf_succ_all_true : Ninf_succ Ninf_infinite = Ninf_infinite.
-Proof. unfold Ninf_succ, Ninf_infinite. apply Ninf_eq. simpl.
-  apply sequence_extensionality. intro m. destruct m; reflexivity.
+Proof. unfold Ninf_succ, Ninf_infinite.
+  apply Ninf_extensionality; simpl. intro m. destruct m; reflexivity.
 Qed.
 Lemma Ninf_succ_fin : forall n : N, Ninf_succ (Ninf_finite n) = Ninf_finite (succ n).
-Proof. intro n. unfold Ninf_succ, Ninf_finite. apply Ninf_eq. simpl.
-  apply sequence_extensionality. intro m. destruct m; intuition. Qed.
+Proof. intro n. unfold Ninf_succ, Ninf_finite.
+  apply Ninf_extensionality; simpl. intro m. destruct m; intuition. Qed.
 Lemma Ninf_succ_inj : forall x y, Ninf_succ x = Ninf_succ y -> x = y.
 Proof. 
-  intros x y HSxy. apply Ninf_eq. apply sequence_extensionality. intro n.
+  intros x y HSxy. apply Ninf_extensionality; simpl. intro n.
   assert (Ninf_succ x (S n) = Ninf_succ y (S n)) as HSxyn by now rewrite -> HSxy. 
   unfold Ninf_succ in HSxyn; simpl in HSxyn. exact HSxyn.
 Qed.
@@ -405,21 +384,20 @@ Qed.
 
 
 (* Lemma 3.2 *)
-Lemma false_implies_is_false_from : forall s : N -> B, next_after s ->
-  (exists n, s n = false) -> (exists m, s = Ninf_finite m).
+Lemma Ninf_false_implies_is_finite : forall u : Ninf,
+  (exists n, seq u n = false) -> (exists m, u = Ninf_finite m).
 Proof.
-  intros s Hs [n Hn].
-  apply (next_after_iff_all_after s) in Hs.
-  unfold all_after in Hs.
+  intros [s Hs] [n Hn].
+  pose proof (proj1 (next_after_iff_all_after s) Hs) as Has.
+  unfold all_after in Has.
   revert Hn.
   induction n.
-  - intro Hs0. exists 0. unfold Ninf_finite; simpl.
-    apply sequence_extensionality.
-    intro n. exact (Hs 0 Hs0 n (Nat.le_0_l n)).
+  - intro Hs0. exists 0. apply Ninf_extensionality; simpl.
+    intro n. exact (Has 0 Hs0 n (Nat.le_0_l n)).
   - remember (s n) as sn eqn:Hsn.
     destruct sn.
-    -- clear IHn. intro HsSn. exists (S n). unfold Ninf_finite.
-       apply sequence_extensionality.
+    -- clear IHn. intro HsSn. exists (S n).
+       apply Ninf_extensionality; simpl.
        intro m.
        simpl. 
        remember (m <? S n) as mltSn.
@@ -427,45 +405,30 @@ Proof.
        destruct  mltSn.
        --- assert (m <= n) as Hmlen. { 
              apply Nat.lt_succ_r. now apply Nat.ltb_lt. }
-           apply not_false_implies_true. intro Hsm.
-           specialize (Hs m Hsm n Hmlen).
-           exact (eq_true_false_abs _ (eq_sym Hsn) Hs).
-       --- apply (Hs (S n) HsSn m). now apply Nat.nltb_ge.
+           apply not_false_iff_true. intro Hsm.
+           specialize (Has m Hsm n Hmlen).
+           exact (eq_true_false_abs _ (eq_sym Hsn) Has).
+       --- apply (Has (S n) HsSn m). now apply Nat.nltb_ge.
     -- intro Hsm. now apply IHn.
 Qed.
 
 (* Lemma 3.3 *)
-Lemma not_false_from_implies_all_true : forall s : N -> B, next_after s ->
-  (forall k, s <> Ninf_finite k) -> (forall n, s n = true).
+Lemma Ninf_not_finite_implies_infinite : forall u : Ninf,
+  (forall n, u <> Ninf_finite n) -> u = Ninf_infinite.
 Proof.
-  intros s Hs Hnk n.
-  apply not_false_implies_true. 
-  intro Hsn.
-  assert (exists n, s n = false) as Hexsn. { exists n; exact Hsn. }
-    pose proof (false_implies_is_false_from s Hs Hexsn) as [m Htfm].
-    exact (Hnk m Htfm).
-Qed.
-
-Corollary not_false_from_implies_all_true_ex : forall s : Ninf,
-  (forall k, s <> Ninf_finite k) -> (s = Ninf_infinite).
-Proof.
-  intros s Hsk.
-  assert (forall k, seq s <> Ninf_finite k) as Hss. {
-    intros k Hk. specialize (Hsk k). apply Hsk. apply Ninf_eq. exact Hk. }
-  pose proof (not_false_from_implies_all_true (seq s) (proper s) Hss) as Hst.
-  apply Ninf_eq. apply sequence_extensionality. unfold Ninf_infinite. simpl. exact Hst. 
-Qed.
-
-Corollary not_finite_implies_inf : forall u : Ninf,
-  (forall n, u <> fin n) -> u = inf.
-Proof.
-  exact not_false_from_implies_all_true_ex.
+  intros u Hu.
+  apply Ninf_extensionality.
+  intro n; simpl.
+  apply not_false_iff_true; intro Hsn.
+  assert (exists n, u n = false) as Hexsn. { exists n; exact Hsn. }
+    pose proof (Ninf_false_implies_is_finite u Hexsn) as [m Htfm].
+    exact (Hu m Htfm).
 Qed.
 
 Corollary not_infinite_implies_classically_finite : forall u : Ninf,
   (u <> inf) -> ~ (forall n, u <> fin n).
 Proof.
-  intros u Huinf Huan. apply Huinf. now apply (not_finite_implies_inf u). 
+  intros u Huinf Huan. apply Huinf. now apply (Ninf_not_finite_implies_infinite u).
 Qed.
 
 Lemma Ninf_succ_fix : forall x, Ninf_succ x = x <-> x = Ninf_infinite.
@@ -475,7 +438,7 @@ Proof.
       intros k Hk. rewrite -> Hk in Hfx. rewrite -> Ninf_succ_fin in Hfx. 
       apply Ninf_finite_inj in Hfx.
       now apply Nat.neq_succ_diag_l in Hfx. }
-    exact (not_false_from_implies_all_true_ex _ Hnk).
+    exact (Ninf_not_finite_implies_infinite _ Hnk).
   - intro Hx. rewrite -> Hx. exact Ninf_succ_all_true.
 Qed.
 
@@ -484,13 +447,12 @@ Proof.
   intros u n Hulen.
   assert (exists n, seq u n = false) as Hu. {
     exists n.
-    apply not_true_implies_false; intro Hun.
+    apply not_true_iff_false; intro Hun.
     unfold Ninf_le, fin in Hulen. specialize (Hulen n Hun). simpl in Hulen.
     now rewrite -> Nat.ltb_irrefl in Hulen.
   }
-  pose proof (false_implies_is_false_from _ (proper u) Hu) as H.
-  destruct H as [m Hm]. exists m.
-  now apply Ninf_eq.
+  pose proof (Ninf_false_implies_is_finite u Hu) as H.
+  destruct H as [m Hm]. exists m. exact Hm.
 Qed.
 
 Lemma Ninf_le_succ_iff : forall u v, Ninf_le (Ninf_succ u) (Ninf_succ v) <-> Ninf_le u v.
@@ -583,8 +545,8 @@ Definition Ninf_max (u v : Ninf) : Ninf := mkExtendedNat _ (max_seq_proper u v).
 Lemma Ninf_max_of_le : forall m n, m <= n -> Ninf_max (fin m) (fin n) = (fin n).
 Proof.
   intros m n Hmlen.
-  unfold Ninf_max. apply Ninf_eq; simpl.
-  apply sequence_extensionality; intro k.
+  unfold Ninf_max. apply Ninf_extensionality; simpl.
+  intro k.
   remember (k <? n) as kltbn eqn:Hkltbn. apply eq_sym in Hkltbn. destruct kltbn.
   - now apply orb_true_r.
   - rewrite -> Nat.nltb_ge in Hkltbn. 
@@ -595,7 +557,7 @@ Qed.
 Lemma Ninf_max_symm : forall u v : Ninf, Ninf_max u v = Ninf_max v u.
 Proof. 
   intros u v. unfold Ninf_max.
-  apply Ninf_eq; apply sequence_extensionality; intro ; simpl.
+  apply Ninf_extensionality; simpl. intro n.
   destruct (seq  u n); destruct (seq v n); reflexivity.
 Qed.
 
@@ -610,8 +572,8 @@ Lemma Ninf_le_max : forall u v, Ninf_le u v <-> Ninf_max u v = v.
 Proof. 
   intros u v. split.
   - unfold Ninf_le, Ninf_max. 
-    intros Hle. apply Ninf_eq; simpl.
-    apply sequence_extensionality; intro n.
+    intros Hle. apply Ninf_extensionality; simpl.
+    intro n.
     remember (u n) as un; apply eq_sym in Hequn. destruct un.
     -- specialize (Hle n Hequn). rewrite -> Hle. reflexivity.
     -- simpl. reflexivity.     
@@ -637,7 +599,7 @@ Qed.
 Lemma Ninf_max_r : forall u v, u <= v <-> max u v = v.
 Proof. 
   unfold max, le. intros u v; split.
-  - intro Hl. apply Ninf_eq; simpl. apply sequence_extensionality. 
+  - intro Hl. apply Ninf_extensionality; simpl. 
     intro n; specialize (Hl n). destruct (u n); simpl.
     apply eq_sym; now apply Hl. reflexivity.
   - intro Hm. rewrite <- Hm; simpl. 
@@ -722,7 +684,7 @@ Proof. intros s n Hsn. destruct n. rewrite -> conj_seq_zero. exact Hsn.
 
 Lemma conj_seq_at_true : forall s n, 
   conj_seq s n = true -> s n = true.
-Proof. intros s n Hrsn. apply not_false_implies_true. intros Hsn. 
+Proof. intros s n Hrsn. apply not_false_iff_true. intros Hsn. 
   exact (eq_true_false_abs _ Hrsn (conj_seq_at_false s n Hsn)). Qed.
 
 Lemma conj_seq_is_false : forall s n, 
@@ -743,10 +705,10 @@ Qed.
 Lemma conj_seq_is_true : forall s n, 
   conj_seq s n = true <-> forall k, k <= n -> s k = true.
 Proof. intros s n. split.
-  - intros Hrsn k Hklen. apply not_false_implies_true. intro Hsk.
+  - intros Hrsn k Hklen. apply not_false_iff_true. intro Hsk.
     pose proof (conj_seq_at_false s k Hsk) as Hrsk.
     exact (eq_true_false_abs _ Hrsn (conj_seq_all_after s k Hrsk n Hklen)).
-  - intros Hs. apply not_false_implies_true. intros Hrsn.
+  - intros Hs. apply not_false_iff_true. intros Hrsn.
     apply conj_seq_is_false in Hrsn.
     destruct Hrsn as [k [Hklen Hsk]].
     specialize (Hs k Hklen).
@@ -785,14 +747,6 @@ Proof.
        exact (conj_seq_all_after s n Hrsn k Hnlek).
 Qed.
 
-Lemma conj_seq_eq_false_from : forall (s : N -> B) (n : N), 
-  conj_seq s = false_from n <-> s n = false /\ forall k, k < n -> s k = true.
-Proof.
-  intros s n. split.
-  - intro H. apply conj_seq_eqv_false_from. now rewrite -> H.
-  - intro H. apply sequence_extensionality. now apply conj_seq_eqv_false_from. 
-Qed.
-
 Lemma conj_seq_eqv_all_true : forall (s : N -> B), 
   (forall k, conj_seq s k = Ninf_infinite k) <-> (forall n, s n = true).
 Proof.
@@ -803,33 +757,25 @@ Proof.
     -- rewrite -> conj_seq_succ. apply andb_true_iff. split. now rewrite -> IHk. now apply Hs. 
 Qed.
 
-Lemma conj_seq_eq_all_true : forall (s : N -> B), 
-  (conj_seq s = Ninf_infinite) <-> (forall n, s n = true).
-Proof.
-  intros s. split.
-  - intro H. apply conj_seq_eqv_all_true. now rewrite -> H.
-  - intro H. apply sequence_extensionality. now apply conj_seq_eqv_all_true. 
-Qed.
-
 (* Lemma 3.1 *)
-Lemma conj_seq_is_fixed_iff : forall s : N -> B, next_after s <-> conj_seq s = s.
+Lemma conj_seq_eqv_fixed_iff : forall s : N -> B, 
+  next_after s <-> (forall k, conj_seq s k = s k).
 Proof.
   unfold next_after.
   intro s.
   split. 
   - intros Hs.
-    apply sequence_extensionality.
-    induction n.
+    induction k.
     -- reflexivity.
-    -- remember (s n) as sn eqn:Hsn.
-       destruct (sn).
-       --- rewrite -> conj_seq_succ. rewrite -> IHn. simpl. reflexivity.
-       --- rewrite -> Hs by exact (eq_sym Hsn). exact (conj_seq_next_after s n IHn). 
-  - intros Hfix n Hsn.
+    -- remember (s k) as sk eqn:Hsk.
+       destruct (sk).
+       --- rewrite -> conj_seq_succ. rewrite -> IHk. simpl. reflexivity.
+       --- rewrite -> Hs by exact (eq_sym Hsk). exact (conj_seq_next_after s k IHk). 
+  - intros Hfix k Hsk.
     rewrite <- Hfix.
     apply conj_seq_next_after.
     rewrite -> Hfix.
-    exact Hsn.
+    exact Hsk.
 Qed.
 
 Close Scope nat_scope.
@@ -844,21 +790,21 @@ Proof. exact conj_seq_is_false. Qed.
 Lemma Ninf_retr_eq_fin : forall (s : N -> B) (n : N), 
   (Ninf_retr s = fin n) <-> (s n = false /\ forall (k : N), (k < n)%nat -> s k = true).
 Proof.
-  intro s. split.
-  - intro H. apply conj_seq_eq_false_from. apply Ninf_eq in H. simpl in H. now rewrite -> H.
-  - intro H. apply conj_seq_eq_false_from in H. now apply Ninf_eq.
+  intro s. split. 
+  - intro H. apply conj_seq_eqv_false_from. apply Ninf_eq in H. simpl in H. now rewrite -> H.
+  - intro H. apply Ninf_extensionality. apply conj_seq_eqv_false_from. exact H.
 Qed.
 
 Lemma Ninf_retr_eq_inf : forall (s : N -> B), 
   (Ninf_retr s = inf) <-> (forall n, s n = true).
 Proof.
   intro s. split.
-  - intro H. apply conj_seq_eq_all_true. now rewrite <- H.  
-  - intro H. apply conj_seq_eq_all_true in H. now apply Ninf_eq.
+  - intro H. apply conj_seq_eqv_all_true. now rewrite <- H.  
+  - intro H. apply Ninf_extensionality. apply conj_seq_eqv_all_true. exact H.
 Qed.
 
-Lemma Ninf_retr_is_fixed_iff : forall s : N -> B, seq (Ninf_retr s) = s <-> next_after s.
-Proof. intro s. unfold Ninf_retr; simpl. apply iff_sym. exact (conj_seq_is_fixed_iff s). Qed.
+Lemma Ninf_retr_is_fixed_iff : forall s : N -> B, (forall k, seq (Ninf_retr s) k = s k) <-> next_after s.
+Proof. intro s. unfold Ninf_retr; simpl. apply iff_sym. exact (conj_seq_eqv_fixed_iff s). Qed.
 
 Lemma Ninf_retr_is_retract : forall x : ExtendedNat, Ninf_retr x = x.
-Proof. intros [s Hs]. apply Ninf_eq. rewrite -> Ninf_retr_is_fixed_iff. exact Hs. Qed.
+Proof. intros [s Hs]. apply Ninf_extensionality. rewrite -> Ninf_retr_is_fixed_iff. exact Hs. Qed.
