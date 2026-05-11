@@ -38,10 +38,7 @@ From Stdlib Require Import Logic.ProofIrrelevance.
 From Stdlib Require Import Bool.
 From Stdlib Require Import PeanoNat.
 
-
 Require Import Numbers.ExtendedNat.
-
-Axiom sequence_extensionality : forall s1 s2 : N -> B, (forall n, s1 n = s2 n) -> s1 = s2.
 
 Definition Cantor := N -> B.
 Definition Baire := N -> N.
@@ -75,14 +72,14 @@ Definition boolean_proposition {p q : Prop} (H : {p} + {q}) : bool :=
 Definition negated_boolean_proposition {p q : Prop} (H : {p} + {q}) : bool :=
   match H with | left _ => false | right _ => true end.
 
-Lemma sumbool_true {P Q : Prop} : forall (d : {P} + {Q}), (boolean_proposition d = true) -> P.
+Lemma sumbool_is_true {P Q : Prop} : forall (d : {P} + {Q}), (boolean_proposition d = true) -> P.
 Proof. intros d Hd. destruct d. exact p. discriminate Hd. Qed. 
-Lemma sumbool_false {P Q : Prop} : forall (d : {P} + {Q}), (boolean_proposition d = false) -> Q.
+Lemma sumbool_is_false {P Q : Prop} : forall (d : {P} + {Q}), (boolean_proposition d = false) -> Q.
 Proof. intros d Hd. destruct d. discriminate Hd. exact q. Qed. 
 
-Lemma sumbool_is_true {P : Prop} : forall (d : {P} + {~P}), P -> (boolean_proposition d = true).
+Lemma sumbool_of_true {P : Prop} : forall (d : {P} + {~P}), P -> (boolean_proposition d = true).
 Proof. intros d p. destruct d. reflexivity. contradiction. Qed. 
-Lemma sumbool_is_false {P : Prop} : forall (d : {P} + {~P}), (~P) -> (boolean_proposition d = false).
+Lemma sumbool_of_false {P : Prop} : forall (d : {P} + {~P}), (~P) -> (boolean_proposition d = false).
 Proof. intros d np. destruct d. contradiction. reflexivity. Qed. 
 
 Proposition lpo_set_implies_bool : forall (X : Set), LPOSet X -> LPOBool X.
@@ -146,38 +143,31 @@ Proof.
   remember (q (eps q)) as qepsq eqn:Hqepsq; apply eq_sym in Hqepsq.
   destruct qepsq.
   - right. intros u.
-    exact (sumbool_true (Hp u) (Heps q Hqepsq u)).
+    exact (sumbool_is_true (Hp u) (Heps q Hqepsq u)).
   - left. exists (eps q).
-    exact (sumbool_false (Hp (eps q)) Hqepsq).
+    exact (sumbool_is_false (Hp (eps q)) Hqepsq).
 Qed.
 
-
-(* FIXME: Duplicate, remove *)
 Lemma exists_iff_search {X : Type} (eps : (X -> B) -> X) (Heps : is_selection_function eps) : 
-  forall (q : X -> B), (exists x, q x = false) <-> q (eps q) = false.
+  forall (q : X -> B), (exists x, q x = false) -> q (eps q) = false.
 Proof.
   unfold is_selection_function in Heps.
-  intro q.
+  intros q [x Hqx]. 
   specialize (Heps q).
-  split. 
-  - intros [x Hqx]. 
-    apply not_true_implies_false.
-    intro Hf.
-    specialize (Heps Hf x).
-    exact (eq_true_false_abs (q x) Heps Hqx).
-  - intros Hq. 
-    exists (eps q). 
-    exact Hq.
+  apply not_true_iff_false; intro Hepst.
+  specialize (Heps Hepst x).
+  revert Heps; apply not_true_iff_false. exact Hqx.
 Qed.
 
 
 
 Definition is_full {X : Type} (e : X -> Prop) := forall x, ~ (~ e x).
 
-Definition is_full' {X : Type} (e : X -> Prop) := 
+(* Alternative definition from Escardo; equivalent to above. *)
+Local Definition is_full' {X : Type} (e : X -> Prop) := 
   forall x : X, ~ (forall y, (e y -> x <> y)).
 
-Lemma full_eqv : forall {X} (e : X -> Prop), is_full e <-> is_full' e.
+Local Lemma is_full_eqv : forall {X} (e : X -> Prop), is_full e <-> is_full' e.
 Proof. intros X e; unfold is_full, is_full'; split. 
   - intros He x Hny. specialize (Hny x). specialize (He x). apply He.
     intro Hex. apply (Hny Hex). reflexivity.
@@ -185,15 +175,16 @@ Proof. intros X e; unfold is_full, is_full'; split.
     apply He; intros y Hey Hne. apply Hnex; rewrite Hne; exact Hey.
 Qed.
 
+
 (* Lemma 3.4 *)
 Lemma is_full_extended_nat : 
-  is_full ( fun (u : ExtendedNat) => (exists n, u = fin n) \/ u = inf ).
+  is_full ( fun (u : Ninf) => (exists n, u = fin n) \/ u = inf ).
 Proof.
   unfold is_full.
   intros x Hy.
   apply (Decidable.not_or) in Hy.
   apply (proj2 Hy).
-  apply not_finite_implies_inf.
+  apply Ninf_not_finite_implies_infinite.
   intros k Hk.
   apply (proj1 Hy).
   exists k.
@@ -208,7 +199,7 @@ Proof.
 Qed.
 
 (* Lemma 3.5 *)
-Lemma full_dense_constant {X : Type} : forall (e : X -> Prop), is_full e ->
+Lemma full_dense_constant_bool {X : Type} : forall (e : X -> Prop), is_full e ->
   forall p : X -> B, forall b : B, (forall x, e x -> p x = b) -> (forall x, p x = b).
 Proof.
   unfold is_full.
@@ -232,7 +223,7 @@ Qed.
 
 
 
-Definition eps : (ExtendedNat->B) -> ExtendedNat :=
+Definition eps : (Ninf->B) -> Ninf :=
   fun p => Ninf_retr (fun (n : N) => p n).
 
 
@@ -265,7 +256,7 @@ Lemma p_eps_p_true : forall (p : Ninf -> B),
   p (eps p) = true -> eps p = inf.
 Proof.
   intros p Hp. 
-  apply (not_finite_implies_inf (eps p)).
+  apply (Ninf_not_finite_implies_infinite (eps p)).
   intros n Hpn.
   rewrite -> Hpn in Hp.
   pose proof (proj1 (proj1 (eps_is_finite p n) Hpn)) as Hpf.
@@ -290,7 +281,7 @@ Proof.
   pose proof (proj1 Hf Hepspinf) as Hpfin.
   set (e := fun u => (exists n, u = fin n) \/ (u = inf)).
   pose proof (is_full_extended_nat) as He.
-  pose proof (@full_dense_constant ExtendedNat e He p true) as Hfull.
+  pose proof (@full_dense_constant_bool Ninf e He p true) as Hfull.
   apply Hfull.
   clear He Hfull.
   intros u Heu.
@@ -315,7 +306,8 @@ Proof.
 Qed.
 
 
-Lemma lpo_ninf_restr_nat : forall p : Ninf -> B, 
+(* Theorem 8.1 from "Omniscient sets in constructive mathematics". *)
+Theorem lpo_ninf_restr_nat : forall p : Ninf -> B, 
   {x : Ninf | x <> inf /\ p x = false} + {forall n : N, p (fin n) = true}.
 Proof.
   intro p.
@@ -341,6 +333,38 @@ Proof.
        --- assumption.
 Qed.
 
+(* Theorem 8.1 from "Omniscient sets in constructive mathematics". *)
+Lemma lpo_ninf_restr_nat_dec : 
+  forall p : Ninf -> Prop, (forall u, {p u} + {~ p u}) ->
+    {x : Ninf | x <> inf /\ ~ p x} + {forall n : N, p (fin n)}.
+Proof.
+  intros p Hpdec.
+  set (q := fun y => (p y) <-> (p (Ninf_succ y))).
+  assert (forall y : Ninf, {q y} + {~ q y}) as Hqdec. {
+    intro y. unfold q. destruct (Hpdec y); destruct (Hpdec (Ninf_succ y)). 
+    1,4: left; tauto. all: right; tauto. }
+  pose proof (extended_nat_lpo_set q Hqdec) as Hq.
+  destruct Hq as [Hqf|Hqt].
+  - left. destruct Hqf as [y Hqyf]. unfold q in Hqyf.
+    destruct (Hpdec y).
+    -- exists (Ninf_succ y). split.
+       --- intro HSyt. pose proof (proj2 (Ninf_succ_true y) HSyt) as Hyt. rewrite -> HSyt, <- Hyt in Hqyf.
+           tauto.
+       --- destruct (Hpdec (Ninf_succ y)). tauto. assumption. 
+    -- exists y. split.
+       --- intro Hyt. apply (Ninf_succ_fix y) in Hyt. rewrite -> Hyt in Hqyf. tauto. 
+       --- assumption.
+  - destruct (Hpdec (fin 0)) as [Hp0|Hnp0].
+    -- right. induction n. 
+       --- exact Hp0. 
+       --- specialize (Hqt (fin n)). unfold q in Hqt. 
+           rewrite <- Ninf_succ_fin. apply Hqt. exact IHn.
+    -- left. exists (fin 0). split.
+       --- now apply Ninf_finite_not_inf.
+       --- assumption.
+Qed.
+
+
 (* Theorem 8.2 from "Omniscient sets in constructive mathematics". *)
 Lemma wlpo_ninf_restr_nat : forall p : Ninf -> B, 
   {forall n : N, p (fin n) = true} + {~ forall n : N, p (fin n) = true}.
@@ -348,30 +372,27 @@ Proof.
   intro p. destruct (lpo_ninf_restr_nat p) as [H|H].
   - right. 
     destruct H as [u [Hufin Hpuf]].
-    intro Hp.
-    apply Hufin.
-    apply (not_finite_implies_inf u).
-    intros k Hsk.
-    specialize (Hp k).
+    intro Hp; apply Hufin; apply Ninf_not_finite_implies_infinite.
+    intros k Hsk; specialize (Hp k).
     rewrite <- Hsk in Hp.
     now apply (eq_true_false_abs (p u)).
   - left; exact H.
 Qed.
 
 (* Theorem 8.2 from "Omniscient sets in constructive mathematics". *)
-Lemma wlpo_ninf_restr_nat_dec : forall p : Ninf -> Prop,
-  (forall u, {p u} + {~ p u}) ->   
+Lemma wlpo_ninf_restr_nat_dec : 
+  forall p : Ninf -> Prop, (forall u, {p u} + {~ p u}) ->   
     {forall n : N, p (fin n)} + {~ forall n : N, p (fin n)}.
 Proof.
   intros p Hpdec.
-  set (q := fun u => boolean_proposition (Hpdec u)).
-  pose proof (wlpo_ninf_restr_nat q) as Hq.
-  unfold q in Hq. destruct Hq as [Hq|Hq].
-  - left. intro n; specialize (Hq n).
-    now apply (sumbool_true (Hpdec n)) in Hq.
-  - right. intro Hp; apply Hq; clear Hq.
-    intro n; specialize (Hp n).
-    now apply (sumbool_is_true (Hpdec n)).
+  destruct (lpo_ninf_restr_nat_dec p Hpdec) as [H|H].
+  - right.
+    destruct H as [u [Hufin Hpuf]].
+    intro Hp; apply Hufin; apply Ninf_not_finite_implies_infinite.
+    intros k Hsk; specialize (Hp k).
+    rewrite <- Hsk in Hp.
+    exact (Hpuf Hp).
+  - left; exact H.
 Qed.
     
 (* Theorem 9.4 from "Omniscient sets in constructive mathematics". *)
