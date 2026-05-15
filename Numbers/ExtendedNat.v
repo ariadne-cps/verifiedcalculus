@@ -35,7 +35,7 @@ From Stdlib Require Import Logic.ProofIrrelevance.
 
 From Stdlib Require Import Bool.
 From Stdlib Require Import PeanoNat.
-
+ 
 Notation zero := PeanoNat.Nat.zero.
 Notation succ := PeanoNat.Nat.succ.
 Notation B := bool.
@@ -44,7 +44,6 @@ Notation N := nat.
 
 Definition Cantor := N -> B.
 Definition Baire := N -> N.
-
 
 Module Nat.
 Lemma le_succ_le_l : forall n m : N, S n <= m -> n <= m.
@@ -202,18 +201,24 @@ Coercion Ninf_finite : N >-> ExtendedNat.
 Notation fin := Ninf_finite.
 Notation inf := Ninf_infinite.
 
-Lemma Ninf_finite_lt : forall n k, k < n -> Ninf_finite n k = true.
+Lemma Ninf_finite_at_lt : forall n k, k < n -> Ninf_finite n k = true.
 Proof. intros n k Hkltn. unfold Ninf_finite. now apply Nat.ltb_lt. Qed.
 
-Lemma Ninf_finite_ge : forall n k, n <= k -> Ninf_finite n k = false.
+Lemma Ninf_finite_at_ge : forall n k, n <= k -> Ninf_finite n k = false.
 Proof. intros n k Hnlek. unfold Ninf_finite. now apply Nat.nltb_ge. Qed.
 
-Lemma Ninf_finite_eq : forall u n, 
+Lemma Ninf_finite_le_iff : forall m n, (Ninf_finite m) n = false <-> m <= n.
+Proof. intros m n; unfold Ninf_finite; simpl. now rewrite -> Nat.ltb_ge. Qed.
+Lemma Ninf_finite_gt_iff : forall m n, (Ninf_finite m) n = true <-> n < m.
+Proof. intros m n; unfold Ninf_finite; simpl. now rewrite -> Nat.ltb_lt. Qed.
+
+
+Lemma Ninf_finite_eq_iff : forall u n, 
   u = Ninf_finite n <-> (forall k, k < n -> u k = true) /\ (forall k, n <= k -> u k = false).
 Proof.
   intros u n. unfold Ninf_finite. split.
   - intro H. rewrite -> H. clear H.
-    split. exact (Ninf_finite_lt n). exact (Ninf_finite_ge n).
+    split. exact (Ninf_finite_at_lt n). exact (Ninf_finite_at_ge n).
   - intros [Hf Ht].
     apply Ninf_extensionality. intro k. apply eq_sym. simpl.
     destruct (Nat.lt_ge_cases k n) as [Hkltn|Hnlek]. 
@@ -236,7 +241,7 @@ Qed.
 Lemma Ninf_finite_eq_zero : forall (u : Ninf), 
   u 0 = false -> u = Ninf_finite 0.
 Proof.
-  intros u Hu0. apply Ninf_finite_eq. split.
+  intros u Hu0. apply Ninf_finite_eq_iff. split.
   - intros k Hklt0. contradiction (Nat.nlt_0_r _ Hklt0).
   - exact (Ninf_after u 0 Hu0).
 Qed.
@@ -244,7 +249,7 @@ Qed.
 Lemma Ninf_finite_eq_succ : forall (u : Ninf) (n : N), 
   u n = true -> u (S n) = false -> u = Ninf_finite (S n).
 Proof.
-  intros u n Hun HuSn. apply Ninf_finite_eq. split.
+  intros u n Hun HuSn. apply Ninf_finite_eq_iff. split.
   - intros k HkltSn. apply (Nat.lt_succ_r k n) in HkltSn. 
     exact (Ninf_before u n Hun k HkltSn).
   - intros k HSnlek. exact (Ninf_after u (S n) HuSn k HSnlek).
@@ -258,11 +263,11 @@ Proof.
   remember (u m) as um; apply eq_sym in Hequm. destruct um.
   - right. intro Hum. rewrite -> Hum in Hequm. simpl in Hequm. rewrite -> Nat.ltb_irrefl in Hequm. discriminate.
   - destruct m. 
-    -- left. apply Ninf_finite_eq. split. 
+    -- left. apply Ninf_finite_eq_iff. split. 
        intros k Hk. now apply Nat.nlt_0_r in Hk. 
        intro k. apply next_after_iff_all_after. exact (proper u). exact Hequm.
     -- rename Hequm into HequSm. remember (u m) as um; apply eq_sym in Hequm. destruct um.
-       --- left. apply Ninf_finite_eq. split. 
+       --- left. apply Ninf_finite_eq_iff. split. 
            intros k Hk. apply (Nat.lt_succ_r k m) in Hk. revert Hk. 
            apply all_after_iff_all_before. apply next_after_iff_all_after. exact (proper u). exact Hequm.
            apply next_after_iff_all_after. exact (proper u). exact HequSm.
@@ -627,7 +632,7 @@ Proof.
   now replace (Ninf_max u v) with v in Hm by exact (eq_sym (proj1 (Ninf_max_r u v) Hulev)). 
 Qed.
 
-
+Close Scope Ninf_scope.
 
 
 

@@ -38,6 +38,8 @@ Notation Bfalse := false.
 
 Notation succ := S.
 
+Open Scope nat_scope.
+
 Inductive BasicSierpinskian := | tru | indt.
 Notation SB := BasicSierpinskian.
 
@@ -531,7 +533,6 @@ Proof.
 Qed.
 
 
-
 From Stdlib Require Import Bool.
 Require Numbers.ExtendedNat.
 Require Omniscience.
@@ -650,3 +651,6 @@ Proof.
     -- apply eqv_sym. now apply sier_to_ninf_to_sier_respectful.
   - apply ninf_finite_to_sier.
 Qed.
+
+
+Close Scope nat_scope.

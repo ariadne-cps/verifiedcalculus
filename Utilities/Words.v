@@ -100,10 +100,8 @@ Qed.
 Definition cast {A B : Type} (p : A = B) (a : A) : B :=
   match p in _ = E return E with | eq_refl => a end.
 
-
-
 Definition Wrd (n : nat) (X : Type) := (Ordinal n) -> X.
-Definition Wrds (X : Type) := forall n, Wrd n X.
+Definition Wrds (X : Type) := { n : nat & Wrd n X }.
 
 Definition null_wrd {X : Type} : Wrd 0 X :=
   fun k => match PeanoNat.Nat.nlt_0_r k.(val 0) k.(val_lt 0) with end.
@@ -462,37 +460,38 @@ Proof.
 Qed.
 
 
-Definition splice {X} {n} (xw : Wrd (S n) X) (xe : Seq X) : Seq X :=
-  fun k => match Compare_dec.le_lt_dec (S n) k with | left _ => xe (k-n) | right p => xw (ord k p) end.
 
-Lemma splice_word_element : forall {X} {n} (xw : Wrd (S n) X) (xe : Seq X) (k:nat) (p:k<S n), 
+Definition splice {X} {n} (xw : Wrd n X) (xe : Seq X) : Seq X :=
+  fun k => match Compare_dec.le_lt_dec n k with | left _ => xe (k-n) | right p => xw (ord k p) end.
+
+Lemma splice_word_element : forall {X} {n} {xw : Wrd n X} {xe : Seq X} {k:nat} (p:k<n), 
   (splice xw xe) k = xw (ord k p).
 Proof.
   intros X n xw xe k p. unfold splice.
-  destruct (Compare_dec.le_lt_dec (S n) k).
+  destruct (Compare_dec.le_lt_dec n k).
   - set (Hfalse := Nat.lt_irrefl _ (Nat.lt_le_trans _ _ _ p l)).
     contradiction.
   - f_equal. apply ord_eq. reflexivity.
 Qed.
 
-Lemma splice_sequence_element : forall {X} {n} (xw : Wrd (S n) X) (xe : Seq X) (k:nat) (p:k>=S n), 
+Lemma splice_sequence_element : forall {X} {n} {xw : Wrd n X} {xe : Seq X} {k:nat} (p:k>=n), 
   (splice xw xe) k = xe (k-n).
 Proof.
   intros X n xw xe k p. unfold splice.
-  destruct (Compare_dec.le_lt_dec (S n) k).
+  destruct (Compare_dec.le_lt_dec n k).
   - reflexivity.
   - unfold ge in p. 
     set (Hfalse := Nat.lt_irrefl _ (Nat.lt_le_trans _ _ _ l p)).
     contradiction.
 Qed.
 
-Lemma splice_word : forall {X} {n} (xw : Wrd (S n) X) (xe : Seq X), 
-  proj (S n) (splice xw xe) = xw.
+Lemma splice_word : forall {X} {n} (xw : Wrd n X) (xe : Seq X), 
+  proj n (splice xw xe) = xw.
 Proof.
   intros X n xw xe.
   unfold splice, proj.
   apply functional_extensionality. intro kp.
-  destruct (Compare_dec.le_lt_dec (S n) (val (S n) kp)).
+  destruct (Compare_dec.le_lt_dec n (val n kp)).
   - destruct kp as [k p]. unfold val in l. 
     set (Hfalse := Nat.lt_irrefl _ (Nat.lt_le_trans _ _ _ p l)).
     contradiction.
@@ -504,23 +503,15 @@ Proof.
 Qed.
 
 
-Lemma splice_sequence : forall {X} {n} (xw : Wrd (S n) X) (xe : Seq X), 
-  xw (ord n (Nat.lt_succ_diag_r n)) = (xe 0) -> 
-    (fun k => (splice xw xe) (n+k)) = xe.
+Lemma splice_sequence : forall {X} {n} (xw : Wrd n X) (xe : Seq X), 
+  (fun k : nat => (splice xw xe) (n+k)) = xe.
 Proof.
-  intros X n xw xe Hxn.
-  unfold splice, proj.
+  intros X n xw xe.
   apply functional_extensionality. intro k.
-  destruct (Compare_dec.le_lt_dec (S n) (n+k)).
-  - rewrite -> Nat.add_comm.
-    rewrite -> Nat.add_sub.
-    reflexivity.
-  - destruct k.
-    rewrite <- Hxn. f_equal. apply ord_eq. exact (Nat.add_0_r n).
-    assert (S n + k < S n + 0) as Hf. { rewrite -> Nat.add_succ_comm. rewrite -> Nat.add_0_r. exact l. }
-    apply Nat.add_lt_mono_l in Hf.
-    apply Nat.nlt_0_r in Hf.
-    contradiction.
+  rewrite -> splice_sequence_element.  
+  f_equal; auto. 
+  rewrite -> Nat.add_comm. now apply Nat.add_sub.
+  now apply Nat.le_add_r.
 Qed.
 
 
