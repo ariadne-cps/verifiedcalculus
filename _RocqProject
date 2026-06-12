@@ -66,3 +66,5 @@ Systems/Causality.v
 Systems/BehaviourComposition.v
 Systems/SystemComposition.v
 Systems/ComposeBehaviours.v
+
+Examples/NumbersAndFunctions.v
