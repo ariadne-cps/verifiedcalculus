@@ -33,18 +33,18 @@ From Stdlib Require Import Lra.
 
 Require Export IntAddenda.
 
+Module Q2.
 
 (* A Dyadic number of the form p / 2^q  *)
-Record Q2 : Set := Q2make {Q2man : Z; Q2exp : N}.
-Notation Dyadic := Q2.
+Record Dyadic : Set := make {man : Z; exp : N}.
 
 Declare Scope Q2_scope.
 Delimit Scope Q2_scope with Q2.
-Bind Scope Q2_scope with Q2.
-Arguments Q2make _%_Z _%_N.
+Bind Scope Q2_scope with Dyadic.
+Arguments make _%_Z _%_N.
 
-Register Q2 as rat.Q2.type.
-Register Q2make as rat.Q2.Q2make.
+Register Dyadic as rat.Q2.type.
+Register make as rat.Q2.make.
 
 Open Scope Q2_scope.
 Ltac simpl_mult := rewrite ?Pos2Z.inj_mul.
@@ -52,99 +52,99 @@ Ltac simpl_mult := rewrite ?Pos2Z.inj_mul.
 Open Scope N_scope.
 Open Scope Z_scope.
 
-Definition Q2mantissa (x : Q2) : Z :=
-  match x with (Q2make p _) => p end.
-Definition Q2exponent (x : Q2) : N :=
-  match x with (Q2make _ q) => q end.
+Definition mantissa (x : Dyadic) : Z :=
+  match x with (make p _) => p end.
+Definition exponent (x : Dyadic) : N :=
+  match x with (make _ q) => q end.
 
 Coercion BinNat.N.of_nat : nat >-> N.
 
-Definition Q2of_nat (n : nat) :=
-  Q2make (Z.of_nat n) (0:nat).
+Definition of_nat (n : nat) :=
+  make (Z.of_nat n) (0:nat).
 
-Coercion Q2of_nat : nat >-> Q2.
+Coercion of_nat : nat >-> Dyadic.
 
-Definition ZinjQ2 (n : Z) : Q2 :=
-  Q2make n (0%nat).
+Definition ZinjQ2 (n : Z) : Dyadic :=
+  make n (0%nat).
 
-Definition Q2injQ (x : Q2) : Q :=
-  (Q2mantissa x) # (Pos.shiftl (1 : positive) (Q2exponent x)).
+Definition injQ (x : Dyadic) : Q :=
+  (mantissa x) # (Pos.shiftl (1 : positive) (exponent x)).
 (*
-Definition seven_fourths := Q2injQ (Q2make 14 (3:nat)).
+Definition seven_fourths := injQ (make 14 (3:nat)).
 Compute seven_fourths.
 *)
-
-Definition Q2compare (x1 : Q2) (x2 : Q2) : comparison :=
-  let p1 := Q2mantissa x1 in let p2 := Q2mantissa x2 in
-  let n1 := Q2exponent x1 in let n2 := Q2exponent x2 in
+  
+Definition compare (x1 : Dyadic) (x2 : Dyadic) : comparison :=
+  let p1 := mantissa x1 in let p2 := mantissa x2 in
+  let n1 := exponent x1 in let n2 := exponent x2 in
   let m1:= Z.pow2 n1 in let m2:=Z.pow2 n2 in
     (Z.mul p1 m2) ?= (Z.mul p2 m1).
 
-Definition Q2eqb (x1 : Q2) (x2 : Q2) : bool :=
-  let p1 := Q2mantissa x1 in let p2 := Q2mantissa x2 in
-  let n1 := Q2exponent x1 in let n2 := Q2exponent x2 in
+Definition eqb (x1 : Dyadic) (x2 : Dyadic) : bool :=
+  let p1 := mantissa x1 in let p2 := mantissa x2 in
+  let n1 := exponent x1 in let n2 := exponent x2 in
   let m1:=Z.pow2 n1 in let m2:=Z.pow2 n2 in
     (p1 * m2) =? (p2 * m1).
 
-Definition Q2ltb (x1 : Q2) (x2 : Q2) : bool :=
-  let p1 := Q2mantissa x1 in let p2 := Q2mantissa x2 in
-  let n1 := Q2exponent x1 in let n2 := Q2exponent x2 in
+Definition ltb (x1 : Dyadic) (x2 : Dyadic) : bool :=
+  let p1 := mantissa x1 in let p2 := mantissa x2 in
+  let n1 := exponent x1 in let n2 := exponent x2 in
   let m1:=Z.pow2 n1 in let m2:=Z.pow2 n2 in
     (p1 * m2) <? (p2 * m1).
 
-Definition Q2leb (x1 : Q2) (x2 : Q2) : bool :=
-  let p1 := Q2mantissa x1 in let p2 := Q2mantissa x2 in
-  let n1 := Q2exponent x1 in let n2 := Q2exponent x2 in
+Definition leb (x1 : Dyadic) (x2 : Dyadic) : bool :=
+  let p1 := mantissa x1 in let p2 := mantissa x2 in
+  let n1 := exponent x1 in let n2 := exponent x2 in
   let m1:=Z.pow2 n1 in let m2:=Z.pow2 n2 in
     (p1 * m2) <=? (p2 * m1).
 
-Definition Q2eq (x1 : Q2) (x2 : Q2) : Prop :=
-  Q2eqb x1 x2 = true.
+Definition eq (x1 : Dyadic) (x2 : Dyadic) : Prop :=
+  eqb x1 x2 = true.
 
-Definition Q2le (x1 : Q2) (x2 : Q2) : Prop :=
-  Q2leb x1 x2 = true.
+Definition le (x1 : Dyadic) (x2 : Dyadic) : Prop :=
+  leb x1 x2 = true.
 
-Definition Q2lt (x1 : Q2) (x2 : Q2) : Prop :=
-  Q2ltb x1 x2 = true.
+Definition lt (x1 : Dyadic) (x2 : Dyadic) : Prop :=
+  ltb x1 x2 = true.
 
-Definition Q2neg (x : Q2) : Q2 :=
-  Q2make (- Q2mantissa x) (Q2exponent x).
+Definition neg (x : Dyadic) : Dyadic :=
+  make (- mantissa x) (exponent x).
 
-Definition Q2abs (x : Q2) : Q2 :=
-  Q2make ( Z.abs (Q2mantissa x) ) (Q2exponent x).
+Definition abs (x : Dyadic) : Dyadic :=
+  make ( Z.abs (mantissa x) ) (exponent x).
 
-Definition Q2max (x1 : Q2) (x2 : Q2) : (Q2) :=
-  (GenericMinMax.gmax Q2compare) x1 x2.
+Definition max (x1 : Dyadic) (x2 : Dyadic) : Dyadic :=
+  (GenericMinMax.gmax compare) x1 x2.
 
-Definition Q2min (x1 : Q2) (x2 : Q2) : (Q2) :=
-  if Q2leb x1 x2 then x1 else x2.
+Definition min (x1 : Dyadic) (x2 : Dyadic) : Dyadic :=
+  if leb x1 x2 then x1 else x2.
 
 (* If q1>q2, then p1 / 2^q1 + p2 / 2^q2 = (p1 + p2 * 2^(q1-q2)) / 2^q1 *)
-Definition Q2add (x1 : Q2) (x2 : Q2) : Q2 :=
-  let p1 := Q2mantissa x1 in let p2 := Q2mantissa x2 in
-  let n1 := Q2exponent x1 in let n2 := Q2exponent x2 in
+Definition add (x1 : Dyadic) (x2 : Dyadic) : Dyadic :=
+  let p1 := mantissa x1 in let p2 := mantissa x2 in
+  let n1 := exponent x1 in let n2 := exponent x2 in
   if (n1 <=? n2)%N 
-    then Q2make (p1 * Z.pow2 (n2-n1)%N + p2) (n2)
-    else Q2make (p1 + p2 * Z.pow2 (n1-n2)%N) (n1).
+    then make (p1 * Z.pow2 (n2-n1)%N + p2) (n2)
+    else make (p1 + p2 * Z.pow2 (n1-n2)%N) (n1).
 
-Definition Q2sub (x1 : Q2) (x2 : Q2) : Q2 :=
-  let p1 := Q2mantissa x1 in let p2 := Q2mantissa x2 in
-  let n1 := Q2exponent x1 in let n2 := Q2exponent x2 in
+Definition sub (x1 : Dyadic) (x2 : Dyadic) : Dyadic :=
+  let p1 := mantissa x1 in let p2 := mantissa x2 in
+  let n1 := exponent x1 in let n2 := exponent x2 in
   if (n1 <=? n2)%N 
-    then Q2make (p1 * Z.pow2 (n2-n1)%N - p2) (n2)
-    else Q2make (p1 - p2 * Z.pow2 (n1-n2)%N) (n1).
+    then make (p1 * Z.pow2 (n2-n1)%N - p2) (n2)
+    else make (p1 - p2 * Z.pow2 (n1-n2)%N) (n1).
 
-Definition Q2mul (x1 : Q2) (x2 : Q2) : Q2 :=
-  let p1 := Q2mantissa x1 in let p2 := Q2mantissa x2 in
-  let n1 := Q2exponent x1 in let n2 := Q2exponent x2 in
-    Q2make (p1*p2) (n1+n2)%N.
+Definition mul (x1 : Dyadic) (x2 : Dyadic) : Dyadic :=
+  let p1 := mantissa x1 in let p2 := mantissa x2 in
+  let n1 := exponent x1 in let n2 := exponent x2 in
+    make (p1*p2) (n1+n2)%N.
 
-Definition Q2hlf (x : Q2) : Q2 :=
-  let p := Q2mantissa x in let n := Q2exponent x in 
-    Q2make p  (N.succ n).
+Definition hlf (x : Dyadic) : Dyadic :=
+  let p := mantissa x in let n := exponent x in 
+    make p  (N.succ n).
 
-Definition Q2toQ (x : Dyadic) : Q :=
-  Qdiv (inject_Z (Q2mantissa x)) (inject_Z (Z.pow2 (Q2exponent x))).
+Definition toQ (x : Dyadic) : Q :=
+  Qdiv (inject_Z (mantissa x)) (inject_Z (Z.pow2 (exponent x))).
 
 Close Scope Z_scope.
 
@@ -153,10 +153,10 @@ Close Scope Z_scope.
 Open Scope Q_scope.
 
 Lemma ZinjQ2injQ_correct : forall (n : Z),
-  Q2injQ (ZinjQ2 n) = inject_Z n.
+  injQ (ZinjQ2 n) = inject_Z n.
 Proof.
   intros n.
-  unfold Q2injQ, ZinjQ2, inject_Z.
+  unfold injQ, ZinjQ2, inject_Z.
   simpl. reflexivity.
 Qed.
 
@@ -171,10 +171,10 @@ Proof.
 Qed.
 
 Lemma ZinjQ2toQ_correct : forall (n : Z),
-  Q2toQ (ZinjQ2 n) == inject_Z n.
+  toQ (ZinjQ2 n) == inject_Z n.
 Proof.
   intros n.
-  unfold Q2toQ, ZinjQ2, inject_Z; simpl.
+  unfold toQ, ZinjQ2, inject_Z; simpl.
   assert (Z.pow2 N0 = 1%Z) as H. { now unfold Z.pow2. }
   rewrite H.
   now rewrite Qdiv_1.
@@ -192,10 +192,10 @@ Proof.
   - reflexivity.
 Qed.
 
-Lemma Q2injQ_inj : forall (w1 w2 : Q2),
-  Qeq (Q2injQ w1) (Q2injQ w2) -> Q2eq w1 w2.
+Lemma injQ_inj : forall (w1 w2 : Dyadic),
+  Qeq (injQ w1) (injQ w2) -> eq w1 w2.
 Proof.
-  unfold Q2injQ, Qeq, Q2eq, Q2eqb; simpl.
+  unfold injQ, Qeq, eq, eqb; simpl.
   intros w1 w2 HQ.
   repeat rewrite <- Pos_pow2_N_shiftl_1, -> Zpos_pow2 in HQ; simpl.
   rewrite -> HQ.  
@@ -203,94 +203,94 @@ Proof.
 Qed.
 
 
-Lemma Q2ltb_compare : forall x1 x2 : Q2, 
-  Q2ltb x1 x2 = true <-> Q2compare x1 x2 = Lt.
+Lemma ltb_compare : forall x1 x2 : Dyadic, 
+  ltb x1 x2 = true <-> compare x1 x2 = Lt.
 Proof.
-  intros x1 x2. unfold Q2compare, Q2ltb. 
+  intros x1 x2. unfold compare, ltb. 
   unfold Z.ltb.
-  remember (Q2mantissa x1 * Z.pow2 (Q2exponent x2) ?= Q2mantissa x2 * Z.pow2 (Q2exponent x1))%Z as cmp.
+  remember (mantissa x1 * Z.pow2 (exponent x2) ?= mantissa x2 * Z.pow2 (exponent x1))%Z as cmp.
   split.
   - intro H. destruct cmp. discriminate H. reflexivity. discriminate H.
   - intro H. now rewrite -> H.
 Qed.
 
-Lemma Q2leb_compare : forall x1 x2 : Q2, 
-  Q2leb x1 x2 = true <-> Q2compare x1 x2 <> Gt.
+Lemma leb_compare : forall x1 x2 : Dyadic, 
+  leb x1 x2 = true <-> compare x1 x2 <> Gt.
 Proof.
-  intros x1 x2. unfold Q2compare, Q2leb. 
+  intros x1 x2. unfold compare, leb. 
   unfold Z.leb.
-  remember (Q2mantissa x1 * Z.pow2 (Q2exponent x2) ?= Q2mantissa x2 * Z.pow2 (Q2exponent x1))%Z as cmp.
+  remember (mantissa x1 * Z.pow2 (exponent x2) ?= mantissa x2 * Z.pow2 (exponent x1))%Z as cmp.
   split.
   - intro H. destruct cmp. discriminate. discriminate. discriminate H.
   - intro H. destruct cmp. reflexivity. reflexivity. contradiction.
 Qed.
  
 
-Lemma Q2compare_correct : forall (w1 w2 : Q2),
-  Q2compare w1 w2 = Qcompare (Q2injQ w1) (Q2injQ w2).
+Lemma compare_correct : forall (w1 w2 : Dyadic),
+  compare w1 w2 = Qcompare (injQ w1) (injQ w2).
 Proof.
   intros w1 w2.
-  unfold Q2compare, Qcompare, Q2injQ.
+  unfold compare, Qcompare, injQ.
   destruct w1 as [p1 n1]; destruct w2 as [p2 n2].
   simpl.
   now rewrite <- (Zpow2_shiftl n1), <- (Zpow2_shiftl n2).
 Qed.
 
-Lemma Q2eqb_correct : forall (w1 w2 : Q2),
-  Q2eqb w1 w2 = Qeq_bool (Q2injQ w1) (Q2injQ w2).
+Lemma eqb_correct : forall (w1 w2 : Dyadic),
+  eqb w1 w2 = Qeq_bool (injQ w1) (injQ w2).
 Proof.
   intros w1 w2.
-  unfold Q2eqb, Qeq_bool, Q2injQ.
+  unfold eqb, Qeq_bool, injQ.
   destruct w1 as [p1 n1]; destruct w2 as [p2 n2].
   simpl.
   now rewrite <- (Zpow2_shiftl n1), <- (Zpow2_shiftl n2).
 Qed.
 
-Lemma Q2leb_correct : forall (w1 w2 : Q2),
-  Q2leb w1 w2 = Qle_bool (Q2injQ w1) (Q2injQ w2).
+Lemma leb_correct : forall (w1 w2 : Dyadic),
+  leb w1 w2 = Qle_bool (injQ w1) (injQ w2).
 Proof.
   intros w1 w2.
-  unfold Q2leb, Qle_bool, Q2injQ.
+  unfold leb, Qle_bool, injQ.
   destruct w1 as [p1 n1]; destruct w2 as [p2 n2].
   simpl.
   now rewrite <- (Zpow2_shiftl n1), <- (Zpow2_shiftl n2).
 Qed.
 
-Lemma Q2neg_correct : forall (w : Q2), Q2injQ (Q2neg w) == Qopp (Q2injQ w).
+Lemma neg_correct : forall (w : Dyadic), injQ (neg w) == Qopp (injQ w).
 Proof.
-  intros w; unfold Q2neg, Qopp, Q2injQ; simpl. reflexivity.
+  intros w; unfold neg, Qopp, injQ; simpl. reflexivity.
 Qed.
 
-Lemma Q2abs_correct : forall (w : Q2), Q2injQ (Q2abs w) == Qabs (Q2injQ w).
+Lemma abs_correct : forall (w : Dyadic), injQ (abs w) == Qabs (injQ w).
 Proof.
-  intros w; unfold Q2abs, Qabs, Q2injQ; simpl. reflexivity.
+  intros w; unfold abs, Qabs, injQ; simpl. reflexivity.
 Qed.
 
-Lemma Q2max_correct : forall (w1 w2 : Q2), Q2injQ (Q2max w1 w2) == Qmax (Q2injQ w1) (Q2injQ w2).
+Lemma max_correct : forall (w1 w2 : Dyadic), injQ (max w1 w2) == Qmax (injQ w1) (injQ w2).
 Proof.
   intros w1 w2.
-  unfold Q2max, Qmax, GenericMinMax.gmax.
-  rewrite -> Q2compare_correct; simpl.
-  destruct (Qcompare (Q2injQ w1) (Q2injQ w2)).
+  unfold max, Qmax, GenericMinMax.gmax.
+  rewrite -> compare_correct; simpl.
+  destruct (Qcompare (injQ w1) (injQ w2)).
   all: reflexivity.
 Qed.
 
-Lemma Q2min_correct : forall (w1 w2 : Q2), Q2injQ (Q2min w1 w2) == Qmin (Q2injQ w1) (Q2injQ w2).
+Lemma min_correct : forall (w1 w2 : Dyadic), injQ (min w1 w2) == Qmin (injQ w1) (injQ w2).
 Proof.
   assert (forall p : Prop, false = true -> p) as exfalse. {
     intros p Hc; discriminate Hc. }
   intros w1 w2.
-  unfold Q2min, Qmin, GenericMinMax.gmin; simpl.
-  rewrite <- Q2compare_correct.
-  remember (Q2leb w1 w2) as b.
-  pose proof (Q2leb_compare w1 w2) as H.  
+  unfold min, Qmin, GenericMinMax.gmin; simpl.
+  rewrite <- compare_correct.
+  remember (leb w1 w2) as b.
+  pose proof (leb_compare w1 w2) as H.  
   rewrite <- Heqb in H.
   destruct H as [Ht Hf].
   destruct b.
-  - assert (Q2compare w1 w2 <> Gt) as HnGt by now apply Ht. 
-    destruct (Q2compare w1 w2).
+  - assert (compare w1 w2 <> Gt) as HnGt by now apply Ht. 
+    destruct (compare w1 w2).
     reflexivity. reflexivity. contradiction.
-  - destruct (Q2compare w1 w2).
+  - destruct (compare w1 w2).
     apply exfalse; apply Hf; discriminate.        
     apply exfalse; apply Hf; discriminate.        
     reflexivity.
@@ -298,11 +298,11 @@ Qed.
 
 
 
-Lemma Q2add_correct : forall (w1 w2 : Dyadic),
-  Q2injQ (Q2add w1 w2) == Qplus (Q2injQ w1) (Q2injQ w2).
+Lemma add_correct : forall (w1 w2 : Dyadic),
+  injQ (add w1 w2) == Qplus (injQ w1) (injQ w2).
 Proof.
   intros w1 w2.
-  unfold Q2add, Qplus, Q2injQ; simpl.
+  unfold add, Qplus, injQ; simpl.
   destruct w1 as [p1 n1]; destruct w2 as [p2 n2]; simpl.
   rewrite <- (Zpow2_shiftl n1), <- (Zpow2_shiftl n2).
   unfold Qeq; simpl.
@@ -335,11 +335,11 @@ Proof.
     now rewrite -> Hn1.
 Qed.
 
-Lemma Q2mul_correct : forall (w1 w2 : Q2),
-  Q2injQ (Q2mul w1 w2) == Qmult (Q2injQ w1) (Q2injQ w2).
+Lemma mul_correct : forall (w1 w2 : Dyadic),
+  injQ (mul w1 w2) == Qmult (injQ w1) (injQ w2).
 Proof.
   intros w1 w2.
-  unfold Q2add, Qmult, Q2injQ; simpl.
+  unfold add, Qmult, injQ; simpl.
   destruct w1 as [p1 n1]; destruct w2 as [p2 n2]; simpl.
   now rewrite <- Pos_shiftl_1_add_r.
 Qed.
@@ -347,12 +347,12 @@ Qed.
 Theorem Qeq_refl' x y : x = y -> x == y.
 Proof. intro H; rewrite <- H; exact (Qeq_refl x). Qed.
 
-Lemma Q2hlf_correct : forall (w : Q2),
-  Q2injQ (Q2hlf w) == Qdiv (Q2injQ w) (2).
+Lemma hlf_correct : forall (w : Dyadic),
+  injQ (hlf w) == Qdiv (injQ w) (2).
 Proof.
   intros w.
-  unfold Q2injQ.
-  unfold Q2hlf, Qdiv, Qmult, Qinv, Q2injQ; simpl.
+  unfold injQ.
+  unfold hlf, Qdiv, Qmult, Qinv, injQ; simpl.
   destruct w as [p n]; simpl.
   apply Qeq_refl'. f_equal.
   - symmetry; now apply Z.mul_1_r.
@@ -361,58 +361,61 @@ Proof.
     now rewrite -> (Pos_mul_2_l (Pos.shiftl 1 n)).
 Qed.
 
-Lemma Q2eq_0_mantissa : forall {w : Q2},
-  (Q2mantissa w = 0)%Z -> Q2injQ w == 0.
+Lemma eq_0_mantissa : forall {w : Dyadic},
+  (mantissa w = 0)%Z -> injQ w == 0.
 Proof.
   intros w Hw.
-  unfold Q2injQ, Qeq.
+  unfold injQ, Qeq.
   now rewrite -> Hw.
 Qed.
 
-Lemma Q2neq_0_mantissa : forall {w : Q2},
-  ~ (Q2injQ w == 0) -> (Q2mantissa w <> 0)%Z.
+Lemma neq_0_mantissa : forall {w : Dyadic},
+  ~ (injQ w == 0) -> (mantissa w <> 0)%Z.
 Proof.
   intros w Hq Hnw; apply Hq; clear Hq.
-  now apply (Q2eq_0_mantissa).
+  now apply (eq_0_mantissa).
 Qed.
 
-Lemma Q2add_comm : forall {w1 w2 : Q2}, 
-  Q2eq (Q2add w1 w2) (Q2add w2 w1).
+Lemma add_comm : forall {w1 w2 : Dyadic}, 
+  eq (add w1 w2) (add w2 w1).
 Proof.
   intros w1 w2.
-  apply Q2injQ_inj.
-  repeat rewrite -> Q2add_correct.
+  apply injQ_inj.
+  repeat rewrite -> add_correct.
   now apply Qplus_comm.
 Qed.
 
-Lemma Q2add_assoc : forall {w1 w2 w3 : Q2}, 
-  Q2eq (Q2add w1 (Q2add w2 w3)) (Q2add (Q2add w1 w2) w3).
+Lemma add_assoc : forall {w1 w2 w3 : Dyadic}, 
+  eq (add w1 (add w2 w3)) (add (add w1 w2) w3).
 Proof.
   intros w1 w2 w3.
-  apply Q2injQ_inj.
-  repeat rewrite -> Q2add_correct.
+  apply injQ_inj.
+  repeat rewrite -> add_correct.
   now apply Qplus_assoc.
 Qed.
 
-Lemma Q2mul_comm : forall {w1 w2 : Q2}, 
-  Q2eq (Q2mul w1 w2) (Q2mul w2 w1).
+Lemma mul_comm : forall {w1 w2 : Dyadic}, 
+  eq (mul w1 w2) (mul w2 w1).
 Proof.
   intros w1 w2.
-  apply Q2injQ_inj.
-  repeat rewrite -> Q2mul_correct.
+  apply injQ_inj.
+  repeat rewrite -> mul_correct.
   now apply Qmult_comm.
 Qed.
 
-Lemma Q2mul_add_distr_l : forall {w1 w2 w3 : Q2}, 
-  Q2eq (Q2mul w1 (Q2add w2 w3)) (Q2add (Q2mul w1 w2) (Q2mul w1 w3)).
+Lemma mul_add_distr_l : forall {w1 w2 w3 : Dyadic}, 
+  eq (mul w1 (add w2 w3)) (add (mul w1 w2) (mul w1 w3)).
 Proof.
   intros w1 w2 w3.
-  apply Q2injQ_inj.
-  repeat rewrite -> Q2mul_correct.
-  repeat rewrite -> Q2add_correct.
-  repeat rewrite -> Q2mul_correct.
+  apply injQ_inj.
+  repeat rewrite -> mul_correct.
+  repeat rewrite -> add_correct.
+  repeat rewrite -> mul_correct.
   now apply Qmult_plus_distr_r.
 Qed.
 
 
 Close Scope Z_scope.
+
+End Q2.
+

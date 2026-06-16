@@ -32,91 +32,89 @@ Require Import Analysis.
 
 Section FloatBall.
 
-Ltac step mid := (apply Rle_trans with mid).
-
 Open Scope R_scope.
 
 Context `{F : Type} `{FltF : Float F}.
 
-
 Inductive Ball {F:Type} {FltF : Float F} :=
   ball (value:F) (error:F).
+
+Check ball.
 
 Definition value (x : @Ball F FltF) : F := match x with ball v _ => v end.
 Definition error (x : @Ball F FltF) : F := match x with ball _ e => e end.
 
-Check ball.
-
 Definition models : Ball -> R -> Prop :=
-  fun x y => match x with ball v e => Rdist (FinjR v) y <= (FinjR e) end.
+  fun x y => match x with ball v e => Rdist (F.injR v) y <= (F.injR e) end.
 
 
+Ltac step mid := (apply Rle_trans with mid).
 
+Open Scope R_scope.
 
-Lemma flt_add_up_le_compat : forall w1 x1 w2 x2,
-  w1 <= FinjR x1 -> w2 <= FinjR x2 -> (w1 + w2) <= FinjR (Fadd up x1 x2).
+Lemma Fadd_up_le_compat : forall w1 x1 w2 x2,
+  w1 <= F.injR x1 -> w2 <= F.injR x2 -> (w1 + w2) <= F.injR (F.add up x1 x2).
 Proof.
   intros w1 x1 w2 x2 H1 H2.
-  step (FinjR x1 + FinjR x2).
+  step (F.injR x1 + F.injR x2).
   apply Rplus_le_compat; [exact H1|exact H2].
-  apply Rge_le; apply flt_add_up.
+  apply Rge_le; apply F.add_up_spec.
 Qed.
 
-Lemma flt_add_up_le_compat_l : forall x1 w2 x2,
-  w2 <= FinjR x2 -> (FinjR x1 + w2) <= FinjR (Fadd up x1 x2).
+Lemma Fadd_up_le_compat_l : forall x1 w2 x2,
+  w2 <= F.injR x2 -> (F.injR x1 + w2) <= F.injR (F.add up x1 x2).
 Proof.
-  intros x1 w2 x2 H2. apply (flt_add_up_le_compat (FinjR x1) x1 w2 x2). apply Rle_refl. exact H2.
+  intros x1 w2 x2 H2. apply (Fadd_up_le_compat (F.injR x1) x1 w2 x2). apply Rle_refl. exact H2.
 Qed.
 
-Lemma flt_add_up_le_compat_r : forall w1 x1 x2,
-  w1 <= FinjR x1 -> (w1 + FinjR x2) <= FinjR (Fadd up x1 x2).
+Lemma Fadd_up_le_compat_r : forall w1 x1 x2,
+  w1 <= F.injR x1 -> (w1 + F.injR x2) <= F.injR (F.add up x1 x2).
 Proof.
-  intros w1 x1 x2 H1. apply (flt_add_up_le_compat w1 x1 (FinjR x2) x2). apply H1. apply Rle_refl.
+  intros w1 x1 x2 H1. apply (Fadd_up_le_compat w1 x1 (F.injR x2) x2). apply H1. apply Rle_refl.
 Qed.
 
-Lemma flt_mul_up_le_compat : forall w1 x1 w2 x2,
-  0 <= w1 -> 0 <= w2 -> w1 <= FinjR x1 -> w2 <= FinjR x2
-    -> (w1 * w2) <= FinjR (Fmul up x1 x2).
+Local Lemma Fmul_up_le_compat : forall w1 x1 w2 x2,
+  0 <= w1 -> 0 <= w2 -> w1 <= F.injR x1 -> w2 <= F.injR x2
+    -> (w1 * w2) <= F.injR (F.mul up x1 x2).
 Proof.
   intros w1 x1 w2 x2 Hw1 Hw2 H1 H2.
-  step (FinjR x1 * FinjR x2).
+  step (F.injR x1 * F.injR x2).
   apply Rmult_le_compat; [exact Hw1 | exact Hw2 | exact H1 | exact H2].
-  apply flt_mul_up_le.
+  apply F.mul_up_le_spec.
 Qed.
 
-Lemma flt_mul_up_le_compat_l : forall x1 w2 x2,
-  0 <= FinjR x1 -> 0 <= w2 -> w2 <= FinjR x2
-    -> (FinjR x1 * w2) <= FinjR (Fmul up x1 x2).
+Local Lemma Fmul_up_le_compat_l : forall x1 w2 x2,
+  0 <= F.injR x1 -> 0 <= w2 -> w2 <= F.injR x2
+    -> (F.injR x1 * w2) <= F.injR (F.mul up x1 x2).
 Proof.
   intros x1 w2 x2 Hx1 Hw2 H2.
-  apply (flt_mul_up_le_compat (FinjR x1) x1 w2 x2).
+  apply (Fmul_up_le_compat (F.injR x1) x1 w2 x2).
   exact Hx1. exact Hw2. apply Rle_refl. exact H2.
 Qed.
 
-Lemma flt_mul_up_le_compat_r : forall w1 x1 x2,
-  0 <= w1 -> 0 <= FinjR x2 -> w1 <= FinjR x1
-    -> (w1 * FinjR x2) <= FinjR (Fmul up x1 x2).
+Local Lemma Fmul_up_le_compat_r : forall w1 x1 x2,
+  0 <= w1 -> 0 <= F.injR x2 -> w1 <= F.injR x1
+    -> (w1 * F.injR x2) <= F.injR (F.mul up x1 x2).
 Proof.
   intros w1 x1 x2 Hw1 Hx2 H1.
-  apply (flt_mul_up_le_compat w1 x1 (FinjR x2) x2).
+  apply (Fmul_up_le_compat w1 x1 (F.injR x2) x2).
   exact Hw1. exact Hx2. exact H1. apply Rle_refl.
 Qed.
 
 
-Lemma flt_div_up_le_compat : forall w1 x1 w2 x2,
-  0 <= w1 -> 0 < FinjR x2 -> w1 <= FinjR x1 -> FinjR x2 <= w2 ->
-    (w1 / w2) <= FinjR (Fdiv up x1 x2).
+Local Lemma Fdiv_up_le_compat : forall w1 x1 w2 x2,
+  0 <= w1 -> 0 < F.injR x2 -> w1 <= F.injR x1 -> F.injR x2 <= w2 ->
+    (w1 / w2) <= F.injR (F.div up x1 x2).
 Proof.
   intros w1 x1 w2 x2 Hw1 Hx2 H1 H2.
-  assert (FinjR x2<>0) as Hx2n; [exact (not_eq_sym (Rlt_not_eq _ _ Hx2))|].
+  assert (F.injR x2<>0) as Hx2n; [exact (not_eq_sym (Rlt_not_eq _ _ Hx2))|].
   assert (0<w2) as Hw2; [exact (Rlt_le_trans _ _ _ Hx2 H2)|].
   assert (0<=/w2) as Hrw2; [exact (Rlt_le _ _ (Rinv_0_lt_compat _ Hw2))|].
-  assert (/w2<=/FinjR x2) as Hr2; [exact (Rinv_le_contravar _ _ Hx2 H2)|].
-  step (FinjR x1 / FinjR x2).
+  assert (/w2<=/F.injR x2) as Hr2; [exact (Rinv_le_contravar _ _ Hx2 H2)|].
+  step (F.injR x1 / F.injR x2).
   unfold Rdiv. apply Rmult_le_compat; [exact Hw1|exact Hrw2|exact H1|exact Hr2].
-  apply Rge_le. apply flt_div_up. exact Hx2n.
+  apply Rge_le. apply F.div_up_spec. exact Hx2n.
 Qed.
-
 
 
 
@@ -124,7 +122,7 @@ Definition add_ball : Ball -> Ball -> Ball :=
   fun x1 x2 =>
     match x1 with ball v1 e1
       => match x2 with ball v2 e2
-        => ball (Fadd near v1 v2) (Fadd up (Fdiv2 up (Fsub up (Fadd up v1 v2) (Fadd down v1 v2))) (Fadd up e1 e2)) end end.
+        => ball (F.add near v1 v2) (F.add up (F.div2 up (F.sub up (F.add up v1 v2) (F.add down v1 v2))) (F.add up e1 e2)) end end.
 
 Lemma add_ball_correct :
   forall (x1 x2 : Ball) (y1 y2 : R),
@@ -134,34 +132,34 @@ Proof.
   destruct x1 as (v1 & e1), x2 as (v2 & e2).
   unfold models in H1,H2;
   unfold models; unfold add_ball.
-  set (v12 := Fadd near v1 v2).
-  set (w12 := FinjR v1 + FinjR v2).
+  set (v12 := F.add near v1 v2).
+  set (w12 := F.injR v1 + F.injR v2).
   set (y12 := y1 + y2).
-  set (re12 := Fdiv2 up (Fsub up (Fadd up v1 v2) (Fadd down v1 v2))).
-  assert (Rdist (FinjR v12) w12 <= FinjR re12) as Hre. {
+  set (re12 := F.div2 up (F.sub up (F.add up v1 v2) (F.add down v1 v2))).
+  assert (Rdist (F.injR v12) w12 <= F.injR re12) as Hre. {
     unfold v12,w12,re12.
-    replace Fadd with (Fapply Add) by (trivial).
-    apply flt_op_near_up_down_sub_hlf_up.
+    replace F.add with (F.apply Add) by (trivial).
+    apply F.op_near_up_down_sub_hlf_up_spec.
   }
-  assert (Rdist w12 y12 <= FinjR e1 + FinjR e2) as Hy. {
+  assert (Rdist w12 y12 <= F.injR e1 + F.injR e2) as Hy. {
     unfold w12,y12.
-    apply Rle_trans with (Rdist (FinjR v1) y1 + Rdist (FinjR v2) y2).
+    apply Rle_trans with (Rdist (F.injR v1) y1 + Rdist (F.injR v2) y2).
     - apply Rdist_plus_compat.
     - apply Rplus_le_compat. exact H1. exact H2.
   }
-  step (Rdist (FinjR v12) w12 + Rdist w12 y12).
+  step (Rdist (F.injR v12) w12 + Rdist w12 y12).
     apply Rdist_triang.
-  step (FinjR re12 + FinjR (Fadd up e1 e2)).
+  step (F.injR re12 + F.injR (F.add up e1 e2)).
   - apply Rplus_le_compat.
     -- apply Hre.
-    -- step (FinjR e1 + FinjR e2). exact Hy. apply flt_add_up_le.
-  - apply flt_add_up_le.
+    -- step (F.injR e1 + F.injR e2). exact Hy. apply F.add_up_le_spec.
+  - apply F.add_up_le_spec.
 Qed.
 
 
 Definition sub_ball (x1 x2 : Ball) : Ball :=
   match x1 with ball v1 e1 => match x2 with ball v2 e2
-    => ball (Fsub near v1 v2) (Fadd up (Fdiv2 up (Fsub up (Fsub up v1 v2) (Fsub down v1 v2))) (Fadd up e1 e2)) end end.
+    => ball (F.sub near v1 v2) (F.add up (F.div2 up (F.sub up (F.sub up v1 v2) (F.sub down v1 v2))) (F.add up e1 e2)) end end.
 
 Lemma sub_ball_correct :
   forall (x1 x2 : Ball) (y1 y2 : R),
@@ -171,51 +169,50 @@ Proof.
   destruct x1 as (v1 & e1), x2 as (v2 & e2).
   unfold models in H1,H2;
   unfold models; unfold add_ball.
-  set (v12 := Fsub near v1 v2).
-  set (w12 := FinjR v1 - FinjR v2).
+  set (v12 := F.sub near v1 v2).
+  set (w12 := F.injR v1 - F.injR v2).
   set (y12 := y1 - y2).
-  set (re12 := Fdiv2 up (Fsub up (Fsub up v1 v2) (Fsub down v1 v2))).
-  assert (Rdist (FinjR v12) w12 <= FinjR re12) as Hre. {
+  set (re12 := F.div2 up (F.sub up (F.sub up v1 v2) (F.sub down v1 v2))).
+  assert (Rdist (F.injR v12) w12 <= F.injR re12) as Hre. {
     unfold v12,w12,re12.
-    replace Fsub with (Fapply Sub) by (trivial).
-    apply flt_op_near_up_down_sub_hlf_up.
+    replace F.sub with (F.apply Sub) by (trivial).
+    apply F.op_near_up_down_sub_hlf_up_spec.
   }
-  assert (Rdist w12 y12 <= FinjR e1 + FinjR e2) as Hy. {
+  assert (Rdist w12 y12 <= F.injR e1 + F.injR e2) as Hy. {
     unfold w12,y12.
-    apply Rle_trans with (Rdist (FinjR v1) y1 + Rdist (FinjR v2) y2).
+    apply Rle_trans with (Rdist (F.injR v1) y1 + Rdist (F.injR v2) y2).
     - apply Rdist_minus_compat.
     - apply Rplus_le_compat. exact H1. exact H2.
   }
-  step (Rdist (FinjR v12) w12 + Rdist w12 y12).
+  step (Rdist (F.injR v12) w12 + Rdist w12 y12).
     apply Rdist_triang.
-  step (FinjR re12 + FinjR (Fadd up e1 e2)).
+  step (F.injR re12 + F.injR (F.add up e1 e2)).
   - apply Rplus_le_compat.
     -- apply Hre.
-    -- step (FinjR e1 + FinjR e2). exact Hy. apply flt_add_up_le.
-  - apply flt_add_up_le.
+    -- step (F.injR e1 + F.injR e2). exact Hy. apply F.add_up_le_spec.
+  - apply F.add_up_le_spec.
 Qed.
 
-Definition Fle x1 x2 := FinjR x1 <= FinjR x2.
 
 
-Definition mul_err_up v1 v2 e1 e2 re :=
-  Fadd up (Fadd up re (Fmul up e1 e2))
-          (Fadd up (Fmul up (Fabs v1) e2) (Fmul up e1 (Fabs v2))).
+Definition Fmul_err_up v1 v2 e1 e2 re :=
+  F.add up (F.add up re (F.mul up e1 e2))
+          (F.add up (F.mul up (F.abs v1) e2) (F.mul up e1 (F.abs v2))).
 
-Lemma mul_err_up_correct : forall v1 v2 e1 e2 re,
-  mul_err (FinjR v1) (FinjR v2) (FinjR e1) (FinjR e2) + (FinjR re)
-    <= FinjR (mul_err_up v1 v2 e1 e2 re).
+Lemma Fmul_err_up_correct : forall v1 v2 e1 e2 re,
+  mul_err (F.injR v1) (F.injR v2) (F.injR e1) (F.injR e2) + (F.injR re)
+    <= F.injR (Fmul_err_up v1 v2 e1 e2 re).
 Proof.
   intros v1 v2 e1 e2 re.
-    unfold mul_err,mul_err_up.
-  stepl ( (FinjR re + (FinjR e1) * (FinjR e2)) + (Rabs (FinjR v1)*FinjR e2 + FinjR e1 * Rabs (FinjR v2)) ) by ring.
-  apply flt_add_up_le_compat.
-  - apply flt_add_up_le_compat_l.
-    apply flt_mul_up_le.
-  - repeat (rewrite <- flt_abs_exact).
-    apply flt_add_up_le_compat.
-    -- apply flt_mul_up_le.
-    -- apply flt_mul_up_le.
+    unfold mul_err,Fmul_err_up.
+  stepl ( (F.injR re + (F.injR e1) * (F.injR e2)) + (Rabs (F.injR v1)*F.injR e2 + F.injR e1 * Rabs (F.injR v2)) ) by ring.
+  apply Fadd_up_le_compat.
+  - apply Fadd_up_le_compat_l.
+    apply F.mul_up_le_spec.
+  - repeat (rewrite <- F.abs_exact_spec).
+    apply Fadd_up_le_compat.
+    -- apply F.mul_up_le_spec.
+    -- apply F.mul_up_le_spec.
 Qed.
 
 
@@ -223,9 +220,9 @@ Qed.
 Definition mul_ball (x1 x2 : Ball) : Ball :=
   match x1 with ball v1 e1 =>
     match x2 with ball v2 e2 =>
-     let v12 := (Fmul near v1 v2) in
-       let re12 := (Fdiv2 up (Fsub up (Fmul up v1 v2) (Fmul down v1 v2))) in
-         ball v12 (mul_err_up v1 v2 e1 e2 re12)
+     let v12 := (F.mul near v1 v2) in
+       let re12 := (F.div2 up (F.sub up (F.mul up v1 v2) (F.mul down v1 v2))) in
+         ball v12 (Fmul_err_up v1 v2 e1 e2 re12)
     end
   end
 .
@@ -238,25 +235,25 @@ Proof.
   intros x1 x2 y1 y2.
   destruct x1 as (v1 & e1), x2 as (v2 & e2).
   unfold mul_ball, models in *.
-  set (v12 := Fmul near v1 v2).
-  set (w1:=FinjR v1); set (w2:=FinjR v2).
+  set (v12 := F.mul near v1 v2).
+  set (w1:=F.injR v1); set (w2:=F.injR v2).
   set (w12 := w1 * w2).
   set (y12 := y1 * y2).
-  set (re12 := Fdiv2 up (Fsub up (Fmul up v1 v2) (Fmul down v1 v2))).
+  set (re12 := F.div2 up (F.sub up (F.mul up v1 v2) (F.mul down v1 v2))).
   intros H1 H2.
-  assert (Rdist (FinjR v12) w12 <= FinjR re12) as Hre. {
+  assert (Rdist (F.injR v12) w12 <= F.injR re12) as Hre. {
     unfold v12,w12,re12.
-    replace Fmul with (Fapply Mul) by trivial.
-    apply flt_op_near_up_down_sub_hlf_up.
+    replace F.mul with (F.apply Mul) by trivial.
+    apply F.op_near_up_down_sub_hlf_up_spec.
   }
-  assert (Rdist w12 y12 <= mul_err w1 w2 (FinjR e1) (FinjR e2)) as Hae. {
+  assert (Rdist w12 y12 <= mul_err w1 w2 (F.injR e1) (F.injR e2)) as Hae. {
     apply mul_err_correct. exact H1. exact H2.
   }
-  assert (mul_err w1 w2 (FinjR e1) (FinjR e2) + FinjR re12 <= FinjR (mul_err_up v1 v2 e1 e2 re12)) as Hme. {
-    apply mul_err_up_correct.
+  assert (mul_err w1 w2 (F.injR e1) (F.injR e2) + F.injR re12 <= F.injR (Fmul_err_up v1 v2 e1 e2 re12)) as Hme. {
+    apply Fmul_err_up_correct.
   }
-  1: step (Rdist (FinjR v12) w12 + Rdist w12 y12).
-  2: step (mul_err w1 w2 (FinjR e1) (FinjR e2) + FinjR re12).
+  1: step (Rdist (F.injR v12) w12 + Rdist w12 y12).
+  2: step (mul_err w1 w2 (F.injR e1) (F.injR e2) + F.injR re12).
   - apply Rdist_triang.
   - rewrite -> Rplus_comm. apply Rplus_le_compat. exact Hae. exact Hre.
   - exact Hme.
@@ -265,20 +262,20 @@ Qed.
 
 
 Definition div_err_up v1 v2 e1 e2 re :=
-  Fadd up re (Fdiv up (Fadd up e1 (Fmul up e2 (Fdiv up (Fabs v1) (Fabs v2)))) (Fsub down (Fabs v2) e2)).
+  F.add up re (F.div up (F.add up e1 (F.mul up e2 (F.div up (F.abs v1) (F.abs v2)))) (F.sub down (F.abs v2) e2)).
 
 Definition div_ball_defined (v1 v2 e1 e2 : F) :=
-  0 < FinjR (Fsub down (Fabs v2) e2).
+  0 < F.injR (F.sub down (F.abs v2) e2).
 
 Lemma div_ball_nonzero : forall v1 v2 e1 e2,
-  div_ball_defined v1 v2 e1 e2 -> 0 <= FinjR e2 -> FinjR e2 < FinjR (Fabs v2).
+  div_ball_defined v1 v2 e1 e2 -> 0 <= F.injR e2 -> F.injR e2 < F.injR (F.abs v2).
 Proof.
   unfold div_ball_defined.
   intros _ v _ e H He.
   apply Rlt_zero_Rminus.
-  apply Rlt_le_trans with (FinjR (Fsub down (Fabs v) e)).
+  apply Rlt_le_trans with (F.injR (F.sub down (F.abs v) e)).
   exact H.
-  apply flt_sub_down.
+  apply F.sub_down_spec.
 Qed.
 
 
@@ -291,58 +288,58 @@ Proof.
 Qed.
 
 Lemma div_err_up_correct : forall v1 v2 e1 e2 re,
-  0<=FinjR e1 ->
-    0<=FinjR e2 ->
-      0 < FinjR (Fsub down (Fabs v2) e2) ->
-        div_err (FinjR v1) (FinjR v2) (FinjR e1) (FinjR e2) + (FinjR re)
-          <= FinjR (div_err_up v1 v2 e1 e2 re).
+  0<=F.injR e1 ->
+    0<=F.injR e2 ->
+      0 < F.injR (F.sub down (F.abs v2) e2) ->
+        div_err (F.injR v1) (F.injR v2) (F.injR e1) (F.injR e2) + (F.injR re)
+          <= F.injR (div_err_up v1 v2 e1 e2 re).
 Proof.
   intros v1 v2 e1 e2 re He1 He2 Hr.
-  assert (0<FinjR (Fabs v2)) as Hav2. {
-    apply Rlt_le_trans with (FinjR (Fsub down (Fabs v2) e2)); [exact Hr|].
-    apply Rle_trans with (FinjR (Fabs v2) - FinjR e2); [apply flt_sub_down|].
+  assert (0<F.injR (F.abs v2)) as Hav2. {
+    apply Rlt_le_trans with (F.injR (F.sub down (F.abs v2) e2)); [exact Hr|].
+    apply Rle_trans with (F.injR (F.abs v2) - F.injR e2); [apply F.sub_down_spec|].
     apply Rminus_ge_0; [exact He2].
   }
-  assert (0<Rabs (FinjR v2) - FinjR e2) as Hrw. {
-    apply (Rlt_le_trans _ _ _ Hr). rewrite <- flt_abs_exact. apply flt_sub_down. }
-  assert (FinjR (Fabs v2)<>0) as Hav2ne0. {
+  assert (0<Rabs (F.injR v2) - F.injR e2) as Hrw. {
+    apply (Rlt_le_trans _ _ _ Hr). rewrite <- F.abs_exact_spec. apply F.sub_down_spec. }
+  assert (F.injR (F.abs v2)<>0) as Hav2ne0. {
      apply not_eq_sym. apply Rlt_not_eq. exact Hav2. }
-  assert (FinjR v2<>0) as Hv2ne0. {
-    apply Rabs_0_neq. rewrite <- flt_abs_exact. exact Hav2ne0. }
-  assert (Rabs (FinjR v2)<>0) as Haw2ne0. {
-     rewrite <- flt_abs_exact. exact Hav2ne0. }
-  assert (0</Rabs (FinjR v2)) as Hraw2. {
-    apply Rinv_pos. rewrite <- flt_abs_exact. exact Hav2. }
+  assert (F.injR v2<>0) as Hv2ne0. {
+    apply Rabs_0_neq. rewrite <- F.abs_exact_spec. exact Hav2ne0. }
+  assert (Rabs (F.injR v2)<>0) as Haw2ne0. {
+     rewrite <- F.abs_exact_spec. exact Hav2ne0. }
+  assert (0</Rabs (F.injR v2)) as Hraw2. {
+    apply Rinv_pos. rewrite <- F.abs_exact_spec. exact Hav2. }
   unfold div_err,div_err_up, div_ball_defined.
   rewrite -> Rplus_comm.
-  apply flt_add_up_le_compat_l.
+  apply Fadd_up_le_compat_l.
   rewrite <- Rdiv_Rdiv_Rmult_numerator;
     [|exact Haw2ne0|apply not_eq_sym; apply Rlt_not_eq; apply Hrw].
-  apply flt_div_up_le_compat.
+  apply Fdiv_up_le_compat.
   - unfold Rdiv. apply Rle_mult_nonneg_nonneg; [|exact (Rlt_le _ _ Hraw2)].
     apply Rplus_le_le_0_compat; apply Rle_mult_nonneg_nonneg;
       [exact He1|apply Rabs_pos|apply Rabs_pos|exact He2].
   - exact Hr.
   - rewrite -> Rdiv_plus_distr; unfold Rdiv.
-    rewrite -> (Rinv_r_simpl_l (Rabs (FinjR v2))); [|exact Haw2ne0].
-    apply flt_add_up_le_compat_l.
-    rewrite -> (Rmult_comm _ (FinjR e2)).
+    rewrite -> (Rinv_r_simpl_l (Rabs (F.injR v2))); [|exact Haw2ne0].
+    apply Fadd_up_le_compat_l.
+    rewrite -> (Rmult_comm _ (F.injR e2)).
     rewrite -> (Rmult_assoc).
     rewrite <- Rdiv_mult_inv.
-    apply flt_mul_up_le_compat; [exact He2| |apply Rle_refl|].
+    apply Fmul_up_le_compat; [exact He2| |apply Rle_refl|].
     -- unfold Rdiv. apply Rle_mult_nonneg_nonneg.
        apply Rabs_pos. apply Rlt_le. apply Hraw2.
-    -- repeat (rewrite <- flt_abs_exact).
-       apply Rge_le. apply flt_div_up. rewrite -> flt_abs_exact. exact Haw2ne0.
-  - rewrite <- flt_abs_exact.
-    apply flt_sub_down.
+    -- repeat (rewrite <- F.abs_exact_spec).
+       apply Rge_le. apply F.div_up_spec. rewrite -> F.abs_exact_spec. exact Haw2ne0.
+  - rewrite <- F.abs_exact_spec.
+    apply F.sub_down_spec.
 Qed.
 
 Definition div_ball (x1 x2 : Ball) : Ball :=
   match x1 with ball v1 e1 =>
     match x2 with ball v2 e2 =>
-      let re := (Fdiv2 up (Fsub up (Fdiv up v1 v2) (Fdiv down v1 v2))) in
-        ball (Fdiv near v1 v2) (div_err_up v1 v2 e1 e2 re)
+      let re := (F.div2 up (F.sub up (F.div up v1 v2) (F.div down v1 v2))) in
+        ball (F.div near v1 v2) (div_err_up v1 v2 e1 e2 re)
     end
   end
 .
@@ -356,50 +353,50 @@ Proof.
   intros x1 x2 y1 y2.
   destruct x1 as (v1 & e1); destruct x2 as (v2 & e2).
   unfold div_ball,div_ball_defined, models in *.
-  set (rv := Fdiv near v1 v2).
-  set (w1:=FinjR v1); set (w2:=FinjR v2).
-  set (d1:=FinjR e1); set (d2:=FinjR e2).
+  set (rv := F.div near v1 v2).
+  set (w1:=F.injR v1); set (w2:=F.injR v2).
+  set (d1:=F.injR e1); set (d2:=F.injR e2).
   set (rw := w1 / w2).
   set (ry := y1 / y2).
-  set (re := Fdiv2 up (Fsub up (Fdiv up v1 v2) (Fdiv down v1 v2))).
+  set (re := F.div2 up (F.sub up (F.div up v1 v2) (F.div down v1 v2))).
   intros H1 H2 Hp; simpl in Hp.
   assert (0<=d1) as Hd1. {
     step (Rdist w1 y1). apply Rge_le. apply Rdist_pos. apply H1. }
   assert (0<=d2) as Hd2. {
     step (Rdist w2 y2). apply Rge_le. apply Rdist_pos. apply H2. }
-  assert (0<FinjR (Fabs v2)) as Hav2. {
-    apply Rlt_le_trans with (FinjR (Fsub down (Fabs v2) e2)); [exact Hp|].
-    apply Rle_trans with (FinjR (Fabs v2) - FinjR e2); [apply flt_sub_down|].
+  assert (0<F.injR (F.abs v2)) as Hav2. {
+    apply Rlt_le_trans with (F.injR (F.sub down (F.abs v2) e2)); [exact Hp|].
+    apply Rle_trans with (F.injR (F.abs v2) - F.injR e2); [apply F.sub_down_spec|].
     apply Rminus_ge_0; [exact Hd2].
   }
   assert (0<Rabs w2 - d2) as Hrw. {
-    unfold w2. apply (Rlt_le_trans _ _ _ Hp). rewrite <- flt_abs_exact. apply flt_sub_down. }
-  assert (FinjR (Fabs v2)<>0) as Hav2ne0. {
+    unfold w2. apply (Rlt_le_trans _ _ _ Hp). rewrite <- F.abs_exact_spec. apply F.sub_down_spec. }
+  assert (F.injR (F.abs v2)<>0) as Hav2ne0. {
      apply not_eq_sym. apply Rlt_not_eq. exact Hav2. }
   assert (w2 <> 0) as Hw2ne0. {
-    unfold w2. apply Rabs_0_neq. rewrite <- flt_abs_exact. exact Hav2ne0. }
+    unfold w2. apply Rabs_0_neq. rewrite <- F.abs_exact_spec. exact Hav2ne0. }
   assert (Rabs w2 <> 0) as Haw2ne0. {
-    unfold w2. rewrite <- flt_abs_exact. exact Hav2ne0. }
+    unfold w2. rewrite <- F.abs_exact_spec. exact Hav2ne0. }
   assert (0</Rabs w2) as Hraw2. {
-    unfold w2. rewrite <- flt_abs_exact. apply Rinv_pos. exact Hav2. }
-  assert (Rdist (FinjR rv) rw <= FinjR re) as Hre. {
+    unfold w2. rewrite <- F.abs_exact_spec. apply Rinv_pos. exact Hav2. }
+  assert (Rdist (F.injR rv) rw <= F.injR re) as Hre. {
     unfold rv,rw,re.
-    apply (flt_div_near_up_down_sub_hlf_up); exact Hw2ne0.
+    apply (F.div_near_up_down_sub_hlf_up_spec); exact Hw2ne0.
   }
   assert (Rdist rw ry <= div_err w1 w2 d1 d2) as Hae. {
     apply div_err_correct.
     unfold w1, w2.
-    rewrite <- flt_abs_exact.
+    rewrite <- F.abs_exact_spec.
     apply (div_ball_nonzero v1 v2 e1 e2). exact Hp.
     exact Hd2.
     exact H1.
     exact H2.
   }
-  assert (div_err w1 w2 d1 d2 + FinjR re <= FinjR (div_err_up v1 v2 e1 e2 re)) as Hme. {
+  assert (div_err w1 w2 d1 d2 + F.injR re <= F.injR (div_err_up v1 v2 e1 e2 re)) as Hme. {
     apply div_err_up_correct. exact Hd1. exact Hd2. exact Hp.
   }
-  1: step (Rdist (FinjR rv) rw + Rdist rw ry).
-  2: step ((div_err w1 w2 d1 d2) + FinjR re).
+  1: step (Rdist (F.injR rv) rw + Rdist rw ry).
+  2: step ((div_err w1 w2 d1 d2) + F.injR re).
   - apply Rdist_triang.
   - rewrite -> Rplus_comm. apply Rplus_le_compat. exact Hae. exact Hre.
   - exact Hme.
@@ -411,22 +408,22 @@ Qed.
 
 
 Definition rec_err_up v e re :=
-  Fadd up re (Fdiv up e (Fmul down (Fabs v) (Fsub down (Fabs v) e))).
+  F.add up re (F.div up e (F.mul down (F.abs v) (F.sub down (F.abs v) e))).
 
 Definition rec_ball_defined v e :=
-  0 < FinjR (Fmul down (Fabs v) (Fsub down (Fabs v) e)).
+  0 < F.injR (F.mul down (F.abs v) (F.sub down (F.abs v) e)).
 
 Lemma rec_ball_nonzero : forall v e,
-  rec_ball_defined v e -> 0 <= FinjR e -> FinjR e < FinjR (Fabs v).
+  rec_ball_defined v e -> 0 <= F.injR e -> F.injR e < F.injR (F.abs v).
 Proof.
   intros v e H He.
   unfold rec_ball_defined in H.
-  assert (0 < FinjR (Fabs v)). {
-    assert (0 <= FinjR (Fabs v)) as Hp. { rewrite -> flt_abs_exact. apply Rabs_pos. }
+  assert (0 < F.injR (F.abs v)). {
+    assert (0 <= F.injR (F.abs v)) as Hp. { rewrite -> F.abs_exact_spec. apply Rabs_pos. }
     unfold Rle in Hp; destruct Hp as [Hgt|H0]; [assumption|].
-    assert (FinjR (Fmul down (Fabs v) (Fsub down (Fabs v) e)) <= 0) as Hle0. {
-      replace 0 with (FinjR (Fabs v) * FinjR (Fsub down (Fabs v) e)).
-      apply flt_mul_down.
+    assert (F.injR (F.mul down (F.abs v) (F.sub down (F.abs v) e)) <= 0) as Hle0. {
+      replace 0 with (F.injR (F.abs v) * F.injR (F.sub down (F.abs v) e)).
+      apply F.mul_down_spec.
       rewrite <- H0.
       apply Rmult_0_l.
     }
@@ -434,46 +431,46 @@ Proof.
     contradiction.
   }
   apply Rlt_zero_Rminus.
-  apply Rlt_pos_pos_Rmult with (FinjR (Fabs v)).
+  apply Rlt_pos_pos_Rmult with (F.injR (F.abs v)).
     exact H0.
   rewrite -> Rmult_comm.
-  apply Rlt_le_trans with (FinjR (Fabs v) * (FinjR (Fsub down (Fabs v) e))).
-  apply Rlt_le_trans with (FinjR (Fmul down (Fabs v) (Fsub down (Fabs v) e))).
+  apply Rlt_le_trans with (F.injR (F.abs v) * (F.injR (F.sub down (F.abs v) e))).
+  apply Rlt_le_trans with (F.injR (F.mul down (F.abs v) (F.sub down (F.abs v) e))).
   - exact H.
-  - apply flt_mul_down.
+  - apply F.mul_down_spec.
   - apply Rmult_le_compat_l.
     apply Rlt_le; exact H0.
-    apply flt_sub_down.
+    apply F.sub_down_spec.
 Qed.
 
 
 Lemma rec_err_up_correct : forall v e re,
-  0<=FinjR e ->
+  0<=F.injR e ->
     rec_ball_defined v e ->
-      rec_err (FinjR v) (FinjR e) + (FinjR re)
-        <= FinjR (rec_err_up v e re).
+      rec_err (F.injR v) (F.injR e) + (F.injR re)
+        <= F.injR (rec_err_up v e re).
 Proof.
   intros v e re He Hr.
   unfold rec_err,rec_err_up, rec_ball_defined.
   rewrite -> Rplus_comm.
-  step (FinjR re + FinjR (Fdiv up e (Fmul down (Fabs v) (Fsub down (Fabs v) e)))).
-  2: apply flt_add_up_le.
+  step (F.injR re + F.injR (F.div up e (F.mul down (F.abs v) (F.sub down (F.abs v) e)))).
+  2: apply F.add_up_le_spec.
   apply Rplus_le_compat_l.
-  step (FinjR e / FinjR (Fmul down (Fabs v) (Fsub down (Fabs v) e))).
-  2: { apply Rge_le. apply flt_div_up. apply Rgt_not_eq. apply Rlt_gt. exact Hr. }
+  step (F.injR e / F.injR (F.mul down (F.abs v) (F.sub down (F.abs v) e))).
+  2: { apply Rge_le. apply F.div_up_spec. apply Rgt_not_eq. apply Rlt_gt. exact Hr. }
   apply Rmult_le_compat_l. { exact He. }
   apply Rinv_le_contravar. { exact Hr. }
-  rewrite <- flt_abs_exact.
-  step (FinjR (Fabs v) * FinjR (Fsub down (Fabs v) e)).
-  - apply flt_mul_down.
-  - apply Rmult_le_compat_l. { rewrite -> flt_abs_exact. apply Rabs_pos. }
-    apply flt_sub_down.
+  rewrite <- F.abs_exact_spec.
+  step (F.injR (F.abs v) * F.injR (F.sub down (F.abs v) e)).
+  - apply F.mul_down_spec.
+  - apply Rmult_le_compat_l. { rewrite -> F.abs_exact_spec. apply Rabs_pos. }
+    apply F.sub_down_spec.
 Qed.
 
 Definition rec_ball (x : Ball) : Ball :=
   match x with ball v e =>
-    let re := (Fdiv2 up (Fsub up (Frec up v) (Frec down v))) in
-      ball (Frec near v) (rec_err_up v e re)
+    let re := (F.div2 up (F.sub up (F.rec up v) (F.rec down v))) in
+      ball (F.rec near v) (rec_err_up v e re)
   end
 .
 
@@ -486,38 +483,38 @@ Proof.
   intros x y.
   destruct x as (v & e).
   unfold rec_ball,rec_ball_defined, models in *.
-  set (rv := Frec near v).
-  set (w:=FinjR v).
+  set (rv := F.rec near v).
+  set (w:=F.injR v).
   set (rw := / w).
   set (ry := / y).
-  set (re := Fdiv2 up (Fsub up (Frec up v) (Frec down v))).
+  set (re := F.div2 up (F.sub up (F.rec up v) (F.rec down v))).
   intros H Hp; simpl in Hp.
-  assert (0<=FinjR e) as He. {
+  assert (0<=F.injR e) as He. {
     step (Rdist w y). apply Rge_le. apply Rdist_pos. apply H.
   }
-  assert (FinjR v <> 0) as Hv. {
+  assert (F.injR v <> 0) as Hv. {
     apply rec_ball_nonzero in Hp; [|exact He].
     apply Rabs_0_neq; apply Rgt_not_eq; apply Rlt_gt.
-    rewrite <- flt_abs_exact.
+    rewrite <- F.abs_exact_spec.
     apply (Rle_lt_trans _ _ _ He Hp).
   }
-  assert (Rdist (FinjR rv) rw <= FinjR re) as Hre. {
+  assert (Rdist (F.injR rv) rw <= F.injR re) as Hre. {
     unfold rv,rw,re.
-    apply (flt_rec_near_up_down_sub_hlf_up); exact Hv.
+    apply (F.rec_near_up_down_sub_hlf_up_spec); exact Hv.
   }
-  assert (Rdist rw ry <= rec_err w (FinjR e)) as Hae. {
+  assert (Rdist rw ry <= rec_err w (F.injR e)) as Hae. {
     apply rec_err_correct.
     unfold w.
-    rewrite <- flt_abs_exact.
+    rewrite <- F.abs_exact_spec.
     apply rec_ball_nonzero. exact Hp.
     exact He.
     exact H.
   }
-  assert (rec_err w (FinjR e) + FinjR re <= FinjR (rec_err_up v e re)) as Hme. {
+  assert (rec_err w (F.injR e) + F.injR re <= F.injR (rec_err_up v e re)) as Hme. {
     apply rec_err_up_correct. exact He. exact Hp.
   }
-  1: step (Rdist (FinjR rv) rw + Rdist rw ry).
-  2: step (rec_err w (FinjR e) + FinjR re).
+  1: step (Rdist (F.injR rv) rw + Rdist rw ry).
+  2: step (rec_err w (F.injR e) + F.injR re).
   - apply Rdist_triang.
   - rewrite -> Rplus_comm. apply Rplus_le_compat. exact Hae. exact Hre.
   - exact Hme.

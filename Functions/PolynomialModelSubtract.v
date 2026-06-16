@@ -36,7 +36,7 @@ Context `{F : Type} `{FltF : Float F}.
 Fixpoint Pnegate (p : list (nat * F)) : list (nat * F) :=
   match p with
   | nil => nil
-  | (m0,c0) :: p1 => (m0, Fneg c0) :: (Pnegate p1)
+  | (m0,c0) :: p1 => (m0, F.neg c0) :: (Pnegate p1)
   end.
 
 Lemma Pnegate_eq_nil : Pnegate nil = nil.
@@ -45,7 +45,7 @@ Proof.
 Qed.
 
 Lemma Pnegate_eq_cons : forall a0 p1,
-  Pnegate (a0::p1) = (fst a0, Fneg (snd a0)) :: Pnegate p1.
+  Pnegate (a0::p1) = (fst a0, F.neg (snd a0)) :: Pnegate p1.
 Proof.
   intros. destruct a0. trivial.
 Qed.
@@ -62,12 +62,12 @@ Proof.
     -- destruct a1 as [m1 c1].
        intros Hs.
        simpl.
-       apply (is_sorted_fst_cons _ _ (m1,Fneg c1)).
+       apply (is_sorted_fst_cons _ _ (m1,F.neg c1)).
        --- trivial.
        --- simpl.
            apply (is_sorted_fst_cons_lt _ _ _ Hs).
        --- set (a1 := (m1,c1)).
-           replace (m1, Fneg c1) with (fst a1, Fneg (snd a1)) by trivial.
+           replace (m1, F.neg c1) with (fst a1, F.neg (snd a1)) by trivial.
            rewrite <- Pnegate_eq_cons.
            apply IHp1.
            apply (is_sorted_fst_cons_inv (m0,c0)).
@@ -93,18 +93,18 @@ Proof.
     exact H.
   - destruct a0 as [m0 c0].
     intros f H x Hx.
-    set (f1 := fun x => f x - (FinjR c0) * x^m0).
-    assert (f x = (FinjR c0) * x^m0 + f1 x) as Hf1 by (unfold f1; field).
+    set (f1 := fun x => f x - (F.injR c0) * x^m0).
+    assert (f x = (F.injR c0) * x^m0 + f1 x) as Hf1 by (unfold f1; field).
     specialize (IHp1 f1).
     unfold PMneg, PMmodels in *.
     simpl in *.
-    replace (FinjR (Fneg c0) * x ^ m0 +
+    replace (F.injR (F.neg c0) * x ^ m0 +
               Pax_eval (Pnegate p1) x - - f x)
       with (Pax_eval (Pnegate p1) x - - f1 x)
-      by (rewrite -> Hf1; rewrite -> flt_neg_exact; field).
+      by (rewrite -> Hf1; rewrite -> F.neg_exact_spec; field).
       apply IHp1; [|exact Hx].
       intros x' Hx'.
-      replace (Pax_eval p1 x' - f1 x') with (FinjR (snd (m0, c0)) * x' ^ fst (m0, c0) + Pax_eval p1 x' - f x').
+      replace (Pax_eval p1 x' - f1 x') with (F.injR (snd (m0, c0)) * x' ^ fst (m0, c0) + Pax_eval p1 x' - f x').
       apply H; exact Hx'.
       unfold f1; simpl; field.
 Qed.

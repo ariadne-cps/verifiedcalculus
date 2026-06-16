@@ -44,7 +44,7 @@ Context `{F : Type} `{FltF : Float F}.
 
 
 Lemma PMmodels_approximation : forall t f f' d,
-  PMmodels t f -> (forall x, -1<=x<=1 -> Rdist (f x) (f' x) <= FinjR d) ->
+  PMmodels t f -> (forall x, -1<=x<=1 -> Rdist (f x) (f' x) <= F.injR d) ->
     PMmodels (PMadd t (PMerror_ball d)) f'.
 Proof.
   unfold PMmodels.
@@ -63,21 +63,21 @@ Proof.
   simpl.
   apply Rle_trans with (Rabs (Pax_eval p x - f x) + Rabs (f x - f' x)).
   - apply Rabs_dist_triang.
-  - apply Rle_trans with (FinjR e + FinjR d).
+  - apply Rle_trans with (F.injR e + F.injR d).
     -- apply Rplus_le_compat. exact Hf. exact He.
-    -- stepl ((FinjR e + FinjR d) + 0%R) by ring.
-       rewrite <- flt_null.
-       apply Rle_trans with (FinjR (Fadd up e d) + FinjR Fnull).
-       --- apply Rplus_le_compat_r. apply flt_add_up_le.
-       --- apply flt_add_up_le.
+    -- stepl ((F.injR e + F.injR d) + 0%R) by ring.
+       rewrite <- F.null_spec.
+       apply Rle_trans with (F.injR (F.add up e d) + F.injR F.null).
+       --- apply Rplus_le_compat_r. apply F.add_up_le_spec.
+       --- apply F.add_up_le_spec.
 Qed.
 
 
 
 Fixpoint PMgeometric n p :=
   match n with
-  | O => PMconstant Funit
-  | S m => PMadd (PMconstant Funit) (PMmul p (PMgeometric m p))
+  | O => PMconstant F.unit
+  | S m => PMadd (PMconstant F.unit) (PMmul p (PMgeometric m p))
   end
 .
 
@@ -87,10 +87,10 @@ Proof.
   intros n t f H.
   induction n.
   - simpl.
-    rewrite <- flt_unit. apply PMconstant_correct.
+    rewrite <- F.unit_spec. apply PMconstant_correct.
   - simpl.
     apply PMadd_correct.
-    -- rewrite <- flt_unit.
+    -- rewrite <- F.unit_spec.
        apply PMconstant_correct.
     -- apply PMmul_correct.
          exact H. exact IHn.
@@ -98,13 +98,13 @@ Qed.
 
 
 Definition PMrec (n : nat) (t : PolynomialModel) : PolynomialModel :=
-  let t' := PMsub (PMconstant Funit) t in
+  let t' := PMsub (PMconstant F.unit) t in
   let d' := PMnorm t' in
-  PMadd (PMgeometric n t') (PMerror_ball (Fdiv up (Fpow_up d' (n+1)) (Fsub down Funit d'))).
+  PMadd (PMgeometric n t') (PMerror_ball (F.div up (F.pow_up d' (n+1)) (F.sub down F.unit d'))).
 
 (* A lower bound on min[-1<=x<=1](1-t(x)) *)
 Definition PMunit_mig t :=
-   FinjR (Fsub down Funit (PMnorm (PMsub (PMconstant Funit) t))).
+   F.injR (F.sub down F.unit (PMnorm (PMsub (PMconstant F.unit) t))).
 
 Theorem PMrec_correct : forall (n : nat) (t : PolynomialModel) (f : R->R),
   (PMunit_mig t > 0) -> PMmodels t f ->
@@ -113,26 +113,26 @@ Proof.
   intros n t' f'.
   intros Hd H'.
   unfold PMunit_mig in *.
-  remember (PMsub (PMconstant Funit) t') as t.
+  remember (PMsub (PMconstant F.unit) t') as t.
   remember (fun x => 1 - f' x) as f.
   set (b:=PMnorm t).
-  assert (FinjR b < 1) as Hb1. {
-    assert (FinjR (Funit) - FinjR (PMnorm t) > 0) as Hb'. {
-      apply Rge_gt_trans with (FinjR (Fsub down Funit (PMnorm t))).
-      apply Rle_ge. apply flt_sub_down. exact Hd.
+  assert (F.injR b < 1) as Hb1. {
+    assert (F.injR (F.unit) - F.injR (PMnorm t) > 0) as Hb'. {
+      apply Rge_gt_trans with (F.injR (F.sub down F.unit (PMnorm t))).
+      apply Rle_ge. apply F.sub_down_spec. exact Hd.
     }
-    rewrite -> flt_unit in Hb'.
-    apply Rplus_lt_reg_r with (-FinjR b).
+    rewrite -> F.unit_spec in Hb'.
+    apply Rplus_lt_reg_r with (-F.injR b).
     rewrite -> Rplus_opp_r. apply Rgt_lt. apply Hb'.
   }
   assert (PMmodels t f) as H. {
     rewrite -> Heqt. rewrite -> Heqf.
     apply PMsub_correct.
-    rewrite <- flt_unit.
+    rewrite <- F.unit_spec.
     apply PMconstant_correct.
     exact H'.
   }
-  assert (forall x, -1<=x<=1 -> Rabs (f x) <= FinjR b) as Hfb. {
+  assert (forall x, -1<=x<=1 -> Rabs (f x) <= F.injR b) as Hfb. {
     apply PMnorm_correct. exact H.
   }
   assert (forall x, -1<=x<=1 -> f' x > 0) as Hf0'. {
@@ -140,7 +140,7 @@ Proof.
     replace (f' x) with (1 - f x).
     assert (f x < 1) as Hf1. {
       apply Rabs_def2.
-      apply Rle_lt_trans with (FinjR b).
+      apply Rle_lt_trans with (F.injR b).
       apply PMnorm_correct. exact H. exact Hx. exact Hb1.
     }
     apply Rplus_lt_reg_r with (f x).
@@ -162,14 +162,14 @@ Proof.
   rewrite <- Heqt.
   clear H'.
 
-  assert (0<=FinjR b) as Hb0. {
+  assert (0<=F.injR b) as Hb0. {
     apply Rle_trans with (Rabs (f 0)).
     apply Rabs_pos.
     apply PMnorm_correct.
     exact H.
     lra.
   }
-  set ( e := Fdiv up (Fpow_up b (n+1)) (Fsub down Funit b) ).
+  set ( e := F.div up (F.pow_up b (n+1)) (F.sub down F.unit b) ).
   set (fg := fun x => Fgeometric n f x).
   set (fe := fun x => /(1-f x) - Fgeometric n f x).
   apply PMmodels_extensional with (fun x => fg x + fe x).
@@ -180,7 +180,7 @@ Proof.
        intros x Hx.
        replace (Rabs (0 - fe x)) with (Rabs (fe x)).
        2: { unfold Rminus. rewrite -> Rplus_0_l. rewrite -> Rabs_Ropp. reflexivity. }
-       set (d:=FinjR b).
+       set (d:=F.injR b).
        assert (forall x, -1<=x<=1 -> Rabs (fe x) <= d^(n+1)/(1-d)) as Hde. {
          unfold fe. intros x0 Hx0. rewrite -> FRgeometric_equal. revert x0 Hx0.
          apply Fgeometric_approx.
@@ -191,21 +191,21 @@ Proof.
        apply Rle_trans with (d^(n+1)/(1-d)).
        --- apply Hde. exact Hx.
        --- unfold d, e.
-           apply Rle_trans with ( FinjR (Fpow_up b (n + 1)) / FinjR (Fsub down Funit b) ).
+           apply Rle_trans with ( F.injR (F.pow_up b (n + 1)) / F.injR (F.sub down F.unit b) ).
            ---- apply Rmult_le_compat.
                 ----- apply pow_le. exact Hb0.
                 ----- apply Rlt_le. apply Rinv_pos.
-                      apply Rplus_lt_reg_r with (FinjR b). rewrite -> Rplus_0_l.
+                      apply Rplus_lt_reg_r with (F.injR b). rewrite -> Rplus_0_l.
                       unfold Rminus. rewrite -> Rplus_assoc. rewrite -> Rplus_opp_l. rewrite -> Rplus_0_r. exact Hb1.
-                ----- apply flt_pow_up_le. exact Hb0.
+                ----- apply F.pow_up_le_spec. exact Hb0.
                 ----- apply Rinv_le_contravar.
                       apply Rlt_gt. apply Hd.
-                      rewrite <- flt_unit. apply flt_sub_down.
-           ---- apply Rge_le. apply flt_div_up.
-                apply Rgt_not_eq. apply Hd. (* The inequality FinjR (Fsub down Funit b) <> 0 is probably false. *)
+                      rewrite <- F.unit_spec. apply F.sub_down_spec.
+           ---- apply Rge_le. apply F.div_up_spec.
+                apply Rgt_not_eq. apply Hd. (* The inequality F.injR (F.sub down F.unit b) <> 0 is probably false. *)
   - unfold fg, fe. intros x Hx. field.
     assert (Rabs (f x) < 1) as Hfx1. {
-      apply Rle_lt_trans with (FinjR b).
+      apply Rle_lt_trans with (F.injR b).
       apply PMnorm_correct. exact H. exact Hx. exact Hb1.
     }
     assert (f x < 1 /\ -1 < f x) as Hfx0. { apply Rabs_def2. exact Hfx1. }
