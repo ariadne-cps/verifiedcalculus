@@ -418,4 +418,3 @@ Qed.
 Close Scope Z_scope.
 
 End Q2.
-
