@@ -30,21 +30,25 @@ Require Import RealAddenda.
 Require Import Floats.
 Require Import Analysis.
 
-Section FloatBall.
+Module Bll.
+
+Section Ball_section.
 
 Open Scope R_scope.
 
-Context `{F : Type} `{FltF : Float F}.
-
 Inductive Ball {F:Type} {FltF : Float F} :=
   ball (value:F) (error:F).
+
+Arguments Ball (F) {FltF}.
+
+Context `{F : Type} `{FltF : Float F}.
 
 Check ball.
 
 Definition value (x : @Ball F FltF) : F := match x with ball v _ => v end.
 Definition error (x : @Ball F FltF) : F := match x with ball _ e => e end.
 
-Definition models : Ball -> R -> Prop :=
+Definition models : Ball F -> R -> Prop :=
   fun x y => match x with ball v e => Rdist (F.injR v) y <= (F.injR e) end.
 
 
@@ -118,20 +122,20 @@ Qed.
 
 
 
-Definition add_ball : Ball -> Ball -> Ball :=
+Definition add : Ball F -> Ball F -> Ball F :=
   fun x1 x2 =>
     match x1 with ball v1 e1
       => match x2 with ball v2 e2
         => ball (F.add near v1 v2) (F.add up (F.div2 up (F.sub up (F.add up v1 v2) (F.add down v1 v2))) (F.add up e1 e2)) end end.
 
-Lemma add_ball_correct :
-  forall (x1 x2 : Ball) (y1 y2 : R),
-    models x1 y1 -> models x2 y2 -> models (add_ball x1 x2) (y1+y2).
+Lemma add_correct :
+  forall (x1 x2 : Ball F) (y1 y2 : R),
+    models x1 y1 -> models x2 y2 -> models (add x1 x2) (y1+y2).
 Proof.
   intros x1 x2 y1 y2 H1 H2.
   destruct x1 as (v1 & e1), x2 as (v2 & e2).
   unfold models in H1,H2;
-  unfold models; unfold add_ball.
+  unfold models; unfold add.
   set (v12 := F.add near v1 v2).
   set (w12 := F.injR v1 + F.injR v2).
   set (y12 := y1 + y2).
@@ -157,18 +161,18 @@ Proof.
 Qed.
 
 
-Definition sub_ball (x1 x2 : Ball) : Ball :=
+Definition sub (x1 x2 : Ball F) : Ball F :=
   match x1 with ball v1 e1 => match x2 with ball v2 e2
     => ball (F.sub near v1 v2) (F.add up (F.div2 up (F.sub up (F.sub up v1 v2) (F.sub down v1 v2))) (F.add up e1 e2)) end end.
 
-Lemma sub_ball_correct :
-  forall (x1 x2 : Ball) (y1 y2 : R),
-    models x1 y1 -> models x2 y2 -> models (sub_ball x1 x2) (y1-y2).
+Lemma sub_correct :
+  forall (x1 x2 : Ball F) (y1 y2 : R),
+    models x1 y1 -> models x2 y2 -> models (sub x1 x2) (y1-y2).
 Proof.
   intros x1 x2 y1 y2 H1 H2.
   destruct x1 as (v1 & e1), x2 as (v2 & e2).
   unfold models in H1,H2;
-  unfold models; unfold add_ball.
+  unfold models; unfold add.
   set (v12 := F.sub near v1 v2).
   set (w12 := F.injR v1 - F.injR v2).
   set (y12 := y1 - y2).
@@ -217,7 +221,7 @@ Qed.
 
 
 
-Definition mul_ball (x1 x2 : Ball) : Ball :=
+Definition mul (x1 x2 : Ball F) : Ball F :=
   match x1 with ball v1 e1 =>
     match x2 with ball v2 e2 =>
      let v12 := (F.mul near v1 v2) in
@@ -228,13 +232,13 @@ Definition mul_ball (x1 x2 : Ball) : Ball :=
 .
 
 
-Lemma mul_ball_correct :
-  forall (x1 x2 : Ball) (y1 y2 : R),
-    models x1 y1 -> models x2 y2 -> models (mul_ball x1 x2) (y1*y2).
+Lemma mul_correct :
+  forall (x1 x2 : Ball F) (y1 y2 : R),
+    models x1 y1 -> models x2 y2 -> models (mul x1 x2) (y1*y2).
 Proof.
   intros x1 x2 y1 y2.
   destruct x1 as (v1 & e1), x2 as (v2 & e2).
-  unfold mul_ball, models in *.
+  unfold mul, models in *.
   set (v12 := F.mul near v1 v2).
   set (w1:=F.injR v1); set (w2:=F.injR v2).
   set (w12 := w1 * w2).
@@ -264,13 +268,13 @@ Qed.
 Definition div_err_up v1 v2 e1 e2 re :=
   F.add up re (F.div up (F.add up e1 (F.mul up e2 (F.div up (F.abs v1) (F.abs v2)))) (F.sub down (F.abs v2) e2)).
 
-Definition div_ball_defined (v1 v2 e1 e2 : F) :=
+Definition div_defined (v1 v2 e1 e2 : F) :=
   0 < F.injR (F.sub down (F.abs v2) e2).
 
-Lemma div_ball_nonzero : forall v1 v2 e1 e2,
-  div_ball_defined v1 v2 e1 e2 -> 0 <= F.injR e2 -> F.injR e2 < F.injR (F.abs v2).
+Lemma div_nonzero : forall v1 v2 e1 e2,
+  div_defined v1 v2 e1 e2 -> 0 <= F.injR e2 -> F.injR e2 < F.injR (F.abs v2).
 Proof.
-  unfold div_ball_defined.
+  unfold div_defined.
   intros _ v _ e H He.
   apply Rlt_zero_Rminus.
   apply Rlt_le_trans with (F.injR (F.sub down (F.abs v) e)).
@@ -310,7 +314,7 @@ Proof.
      rewrite <- F.abs_exact_spec. exact Hav2ne0. }
   assert (0</Rabs (F.injR v2)) as Hraw2. {
     apply Rinv_pos. rewrite <- F.abs_exact_spec. exact Hav2. }
-  unfold div_err,div_err_up, div_ball_defined.
+  unfold div_err,div_err_up, div_defined.
   rewrite -> Rplus_comm.
   apply Fadd_up_le_compat_l.
   rewrite <- Rdiv_Rdiv_Rmult_numerator;
@@ -335,7 +339,7 @@ Proof.
     apply F.sub_down_spec.
 Qed.
 
-Definition div_ball (x1 x2 : Ball) : Ball :=
+Definition div (x1 x2 : Ball F) : Ball F :=
   match x1 with ball v1 e1 =>
     match x2 with ball v2 e2 =>
       let re := (F.div2 up (F.sub up (F.div up v1 v2) (F.div down v1 v2))) in
@@ -344,15 +348,15 @@ Definition div_ball (x1 x2 : Ball) : Ball :=
   end
 .
 
-Lemma div_ball_correct :
-  forall (x1 x2 : Ball) (y1 y2 : R),
+Lemma div_correct :
+  forall (x1 x2 : Ball F) (y1 y2 : R),
     models x1 y1 -> models x2 y2 ->
-      div_ball_defined (value x1) (value x2) (error x1) (error x2) ->
-        models (div_ball x1 x2) (y1/y2).
+      div_defined (value x1) (value x2) (error x1) (error x2) ->
+        models (div x1 x2) (y1/y2).
 Proof.
   intros x1 x2 y1 y2.
   destruct x1 as (v1 & e1); destruct x2 as (v2 & e2).
-  unfold div_ball,div_ball_defined, models in *.
+  unfold div,div_defined, models in *.
   set (rv := F.div near v1 v2).
   set (w1:=F.injR v1); set (w2:=F.injR v2).
   set (d1:=F.injR e1); set (d2:=F.injR e2).
@@ -387,7 +391,7 @@ Proof.
     apply div_err_correct.
     unfold w1, w2.
     rewrite <- F.abs_exact_spec.
-    apply (div_ball_nonzero v1 v2 e1 e2). exact Hp.
+    apply (div_nonzero v1 v2 e1 e2). exact Hp.
     exact Hd2.
     exact H1.
     exact H2.
@@ -410,14 +414,14 @@ Qed.
 Definition rec_err_up v e re :=
   F.add up re (F.div up e (F.mul down (F.abs v) (F.sub down (F.abs v) e))).
 
-Definition rec_ball_defined v e :=
+Definition rec_defined v e :=
   0 < F.injR (F.mul down (F.abs v) (F.sub down (F.abs v) e)).
 
-Lemma rec_ball_nonzero : forall v e,
-  rec_ball_defined v e -> 0 <= F.injR e -> F.injR e < F.injR (F.abs v).
+Lemma rec_nonzero : forall v e,
+  rec_defined v e -> 0 <= F.injR e -> F.injR e < F.injR (F.abs v).
 Proof.
   intros v e H He.
-  unfold rec_ball_defined in H.
+  unfold rec_defined in H.
   assert (0 < F.injR (F.abs v)). {
     assert (0 <= F.injR (F.abs v)) as Hp. { rewrite -> F.abs_exact_spec. apply Rabs_pos. }
     unfold Rle in Hp; destruct Hp as [Hgt|H0]; [assumption|].
@@ -446,12 +450,12 @@ Qed.
 
 Lemma rec_err_up_correct : forall v e re,
   0<=F.injR e ->
-    rec_ball_defined v e ->
+    rec_defined v e ->
       rec_err (F.injR v) (F.injR e) + (F.injR re)
         <= F.injR (rec_err_up v e re).
 Proof.
   intros v e re He Hr.
-  unfold rec_err,rec_err_up, rec_ball_defined.
+  unfold rec_err,rec_err_up, rec_defined.
   rewrite -> Rplus_comm.
   step (F.injR re + F.injR (F.div up e (F.mul down (F.abs v) (F.sub down (F.abs v) e)))).
   2: apply F.add_up_le_spec.
@@ -467,22 +471,22 @@ Proof.
     apply F.sub_down_spec.
 Qed.
 
-Definition rec_ball (x : Ball) : Ball :=
+Definition rec (x : Ball F) : Ball F :=
   match x with ball v e =>
     let re := (F.div2 up (F.sub up (F.rec up v) (F.rec down v))) in
       ball (F.rec near v) (rec_err_up v e re)
   end
 .
 
-Lemma rec_ball_correct :
-  forall (x : Ball) (y : R),
+Lemma rec_correct :
+  forall (x : Ball F) (y : R),
     models x y ->
-      rec_ball_defined (value x) (error x) ->
-        models (rec_ball x) (/y).
+      rec_defined (value x) (error x) ->
+        models (rec x) (/y).
 Proof.
   intros x y.
   destruct x as (v & e).
-  unfold rec_ball,rec_ball_defined, models in *.
+  unfold rec,rec_defined, models in *.
   set (rv := F.rec near v).
   set (w:=F.injR v).
   set (rw := / w).
@@ -493,7 +497,7 @@ Proof.
     step (Rdist w y). apply Rge_le. apply Rdist_pos. apply H.
   }
   assert (F.injR v <> 0) as Hv. {
-    apply rec_ball_nonzero in Hp; [|exact He].
+    apply rec_nonzero in Hp; [|exact He].
     apply Rabs_0_neq; apply Rgt_not_eq; apply Rlt_gt.
     rewrite <- F.abs_exact_spec.
     apply (Rle_lt_trans _ _ _ He Hp).
@@ -506,7 +510,7 @@ Proof.
     apply rec_err_correct.
     unfold w.
     rewrite <- F.abs_exact_spec.
-    apply rec_ball_nonzero. exact Hp.
+    apply rec_nonzero. exact Hp.
     exact He.
     exact H.
   }
@@ -522,23 +526,27 @@ Qed.
 
 
 
-Definition div_ball' (x1 x2 : Ball) : Ball :=
-  mul_ball x1 (rec_ball x2).
+Definition div' (x1 x2 : Ball F) : Ball F :=
+  mul x1 (rec x2).
 
 
-Lemma div_ball_correct' :
-  forall (x1 x2 : Ball) (y1 y2 : R),
+Lemma div_correct' :
+  forall (x1 x2 : Ball F) (y1 y2 : R),
     models x1 y1 -> models x2 y2 ->
-      rec_ball_defined (value x2) (error x2) ->
-        models (div_ball' x1 x2) (y1/y2).
+      rec_defined (value x2) (error x2) ->
+        models (div' x1 x2) (y1/y2).
 Proof.
   intros x1 x2 y1 y2 H1 H2 Hor.
   unfold Rdiv.
-  apply mul_ball_correct.
+  apply mul_correct.
   - exact H1.
-  - apply rec_ball_correct.
+  - apply rec_correct.
     exact H2.
     exact Hor.
 Qed.
 
-End FloatBall.
+End Ball_section.
+
+End Bll.
+
+Export Bll(Ball,ball).

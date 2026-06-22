@@ -1,5 +1,5 @@
 (******************************************************************************
- *  utilities/Bounds.v
+ *  Numbers/Bounds.v
  *
  *  Copyright 2023 Pieter Collins
  *
@@ -29,24 +29,27 @@ From Stdlib Require Import Lra.
 Require Import RealAddenda.
 Require Import Floats.
 
+Module Bnds.
 
-Section Bounds.
+Section Bounds_section.
 
 Open Scope R_scope.
 
 Inductive Bounds {F:Type} {FltF : Float F} :=
   bounds (lower:F) (upper:F).
 
-Check bounds.
+Arguments Bounds (F) {FltF}.
 
 Context `{F : Type} `{FltF : Float F}.
 
+Check bounds.
 
-Definition models : Bounds -> R -> Prop :=
+
+Definition models : Bounds F -> R -> Prop :=
   fun x y => match x with bounds l u => F.injR l <= y /\ y <= F.injR u end.
 
 
-Definition add_bounds : Bounds -> Bounds -> Bounds :=
+Definition add : Bounds F -> Bounds F -> Bounds F :=
   fun x1 x2 =>
     match x1 with bounds l1 u1
       => match x2 with bounds l2 u2
@@ -56,14 +59,14 @@ Definition add_bounds : Bounds -> Bounds -> Bounds :=
   fun (bounds l1 u1) (bounds l2 u2) bounds (add down l1 l2) (add up u1 u2).
 *)
 
-Lemma add_bounds_correct :
-  forall (x1 x2 : Bounds) (y1 y2 : R),
-    models x1 y1 -> models x2 y2 -> models (add_bounds x1 x2) (y1+y2).
+Lemma add_correct :
+  forall (x1 x2 : Bounds F) (y1 y2 : R),
+    models x1 y1 -> models x2 y2 -> models (add x1 x2) (y1+y2).
 Proof.
   intros x1 x2 y1 y2 H1 H2.
   destruct x1 as (l1 & u1), x2 as (l2 & u2).
   unfold models in H1,H2;
-  unfold models; unfold add_bounds.
+  unfold models; unfold add.
   split.
   - apply Rle_trans with (r2:=F.injR l1 + F.injR l2).
     -- apply F.add_down_spec.
@@ -73,8 +76,8 @@ Proof.
     -- apply Rge_le; apply F.add_up_spec.
 Qed.
 
-(* Definition sub_bounds ((bounds l1 u1) : Bounds) (x2 : Bounds) : Bounds *)
-Definition sub_bounds (x1 x2 : Bounds) : Bounds :=
+(* Definition sub ((bounds l1 u1) : Bounds F) (x2 : Bounds F) : Bounds F *)
+Definition sub (x1 x2 : Bounds F) : Bounds F :=
   match x1 with bounds l1 u1 => match x2 with bounds l2 u2
       => bounds (F.sub down l1 u2) (F.sub up u1 l2) end end.
 
@@ -85,14 +88,14 @@ Proof.
   lra.
 Qed.
 
-Lemma sub_bounds_correct :
-  forall (x1 x2 : Bounds) (y1 y2 : R),
-    models x1 y1 -> models x2 y2 -> models (sub_bounds x1 x2) (y1-y2).
+Lemma sub_correct :
+  forall (x1 x2 : Bounds F) (y1 y2 : R),
+    models x1 y1 -> models x2 y2 -> models (sub x1 x2) (y1-y2).
 Proof.
   intros x1 x2 y1 y2 H1 H2.
   destruct x1 as (l1 & u1), x2 as (l2 & u2).
   unfold models in H1,H2.
-  unfold models; unfold sub_bounds.
+  unfold models; unfold sub.
   split.
   - apply Rle_trans with (r2:=F.injR l1 - F.injR u2).
     -- apply F.sub_down_spec.
@@ -104,7 +107,7 @@ Qed.
 
 
 
-Definition mul_bounds (x1 x2 : Bounds) : Bounds :=
+Definition mul (x1 x2 : Bounds F) : Bounds F :=
   match x1 with bounds l1 u1 =>
     match x2 with bounds l2 u2 =>
       if F.leb F.null l1 then
@@ -238,9 +241,9 @@ Qed.
 
 
 
-Lemma mul_bounds_correct :
-  forall (x1 x2 : Bounds) (y1 y2 : R),
-    models x1 y1 -> models x2 y2 -> models (mul_bounds x1 x2) (y1*y2).
+Lemma mul_correct :
+  forall (x1 x2 : Bounds F) (y1 y2 : R),
+    models x1 y1 -> models x2 y2 -> models (mul x1 x2) (y1*y2).
 Proof.
   intros x1 x2 y1 y2 H1 H2.
   destruct x1 as (l1 & u1), x2 as (l2 & u2).
@@ -248,7 +251,7 @@ Proof.
   remember (conj H1l H1u) as H1; remember (conj H2l H2u) as H2.
   unfold models in H1,H2.
   unfold models.
-  unfold mul_bounds.
+  unfold mul.
   remember (F.leb F.null l1) as bl1.
   remember (F.leb u1 F.null) as bu1.
   remember (F.leb F.null l2) as bl2.
@@ -477,7 +480,7 @@ Proof.
 Qed.
 
 
-Definition div_bounds (x1 x2 : Bounds) : Bounds :=
+Definition div (x1 x2 : Bounds F) : Bounds F :=
   match x1 with bounds l1 u1 =>
     match x2 with bounds l2 u2 =>
       if F.leb F.null l1 then
@@ -578,9 +581,9 @@ Qed.
 
 
 
-Lemma div_bounds_correct :
-  forall (x1 x2 : Bounds) (y1 y2 : R),
-    models x1 y1 -> models x2 y2 -> (0 < F.injR (lower x2) \/ F.injR (upper x2) < 0) -> models (div_bounds x1 x2) (y1/y2).
+Lemma div_correct :
+  forall (x1 x2 : Bounds F) (y1 y2 : R),
+    models x1 y1 -> models x2 y2 -> (0 < F.injR (lower x2) \/ F.injR (upper x2) < 0) -> models (div x1 x2) (y1/y2).
 Proof.
   intros x1 x2 y1 y2 H1 H2 Hor.
   destruct x1 as (l1 & u1), x2 as (l2 & u2).
@@ -589,7 +592,7 @@ Proof.
   unfold lower in Hor; unfold upper in Hor.
   unfold models in H1,H2.
   unfold models.
-  unfold div_bounds.
+  unfold div.
   remember (F.leb F.null l1) as bl1.
   remember (F.leb u1 F.null) as bu1.
   remember (F.leb F.null l2) as bl2.
@@ -766,31 +769,37 @@ Proof.
     }
 Qed.
 
+Notation Rpow := Rpow_def.pow.
 
-Fixpoint pow_bounds (x : Bounds) (n:nat) : Bounds :=
+Fixpoint pow (x : Bounds F) (n:nat) : Bounds F :=
   match n with
   | O => bounds F.unit F.unit
-  | S m => mul_bounds x (pow_bounds x m)
+  | S m => mul x (pow x m)
   end.
 
-Lemma pow_bounds_succ : forall x n, pow_bounds x (S n) = mul_bounds x (pow_bounds x n).
+Lemma pow_succ : forall x n, pow x (S n) = mul x (pow x n).
 Proof. intros. simpl. auto. Qed.
 
-Lemma pow_bounds_correct : forall (x : Bounds) (n:nat) (y : R),
-    models x y -> models (pow_bounds x n) (pow y n).
+Lemma pow_correct : forall (x : Bounds F) (n:nat) (y : R),
+    models x y -> models (pow x n) (Rpow y n).
 Proof.
   intros x n y H.
   induction n as [|n Hn].
   - simpl. unfold F.unit.
     rewrite -> F.ninjr_spec.
     split; apply Rle_refl.
-  - rewrite -> pow_bounds_succ.
+  - rewrite -> pow_succ.
     replace (y ^ (S n)) with (y * y^n).
-    apply mul_bounds_correct; [exact H|exact Hn].
+    apply mul_correct; [exact H|exact Hn].
     rewrite <- Nat.add_1_l.
     rewrite -> Rdef_pow_add.
     rewrite -> pow_1.
     reflexivity.
 Qed.
 
-End Bounds.
+End Bounds_section.
+
+End Bnds.
+
+
+Export Bnds(Bounds,bounds).

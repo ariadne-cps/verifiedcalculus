@@ -37,6 +37,8 @@ From Stdlib Require Import Lra.
 
 Open Scope R_scope.
 
+Notation Rpow := Rpow_def.pow.
+
 Lemma Rlt_stepl:forall x y z, Rlt x y -> x=z -> Rlt z y.
 Proof.
  intros x y z H_lt H_eq; subst; assumption.

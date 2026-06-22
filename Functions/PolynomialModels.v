@@ -81,11 +81,11 @@ Record PolynomialModel {F} {FltF : Float F} : Type :=
 Fixpoint Pax_eval (p:list (nat*F)) (x:R) : R :=
     match p with
     | nil => 0
-    | fn :: p0 =>  (F.injR (snd fn) * (pow x (fst fn))) + Pax_eval p0 x
+    | fn :: p0 =>  (F.injR (snd fn) * (Rpow x (fst fn))) + Pax_eval p0 x
     end.
 
 Lemma Pax_eval_eq : forall t p x,
-  Pax_eval (t :: p) x = (F.injR (snd t)) * (pow x (fst t)) + Pax_eval p x.
+  Pax_eval (t :: p) x = (F.injR (snd t)) * (Rpow x (fst t)) + Pax_eval p x.
 Proof.
  intros; trivial.
 Qed.
@@ -233,12 +233,12 @@ Fixpoint Peval {FF} {FltFF : Float FF}
     match p with
     | nil => bounds F.null F.null
     | a0 :: p1 => let c := bounds (snd a0) (snd a0) in
-                    let y := pow_bounds x (fst a0) in
-                      add_bounds (mul_bounds c y) (Peval p1 x)
+                    let y := Bnds.pow x (fst a0) in
+                      Bnds.add (Bnds.mul c y) (Peval p1 x)
     end.
 
 Lemma Peval_cons : forall a0 p1 x, Peval (a0::p1) x =
-  add_bounds (mul_bounds (bounds (snd a0) (snd a0)) (pow_bounds x (fst a0))) (Peval p1 x).
+  Bnds.add (Bnds.mul (bounds (snd a0) (snd a0)) (Bnds.pow x (fst a0))) (Peval p1 x).
 Proof. intros. simpl. trivial. Qed.
 
 Lemma Pax_eval_cons : forall a0 p1 y, Pax_eval (a0::p1) y =
@@ -247,7 +247,7 @@ Proof. intros. simpl. trivial. Qed.
 
 
 Lemma Peval_correct :
-  forall p x y, models x y -> models (Peval p x) (Pax_eval p y).
+  forall p x y, Bnds.models x y -> Bnds.models (Peval p x) (Pax_eval p y).
 Proof.
   intros p x y H.
   induction p as [|a0 p1 IHp].
@@ -255,10 +255,10 @@ Proof.
     rewrite -> F.ninjr_spec.
     split; apply Rle_refl.
   - rewrite -> Peval_cons, Pax_eval_cons.
-    1: apply add_bounds_correct.
-    1: apply mul_bounds_correct.
-    2: apply pow_bounds_correct.
-    -- unfold models. split; apply Rle_refl.
+    1: apply Bnds.add_correct.
+    1: apply Bnds.mul_correct.
+    2: apply Bnds.pow_correct.
+    -- unfold Bnds.models. split; apply Rle_refl.
     -- exact H.
     -- exact IHp.
 Qed.
@@ -266,12 +266,12 @@ Qed.
 
 Definition PMeval {FF} {FltFF : Float FF}
    (t : PolynomialModel) (x : Bounds) : Bounds :=
-  add_bounds
+  Bnds.add
     (Peval t.(polynomial) x)
     (bounds (F.neg t.(error)) (t.(error))).
 
 Theorem PMeval_correct : forall t f x y, (-1 <= y <= 1) ->
-  PMmodels t f -> models x y -> models (PMeval t x) (f y).
+  PMmodels t f -> Bnds.models x y -> Bnds.models (PMeval t x) (f y).
 Proof.
   intros t f x y Hy.
   destruct t as [p e].
@@ -282,10 +282,10 @@ Proof.
   intros Hmt Hmx.
   specialize (Hmt y Hy).
   replace (f y) with (g y + (f y - g y)) by ring.
-  apply add_bounds_correct.
+  apply Bnds.add_correct.
   - apply Peval_correct.
     exact Hmx.
-  - unfold models.
+  - unfold Bnds.models.
     rewrite -> F.neg_exact_spec.
     apply Rabs_ivl.
     rewrite -> Rabs_minus_sym.
