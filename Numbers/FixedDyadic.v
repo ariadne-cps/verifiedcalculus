@@ -1,5 +1,5 @@
 (******************************************************************************
- *  Numbers/DyadicFloat.v
+ *  Numbers/FixedDyadic.v
  *
  *  Copyright 2023 Pieter Collins
  *
@@ -30,8 +30,14 @@ From Stdlib Require Import Reals.Rbasic_fun.
 From Stdlib Require Import Reals.Rbasic_fun.
 From Stdlib Require Import Reals.Rdefinitions.
 
-Require Export RealAddenda.
+Require Import RealAddenda.
+
+Require Import Floats(Rounding,up,near,down,Rapply).
+
+(*
+Require FixedDyadic.
 Require Export Floats.
+*)
 
 From Stdlib Require Import QArith.
 From Stdlib Require Import ZArith.Zorder.
@@ -342,80 +348,83 @@ Close Scope Z_scope.
 
 Open Scope Z_scope.
 
-Inductive Dyadic (n : nat) : Type
-  := Wmake (p:Z).
+Module W.
 
-Definition Wmantissa {n : nat} (x : Dyadic n) : Z :=
-  match x with (Wmake _ p) => p end.
-Definition Wexponent {n : nat} (x : Dyadic n) : nat :=
+Inductive FixedDyadic (n : nat) : Type
+  := make (p:Z).
+
+
+Definition mantissa {n : nat} (x : FixedDyadic n) : Z :=
+  match x with (make _ p) => p end.
+Definition exponent {n : nat} (x : FixedDyadic n) : nat :=
   n.
 
-Definition Wof_nat (n : nat) :=
-  fun k => Wmake n ((Z.of_nat k) * Z.pow 2 (Z.of_nat n)).
+Definition of_nat (n : nat) :=
+  fun k => make n ((Z.of_nat k) * Z.pow 2 (Z.of_nat n)).
 
-Definition WinjR {n : nat} (x : Dyadic n) : R :=
-  IZR (Wmantissa x) / IZR (Zpow2 n).
+Definition injR {n : nat} (x : FixedDyadic n) : R :=
+  IZR (mantissa x) / IZR (Zpow2 n).
 
 
-Definition Wneg {n : nat} (x : Dyadic n) : (Dyadic n) :=
-  Wmake n (- Wmantissa x).
+Definition neg {n : nat} (x : FixedDyadic n) : (FixedDyadic n) :=
+  make n (- mantissa x).
 
-Definition Wabs {n : nat} (x : Dyadic n) : (Dyadic n) :=
-  Wmake n ( Z.abs (Wmantissa x) ).
+Definition abs {n : nat} (x : FixedDyadic n) : (FixedDyadic n) :=
+  make n ( Z.abs (mantissa x) ).
 
-Definition Wmax {n : nat} (x1 : Dyadic n) (x2 : Dyadic n) : (Dyadic n) :=
-  let p1 := Wmantissa x1 in let p2 := Wmantissa x2 in
-    Wmake n (Z.max (Wmantissa x1) (Wmantissa x2)).
+Definition max {n : nat} (x1 : FixedDyadic n) (x2 : FixedDyadic n) : (FixedDyadic n) :=
+  let p1 := mantissa x1 in let p2 := mantissa x2 in
+    make n (Z.max (mantissa x1) (mantissa x2)).
 
-Definition Wmin {n : nat} (x1 : Dyadic n) (x2 : Dyadic n) : (Dyadic n) :=
-  let p1 := Wmantissa x1 in let p2 := Wmantissa x2 in
-    Wmake n (Z.min (Wmantissa x1) (Wmantissa x2)).
+Definition min {n : nat} (x1 : FixedDyadic n) (x2 : FixedDyadic n) : (FixedDyadic n) :=
+  let p1 := mantissa x1 in let p2 := mantissa x2 in
+    make n (Z.min (mantissa x1) (mantissa x2)).
 
-Definition Wadd {n : nat} (_ : Rounding) (x1 : Dyadic n) (x2 : Dyadic n) : (Dyadic n) :=
-  Wmake n (Wmantissa x1 + Wmantissa x2).
+Definition add {n : nat} (_ : Rounding) (x1 : FixedDyadic n) (x2 : FixedDyadic n) : (FixedDyadic n) :=
+  make n (mantissa x1 + mantissa x2).
 
-Definition Wsub {n : nat} (_ : Rounding) (x1 : Dyadic n) (x2 : Dyadic n) : (Dyadic n) :=
-  Wmake n (Wmantissa x1 - Wmantissa x2).
+Definition sub {n : nat} (_ : Rounding) (x1 : FixedDyadic n) (x2 : FixedDyadic n) : (FixedDyadic n) :=
+  make n (mantissa x1 - mantissa x2).
 
-Definition Wmul {n : nat}
-  (rnd : Rounding) (x1 : Dyadic n) (x2 : Dyadic n) : (Dyadic n) :=
-    let p1 := Wmantissa x1 in
-      let p2 := Wmantissa x2 in
+Definition mul {n : nat}
+  (rnd : Rounding) (x1 : FixedDyadic n) (x2 : FixedDyadic n) : (FixedDyadic n) :=
+    let p1 := mantissa x1 in
+      let p2 := mantissa x2 in
         let m:=Zpow2 n in
-          Wmake n (Zdiv_rnd rnd (p1*p2) m).
+          make n (Zdiv_rnd rnd (p1*p2) m).
 
-Definition Wdiv {n : nat}
-  (rnd : Rounding) (x1 : Dyadic n) (x2 : Dyadic n) : (Dyadic n) :=
-    let p1 := Wmantissa x1 in
-      let p2 := Wmantissa x2 in
+Definition div {n : nat}
+  (rnd : Rounding) (x1 : FixedDyadic n) (x2 : FixedDyadic n) : (FixedDyadic n) :=
+    let p1 := mantissa x1 in
+      let p2 := mantissa x2 in
         let m:=Zpow2 n in
-          Wmake n (Zdiv_rnd rnd (m*p1) p2).
+          make n (Zdiv_rnd rnd (m*p1) p2).
 
-Definition Wrec {n : nat}
-  (rnd : Rounding) (x : Dyadic n) : (Dyadic n) :=
-    let p := Wmantissa x in
+Definition rec {n : nat}
+  (rnd : Rounding) (x : FixedDyadic n) : (FixedDyadic n) :=
+    let p := mantissa x in
       let m:=Zpow2 n in
-        Wmake n (Zdiv_rnd rnd (m*m) p).
+        make n (Zdiv_rnd rnd (m*m) p).
 
-Definition Wltb {n1 n2 : nat} (x1 : Dyadic n1) (x2 : Dyadic n2) : bool :=
-  let p1 := Wmantissa x1 in
-    let p2 := Wmantissa x2 in
+Definition ltb {n1 n2 : nat} (x1 : FixedDyadic n1) (x2 : FixedDyadic n2) : bool :=
+  let p1 := mantissa x1 in
+    let p2 := mantissa x2 in
       let m1:=Zpow2 n1 in
         let m2:=Zpow2 n2 in
           (p1 * m2) <? (p2 * m1).
 
-Definition Wleb {n1 n2 : nat} (x1 : Dyadic n1) (x2 : Dyadic n2) : bool :=
-  let p1 := Wmantissa x1 in
-    let p2 := Wmantissa x2 in
+Definition leb {n1 n2 : nat} (x1 : FixedDyadic n1) (x2 : FixedDyadic n2) : bool :=
+  let p1 := mantissa x1 in
+    let p2 := mantissa x2 in
       let m1:=Zpow2 n1 in
         let m2:=Zpow2 n2 in
           (p1 * m2) <=? (p2 * m1).
 
-Definition Wlt {n1 n2 : nat} (x1 : Dyadic n1) (x2 : Dyadic n2) : Prop :=
-  Wltb x1 x2 = true.
+Definition lt {n1 n2 : nat} (x1 : FixedDyadic n1) (x2 : FixedDyadic n2) : Prop :=
+  ltb x1 x2 = true.
 
-Definition WtoQ {n : nat} (x : Dyadic n) : Q :=
-  Qdiv (inject_Z (Wmantissa x)) (inject_Z (Zpow2 n)).
+Definition toQ {n : nat} (x : FixedDyadic n) : Q :=
+  Qdiv (inject_Z (mantissa x)) (inject_Z (Zpow2 n)).
 
 Close Scope Z_scope.
 
@@ -432,29 +441,29 @@ Definition is_rounded (X : Type) (x : R) (r : R) : Prop :=
   end.
 *)
 
-Definition Wis_rounded {n : nat} (rnd : Rounding) (x : Dyadic n) (r : R) : Prop :=
+Definition is_rounded {n : nat} (rnd : Rounding) (x : FixedDyadic n) (r : R) : Prop :=
   match rnd with
-  | down => WinjR x <= r
-  | near => forall (s : Dyadic n), Rdist (WinjR x) r <= Rdist (WinjR s) r
-  | up   => WinjR x >= r
+  | down => injR x <= r
+  | near => forall (s : FixedDyadic n), Rdist (injR x) r <= Rdist (injR s) r
+  | up   => injR x >= r
   end.
 
-Lemma WinjR_correct : forall n (k : nat),
-  WinjR (Wof_nat n k) = INR k.
+Lemma injR_correct : forall n (k : nat),
+  injR (of_nat n k) = INR k.
 Proof.
   intros n k.
-  unfold WinjR, Wof_nat, Wmantissa, Zpow2.
+  unfold injR, of_nat, mantissa, Zpow2.
   rewrite -> mult_IZR.
   rewrite -> INR_IZR_INZ.
   field.
   exact (pow2n_neq_0 n).
 Qed.
 
-Lemma Wleb_correct : forall n (w1 w2 : Dyadic n),
-  Wleb w1 w2 = true <-> Rle (WinjR w1) (WinjR w2).
+Lemma leb_correct : forall n (w1 w2 : FixedDyadic n),
+  leb w1 w2 = true <-> Rle (injR w1) (injR w2).
 Proof.
   intros n w1 w2.
-  unfold Wleb.
+  unfold leb.
   destruct w1 as [p1]; destruct w2 as [p2].
   simpl.
   split.
@@ -472,17 +481,17 @@ Proof.
      exact H.
 Qed.
 
-Lemma Wneg_exact : forall n (w : Dyadic n), WinjR (Wneg w) = Ropp (WinjR w).
+Lemma neg_exact : forall n (w : FixedDyadic n), injR (neg w) = Ropp (injR w).
 Proof.
-  intros n w; unfold Wneg, WinjR; simpl.
+  intros n w; unfold neg, injR; simpl.
   rewrite -> opp_IZR.
   field.
   apply pow2n_neq_0.
 Qed.
 
-Lemma Wabs_exact : forall n (w : Dyadic n), WinjR (Wabs w) = Rabs (WinjR w).
+Lemma abs_exact : forall n (w : FixedDyadic n), injR (abs w) = Rabs (injR w).
 Proof.
-  intros n w; unfold Wabs, WinjR; simpl.
+  intros n w; unfold abs, injR; simpl.
   rewrite -> abs_IZR.
   unfold Rdiv.
   rewrite -> Rabs_mult.
@@ -495,11 +504,11 @@ Proof.
   apply pow2n_gt_0.
 Qed.
 
-Lemma Wmax_exact : forall n (w1 w2 : Dyadic n), WinjR (Wmax w1 w2) = Rmax (WinjR w1) (WinjR w2).
+Lemma max_exact : forall n (w1 w2 : FixedDyadic n), injR (max w1 w2) = Rmax (injR w1) (injR w2).
 Proof.
   intros n w1 w2.
-  unfold Wmax, WinjR.
-  set (p1 := Wmantissa w1); set (p2 := Wmantissa w2); set (m:=Zpow2 n).
+  unfold max, injR.
+  set (p1 := mantissa w1); set (p2 := mantissa w2); set (m:=Zpow2 n).
   simpl.
   rewrite -> max_IZR.
   unfold Rdiv; rewrite -> Rmult_comm.
@@ -521,11 +530,11 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma Wmin_exact : forall n (w1 w2 : Dyadic n), WinjR (Wmin w1 w2) = Rmin (WinjR w1) (WinjR w2).
+Lemma min_exact : forall n (w1 w2 : FixedDyadic n), injR (min w1 w2) = Rmin (injR w1) (injR w2).
 Proof.
   intros n w1 w2.
-  unfold Wmin, WinjR.
-  set (p1 := Wmantissa w1); set (p2 := Wmantissa w2); set (m:=Zpow2 n).
+  unfold min, injR.
+  set (p1 := mantissa w1); set (p2 := mantissa w2); set (m:=Zpow2 n).
   simpl.
   rewrite -> min_IZR.
   unfold Rdiv; rewrite -> Rmult_comm.
@@ -533,30 +542,30 @@ Proof.
   f_equal; apply Rmult_comm.
 Qed.
 
-Lemma Wadd_exact : forall n rnd (w1 w2 : Dyadic n),
-  WinjR (Wadd rnd w1 w2) = Rplus (WinjR w1) (WinjR w2).
+Lemma add_exact : forall n rnd (w1 w2 : FixedDyadic n),
+  injR (add rnd w1 w2) = Rplus (injR w1) (injR w2).
 Proof.
   intros n rnd w1 w2.
-  unfold WinjR, Wadd; simpl.
+  unfold injR, add; simpl.
   rewrite -> plus_IZR.
   field; apply pow2n_neq_0.
 Qed.
 
-Lemma Wsub_exact : forall n rnd (w1 w2 : Dyadic n),
-  WinjR (Wsub rnd w1 w2) = Rminus (WinjR w1) (WinjR w2).
+Lemma sub_exact : forall n rnd (w1 w2 : FixedDyadic n),
+  injR (sub rnd w1 w2) = Rminus (injR w1) (injR w2).
 Proof.
   intros n rnd w1 w2.
-  unfold WinjR, Wsub; simpl.
+  unfold injR, sub; simpl.
   rewrite -> minus_IZR.
   field; apply pow2n_neq_0.
 Qed.
 
-Lemma Wmul_down : forall n (w1 w2 : Dyadic n),
-  WinjR (Wmul down w1 w2) <= Rmult (WinjR w1) (WinjR w2).
+Lemma mul_down : forall n (w1 w2 : FixedDyadic n),
+  injR (mul down w1 w2) <= Rmult (injR w1) (injR w2).
 Proof.
   intros n x y.
-  unfold Wmul, WinjR; simpl.
-  set (px := Wmantissa x); set (py := Wmantissa y); set (m:=Zpow2 n).
+  unfold mul, injR; simpl.
+  set (px := mantissa x); set (py := mantissa y); set (m:=Zpow2 n).
   apply Rmult_le_reg_l with (IZR m); [apply pow2n_gt_0|].
   apply Rmult_le_reg_r with (IZR m); [apply pow2n_gt_0|].
   stepl (Rmult (IZR m) (IZR (px*py / m)%Z)); [|field; apply pow2n_neq_0].
@@ -567,16 +576,16 @@ Proof.
   apply Zpow2n_gt_0.
 Qed.
 
-Lemma Wmul_near : forall n (w1 w2 wr : Dyadic n),
-  Rdist (WinjR (Wmul near w1 w2)) (Rmult (WinjR w1) (WinjR w2))
-    <= Rdist (WinjR wr) (Rmult (WinjR w1) (WinjR w2)).
+Lemma mul_near : forall n (w1 w2 wr : FixedDyadic n),
+  Rdist (injR (mul near w1 w2)) (Rmult (injR w1) (injR w2))
+    <= Rdist (injR wr) (Rmult (injR w1) (injR w2)).
 Proof.
   intros n x y z.
-  unfold Wmul, WinjR.
-  set (px := Wmantissa x); set (py := Wmantissa y); set (pz := Wmantissa z).
+  unfold mul, injR.
+  set (px := mantissa x); set (py := mantissa y); set (pz := mantissa z).
   set (m:=Zpow2 n).
   unfold Rapply.
-  unfold Wmantissa.
+  unfold mantissa.
 
   apply Rmult_le_reg_l with (IZR m); [apply pow2n_gt_0|].
   apply Rmult_le_reg_r with (IZR m); [apply pow2n_gt_0|].
@@ -599,15 +608,15 @@ Proof.
     field; apply pow2n_neq_0.
 Qed.
 
-Lemma Wmul_up : forall n (w1 w2 : Dyadic n),
-  WinjR (Wmul up w1 w2) >= Rmult (WinjR w1) (WinjR w2).
+Lemma mul_up : forall n (w1 w2 : FixedDyadic n),
+  injR (mul up w1 w2) >= Rmult (injR w1) (injR w2).
 Proof.
   intros n x y.
-  set (z:=Wmul up x y).
-  unfold Wmul, WinjR, Rapply.
+  set (z:=mul up x y).
+  unfold mul, injR, Rapply.
   apply Rle_ge.
-  set (px := Wmantissa x); set (py := Wmantissa y);
-  set (pz := Wmantissa z); set (m:=Zpow2 n).
+  set (px := mantissa x); set (py := mantissa y);
+  set (pz := mantissa z); set (m:=Zpow2 n).
   apply Rmult_le_reg_l with (IZR m); [apply pow2n_gt_0|].
   apply Rmult_le_reg_r with (IZR m); [apply pow2n_gt_0|].
   stepr ((IZR m) * (IZR pz)); [|field; apply pow2n_neq_0].
@@ -619,12 +628,12 @@ Proof.
 Qed.
 
 
-Lemma Wneq_0_Zmantissa : forall n (w : Dyadic n),
-  WinjR w <> 0 -> ((Wmantissa w) <> 0)%Z.
+Lemma neq_0_Zmantissa : forall n (w : FixedDyadic n),
+  injR w <> 0 -> ((mantissa w) <> 0)%Z.
 Proof.
   intros n w Hw.
-  unfold WinjR in Hw.
-  remember (Wmantissa w) as p.
+  unfold injR in Hw.
+  remember (mantissa w) as p.
   intros Hp.
   rewrite -> Hp in Hw.
   unfold Rdiv in Hw.
@@ -632,27 +641,27 @@ Proof.
   contradiction.
 Qed.
 
-Lemma Wneq_0_Rmantissa : forall n (w : Dyadic n),
-  WinjR w <> 0 -> (IZR (Wmantissa w) <> 0).
+Lemma neq_0_Rmantissa : forall n (w : FixedDyadic n),
+  injR w <> 0 -> (IZR (mantissa w) <> 0).
 Proof.
   intros n w Hw.
   intro Hp. apply eq_IZR_R0 in Hp; revert Hp.
-  apply (Wneq_0_Zmantissa n w Hw).
+  apply (neq_0_Zmantissa n w Hw).
 Qed.
 
 
-Definition Wis_rounded_mul {n : nat} (rnd : Rounding) (x : Dyadic n) (r : R) (c : R) : Prop :=
+Definition is_rounded_mul {n : nat} (rnd : Rounding) (x : FixedDyadic n) (r : R) (c : R) : Prop :=
   match rnd with
-  | down => c * WinjR x <= c * r
-  | near => forall (s : Dyadic n), Rdist (c*(WinjR x)) (c*r) <= Rdist (c*(WinjR s)) (c*r)
-  | up   => c * WinjR x >= c * r
+  | down => c * injR x <= c * r
+  | near => forall (s : FixedDyadic n), Rdist (c*(injR x)) (c*r) <= Rdist (c*(injR s)) (c*r)
+  | up   => c * injR x >= c * r
   end.
 
-Lemma Wis_rounded_mul_correct : forall {n} rnd (w : Dyadic n) r c,
-    0<c -> (Wis_rounded_mul rnd w r c) -> Wis_rounded rnd w r.
+Lemma is_rounded_mul_correct : forall {n} rnd (w : FixedDyadic n) r c,
+    0<c -> (is_rounded_mul rnd w r c) -> is_rounded rnd w r.
 Proof.
   intros n rnd w r c Hc H.
-  unfold Wis_rounded_mul, Wis_rounded in *.
+  unfold is_rounded_mul, is_rounded in *.
   destruct rnd.
   - apply Rmult_le_reg_l in H; [exact H | exact Hc].
   - intros s. specialize (H s).
@@ -664,29 +673,29 @@ Proof.
 Qed.
 
 
-Lemma Wdiv_correct : forall n rnd (w1 w2 : Dyadic n),
-  (WinjR w2<>0) -> Wis_rounded rnd (Wdiv rnd w1 w2) (Rdiv (WinjR w1) (WinjR w2)).
+Lemma div_correct : forall n rnd (w1 w2 : FixedDyadic n),
+  (injR w2<>0) -> is_rounded rnd (div rnd w1 w2) (Rdiv (injR w1) (injR w2)).
 Proof.
   intros n rnd w1 w2 Hw2.
-  unfold WinjR.
+  unfold injR.
 (*
-  set (p1 := Wmantissa w1); set (p2 := Wmantissa w2); set (m:=Zpow2 n).
+  set (p1 := mantissa w1); set (p2 := mantissa w2); set (m:=Zpow2 n).
 *)
-  remember (Wmantissa w1) as p1; remember (Wmantissa w2) as p2; remember (Zpow2 n) as m.
+  remember (mantissa w1) as p1; remember (mantissa w2) as p2; remember (Zpow2 n) as m.
   assert ((0<m)%Z) as Hm; [rewrite -> Heqm; apply Zpow2n_gt_0|].
   assert (0<IZR m) as Hn; [apply IZR_lt; exact Hm|].
   assert (IZR m<>0) as Hn'; [apply not_eq_sym; apply Rlt_not_eq; exact Hn|].
-  assert (IZR p2 <> 0) as Hr2'. { rewrite -> Heqp2. apply Wneq_0_Rmantissa. exact Hw2. }
-  assert ((p2<>0)%Z) as Hp2'. { rewrite -> Heqp2. apply Wneq_0_Zmantissa. exact Hw2. }
+  assert (IZR p2 <> 0) as Hr2'. { rewrite -> Heqp2. apply neq_0_Rmantissa. exact Hw2. }
+  assert ((p2<>0)%Z) as Hp2'. { rewrite -> Heqp2. apply neq_0_Zmantissa. exact Hw2. }
   assert ((Z.abs p2<>0)%Z) as Hap2'. { intro. apply (Z.abs_0_iff p2) in H. contradiction. }
   assert (IZR (Z.abs p2)<>0) as Har2'. { intro H. apply eq_IZR in H. contradiction. }
   assert ((0<Z.abs p2)%Z) as Hap2. { apply Zle_neq_lt. apply Z.abs_nonneg. apply not_eq_sym. exact Hap2'. }
   assert (0<IZR (Z.abs p2)) as Har2. { apply IZR_lt. exact Hap2. }
-  apply Wis_rounded_mul_correct with (IZR m * IZR (Z.abs p2));
+  apply is_rounded_mul_correct with (IZR m * IZR (Z.abs p2));
     [apply Rlt_mult_pos_pos; assumption|].
   replace (IZR p1 / IZR m / (IZR (Z.abs p2) / IZR m)) with (IZR p1 / IZR (Z.abs p2));
     [|field; split; assumption].
-  destruct rnd; simpl; unfold WinjR, Wdiv.
+  destruct rnd; simpl; unfold injR, div.
   -- simpl.
      stepl (IZR (Z.sgn p2) * (IZR p2 * IZR (Zdiv_rnd down (m*p1) p2))).
      stepr (IZR (Z.sgn p2) * (IZR m * IZR p1)).
@@ -724,7 +733,7 @@ Proof.
      }
      intros s.
      stepl (Rdist (IZR (Z.sgn p2) * ((IZR p2) * IZR (Zdiv_rnd near (m*p1)%Z p2))) (IZR (Z.sgn p2) * (IZR m * IZR p1))).
-     stepr (Rdist (IZR (Z.sgn p2) * ((IZR p2) * IZR (Wmantissa s))) (IZR (Z.sgn p2) * (IZR m * IZR p1))).
+     stepr (Rdist (IZR (Z.sgn p2) * ((IZR p2) * IZR (mantissa s))) (IZR (Z.sgn p2) * (IZR m * IZR p1))).
      --- repeat (rewrite <- mult_IZR).
          repeat (rewrite -> dist_IZR).
          repeat (rewrite -> HZdist).
@@ -733,14 +742,14 @@ Proof.
          exact Hp2'.
          exact Hp2'.
          exact Hp2'.
-     --- remember (Wmantissa s) as q.
+     --- remember (mantissa s) as q.
          rewrite <- Z.sgn_abs.
          rewrite <- Heqm.
          repeat (rewrite -> mult_IZR).
          f_equal.  field. exact Hn'. field. split. exact Hn'. exact Hr2'.
      --- rewrite <- Heqp1, <- Heqp2, <- Heqm.
          remember (Zdiv_rnd near (m*p1) p2) as q.
-         unfold Wmantissa.
+         unfold mantissa.
          rewrite <- Z.sgn_abs.
          repeat (rewrite -> mult_IZR).
          f_equal. field. exact Hn'. field. split. exact Hn'. exact Hr2'.
@@ -769,81 +778,25 @@ Proof.
 Qed.
 
 
-Lemma Wrec_correct : forall n rnd (w : Dyadic n),
-  (WinjR w<>0) -> Wis_rounded rnd (Wrec rnd w) (Rinv (WinjR w)).
+Lemma rec_correct : forall n rnd (w : FixedDyadic n),
+  (injR w<>0) -> is_rounded rnd (rec rnd w) (Rinv (injR w)).
 Proof.
   intros n rnd w Hn.
-  set (p := Wmantissa w); set (m:=Zpow2 n).
-  set (one := Wmake n m).
-  assert (Wrec rnd w = Wdiv rnd one w) as Hw. { trivial. }
-  assert (WinjR one = 1%R) as H1. {
-    unfold WinjR, one, m, Wmantissa. field. apply pow2n_neq_0.
+  set (p := mantissa w); set (m:=Zpow2 n).
+  set (one := make n m).
+  assert (rec rnd w = div rnd one w) as Hw. { trivial. }
+  assert (injR one = 1%R) as H1. {
+    unfold injR, one, m, mantissa. field. apply pow2n_neq_0.
   }
-  assert (Rinv (WinjR w) = Rdiv (WinjR one) (WinjR w)) as Hr.  {
+  assert (Rinv (injR w) = Rdiv (injR one) (injR w)) as Hr.  {
     rewrite -> H1. field. exact Hn.
   }
   rewrite -> Hw.
   rewrite -> Hr.
-  apply (Wdiv_correct n rnd).
+  apply (div_correct n rnd).
   exact Hn.
 Qed.
 
+End W.
 
-
-#[export]
-#[refine]
-Instance Dyadic_Float (n:nat) : Float (Dyadic n) :=
-{
-  NinjF := Wof_nat n;
-  FinjR := WinjR;
-  Fneg := Wneg;
-  Fabs := Wabs;
-
-  Fadd := Wadd;
-  Fsub := Wsub;
-  Fmul := Wmul;
-  Fdiv := Wdiv;
-
-  Frec := Wrec;
-
-  Fmin := Wmin;
-  Fmax := Wmax;
-
-  Fleb := Wleb;
-}.
-Proof.
-  - apply WinjR_correct.
-  - apply Wleb_correct.
-  - apply Wneg_exact.
-  - apply Wabs_exact.
-  - apply Wmin_exact.
-  - apply Wmax_exact.
-  - intros rnd; destruct rnd.
-    -- intros x y; apply Req_le; apply Wadd_exact.
-    -- intros x y z.
-       assert (Hadd := Wadd_exact); specialize (Hadd n near x y).
-       unfold WinjR in *; simpl in *.
-       rewrite -> Hadd; apply Rdist_eq_le.
-    -- intros x y; apply Req_ge; apply Wadd_exact.
-  - intros rnd; destruct rnd.
-    -- intros x y; apply Req_le; apply Wsub_exact.
-    -- intros x y z.
-       assert (Hsub := Wsub_exact); specialize (Hsub n near x y).
-       unfold WinjR in *; simpl in *.
-       rewrite -> Hsub; apply Rdist_eq_le.
-    -- intros x y; apply Req_ge; apply Wsub_exact.
-  - intros rnd; destruct rnd.
-    -- apply Wmul_down.
-    -- apply Wmul_near.
-    -- apply Wmul_up.
-  - intros rnd; destruct rnd.
-    -- apply (Wdiv_correct n down).
-    -- apply (Wdiv_correct n near).
-    -- apply (Wdiv_correct n up).
-  - intros rnd; destruct rnd.
-    -- apply (Wrec_correct n down).
-    -- apply (Wrec_correct n near).
-    -- apply (Wrec_correct n up).
-Qed.
-
-Close Scope Z_scope.
+Export W(FixedDyadic).

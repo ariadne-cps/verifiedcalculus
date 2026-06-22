@@ -40,18 +40,18 @@ Open Scope R_scope.
 (*
 Fixpoint Psweep (r : (nat * F) -> bool) (p : Polynomial) : (Polynomial * F) :=
   match p with
-  | nil => (nil,Fnull)
+  | nil => (nil,F.null)
   | p0 :: p1 => let (sp1, e1) := (Psweep r p1) in
-                  if (r p0) then (rp1, Fadd up (Fabs (snd p0)) e1) else (p0 :: sp1, e1)
+                  if (r p0) then (rp1, F.add up (F.abs (snd p0)) e1) else (p0 :: sp1, e1)
   end
 .
 *)
 
 Fixpoint Psweep (r : (nat * F) -> bool) (p : Polynomial) : (Polynomial * F) :=
   match p with
-  | nil => (nil,Fnull)
+  | nil => (nil,F.null)
   | p0 :: p1 => if (r p0)
-                  then (fst (Psweep r p1), Fadd up (Fabs (snd p0)) (snd (Psweep r p1)))
+                  then (fst (Psweep r p1), F.add up (F.abs (snd p0)) (snd (Psweep r p1)))
                   else (p0 :: fst (Psweep r p1), snd (Psweep r p1))
   end
 .
@@ -59,11 +59,11 @@ Fixpoint Psweep (r : (nat * F) -> bool) (p : Polynomial) : (Polynomial * F) :=
 Fixpoint Psweep_ax_error (r : (nat * F) -> bool) (p : Polynomial) : R :=
   match p with
   | nil => 0%R
-  | p0::p1 => (if (r p0) then Rabs (FinjR (snd p0)) else 0%R) + Psweep_ax_error r p1
+  | p0::p1 => (if (r p0) then Rabs (F.injR (snd p0)) else 0%R) + Psweep_ax_error r p1
   end.
 
 Lemma Psweep_ax_error_true : forall r a0 p1, (true = r a0) ->
-  Psweep_ax_error r (a0::p1) = Rabs (FinjR (snd a0)) + Psweep_ax_error r p1.
+  Psweep_ax_error r (a0::p1) = Rabs (F.injR (snd a0)) + Psweep_ax_error r p1.
 Proof.
   intros. simpl. rewrite <- H. simpl. reflexivity.
 Qed.
@@ -94,7 +94,7 @@ Proof.
 Qed.
 
 Lemma Psweep_error_true : forall r a0 p1, (true = r a0) ->
-  snd (Psweep r (a0::p1)) = Fadd up (Fabs (snd a0)) (snd (Psweep r p1)).
+  snd (Psweep r (a0::p1)) = F.add up (F.abs (snd a0)) (snd (Psweep r p1)).
 Proof.
   intros. simpl. rewrite <- H. simpl. reflexivity.
 Qed.
@@ -278,7 +278,7 @@ Qed.
 Definition PMsweep (r : (nat * F) -> bool) (t : PolynomialModel) : PolynomialModel :=
   match t with
   | {| polynomial:=p; error :=e |} =>
-        {| polynomial:=fst (Psweep r p); error := Fadd up e (snd (Psweep r p)) |}
+        {| polynomial:=fst (Psweep r p); error := F.add up e (snd (Psweep r p)) |}
   end.
 
 Definition Pmodels p f e := forall x, -1<=x<=1 -> Rabs (Pax_eval p x - f x) <= e.
@@ -298,13 +298,13 @@ Proof.
     rewrite -> Rplus_0_l.
     tauto.
   - intros e f.
-    remember (fun x => (f x - FinjR (snd a0) * x ^ (fst a0))) as f1.
-    remember (f x - FinjR (snd a0) * x ^ (fst a0)) as f1x.
+    remember (fun x => (f x - F.injR (snd a0) * x ^ (fst a0))) as f1.
+    remember (f x - F.injR (snd a0) * x ^ (fst a0)) as f1x.
     remember (r a0) as ra0.
     destruct ra0.
     -- (* Case r a0 = true : drop term *)
        simpl; rewrite <- Heqra0; simpl.
-       remember (Rabs (FinjR (snd a0)) + e) as e1.
+       remember (Rabs (F.injR (snd a0)) + e) as e1.
        specialize (IHp1 e f1).
        assert (Pax_eval (a0::p1) x - f x = Pax_eval p1 x - f1 x) as Hf1. {
          rewrite -> Heqf1. simpl. ring. }
@@ -314,38 +314,38 @@ Proof.
        assert (Rabs (Pax_eval (fst (Psweep r p1)) x - f x) <=
          Rabs (Pax_eval (fst (Psweep r p1)) x - f1 x) + Rabs (f1 x - f x)) as Hd;
            [apply Rabs_dist_triang|].
-       assert (f1 x - f x = - (FinjR (snd a0) * x ^ (fst a0))) as Hy0. {
+       assert (f1 x - f x = - (F.injR (snd a0) * x ^ (fst a0))) as Hy0. {
          rewrite -> Heqf1. ring. }
        apply (Rle_trans _ _ _ Hd).
        apply Rle_trans with ((Psweep_ax_error r p1 + e) + Rabs (f1 x - f x)).
        --- apply Rplus_le_compat_r. exact IHp1x.
        --- rewrite -> Hy0.
            rewrite -> Rabs_Ropp.
-           assert (Rabs (FinjR (snd a0) * x^(fst a0)) <= Rabs (FinjR (snd a0))) as Ha0. {
+           assert (Rabs (F.injR (snd a0) * x^(fst a0)) <= Rabs (F.injR (snd a0))) as Ha0. {
              rewrite -> Rabs_mult.
-             stepr (Rabs (FinjR (snd a0))*1).
+             stepr (Rabs (F.injR (snd a0))*1).
                apply Rmult_le_compat_l.
                apply Rabs_pos.
                apply Rabs_pow_le_1. apply Rabs_le_1; [apply Hx|apply Hx].
                apply Rmult_1_r.
            }
-           apply Rle_trans with ((Psweep_ax_error r p1 + e) + Rabs(FinjR (snd a0))). {
+           apply Rle_trans with ((Psweep_ax_error r p1 + e) + Rabs(F.injR (snd a0))). {
              apply Rplus_le_compat_l. exact Ha0. }
            remember (Psweep_ax_error r p1) as swe1.
-           remember (Rabs (FinjR (snd a0))) as e0.
+           remember (Rabs (F.injR (snd a0))) as e0.
            assert (swe1 + e + e0 = e0 + swe1 + e) as Heq by  (ring).
            right. exact Heq.
     -- (* Case r a0 = true : keep term *)
        simpl; rewrite <- Heqra0; simpl.
        specialize (IHp1 e f1).
        intro Hp0.
-       replace (FinjR (snd a0)*x^(fst a0)+Pax_eval (fst (Psweep r p1)) x - f x)
+       replace (F.injR (snd a0)*x^(fst a0)+Pax_eval (fst (Psweep r p1)) x - f x)
          with (Pax_eval (fst (Psweep r p1)) x - f1 x); [|rewrite -> Heqf1; ring].
        rewrite -> Rplus_0_l.
        apply IHp1.
        rewrite -> Heqf1.
-       replace (Pax_eval p1 x - (f x - FinjR (snd a0)*x^(fst a0)))
-          with (FinjR (snd a0)*x^(fst a0) + Pax_eval p1 x - f x).
+       replace (Pax_eval p1 x - (f x - F.injR (snd a0)*x^(fst a0)))
+          with (F.injR (snd a0)*x^(fst a0) + Pax_eval p1 x - f x).
        exact Hp0.
        ring.
 Qed.
@@ -358,8 +358,8 @@ Proof.
   destruct t as [p e].
   unfold PMmodels in H.
   simpl in H. simpl.
-  apply Rle_trans with ((Psweep_ax_error r p) + (FinjR e)).
-  - assert (Pmodels (fst (Psweep r p)) f (Psweep_ax_error r p + (FinjR e)) ) as Hm. {
+  apply Rle_trans with ((Psweep_ax_error r p) + (F.injR e)).
+  - assert (Pmodels (fst (Psweep r p)) f (Psweep_ax_error r p + (F.injR e)) ) as Hm. {
       apply Psweep_pre_correct. unfold Pmodels. exact H. }
     unfold Pmodels in Hm.
     apply Hm. apply Hx.
@@ -367,20 +367,20 @@ Proof.
     revert e.
     induction p as [|a0 p1].
     -- intro e. simpl. rewrite -> Rplus_comm.
-       replace 0 with (FinjR (NinjF 0%nat)) by (apply flt_ninjr).
-       apply flt_add_up_le.
+       replace 0 with (F.injR (F.of_nat 0%nat)) by (apply F.ninjr_spec).
+       apply F.add_up_le_spec.
     -- intro e.
        remember (r a0) as ra0.
        destruct ra0.
        --- rewrite -> Psweep_ax_error_true by (exact Heqra0).
            rewrite -> Psweep_error_true by (exact Heqra0).
-           (* Take e:=Fabs (snd a0) in IHp1.
+           (* Take e:=F.abs (snd a0) in IHp1.
               This is not the original intention of the induction,
-                but handles the second Fadd up. *)
-              rewrite <- flt_abs_exact in *.
-              apply Rle_trans with (FinjR (Fadd up (Fabs (snd a0)) (snd (Psweep r p1)))+FinjR e).
+                but handles the second F.add up. *)
+              rewrite <- F.abs_exact_spec in *.
+              apply Rle_trans with (F.injR (F.add up (F.abs (snd a0)) (snd (Psweep r p1)))+F.injR e).
               ---- apply Rplus_le_compat_r. rewrite -> Rplus_comm. apply IHp1.
-              ---- rewrite -> Rplus_comm. apply flt_add_up_le.
+              ---- rewrite -> Rplus_comm. apply F.add_up_le_spec.
        --- rewrite -> Psweep_ax_error_false by (exact Heqra0).
            rewrite -> Psweep_error_false by (exact Heqra0).
            apply IHp1.

@@ -97,14 +97,14 @@ Proof.
   assert (H_err_nonneg:=PMerror_nonneg t f H).
   specialize (H x hyp_x).
   stepl (Rabs ((pow x n)*((Pax_eval t.(polynomial) x)-(f x)))).
-    apply Rle_trans with (Rabs ((pow x n) * FinjR (error t))).
+    apply Rle_trans with (Rabs ((pow x n) * F.injR (error t))).
       do 2 rewrite Rabs_mult; apply Rmult_le_compat_l;
       [ apply Rabs_pos
-      | apply Rle_trans with (FinjR (error t)); trivial; apply Rle_abs].
+      | apply Rle_trans with (F.injR (error t)); trivial; apply Rle_abs].
 
       rewrite Rabs_mult.
-      rewrite (Rabs_pos_eq (FinjR (error t)) H_err_nonneg).
-      stepr (1* (FinjR (error t))) by (simpl; ring).
+      rewrite (Rabs_pos_eq (F.injR (error t)) H_err_nonneg).
+      stepr (1* (F.injR (error t))) by (simpl; ring).
       apply Rmult_le_compat_r; trivial.
       destruct hyp_x as [H1 H2].
 

@@ -43,11 +43,14 @@ Logic/Kleenean.v
 Logic/Omniscience.v
 Logic/Continuity.v
 
+Numbers/IntAddenda.v
 Numbers/RealAddenda.v
+Numbers/Dyadic.v
 Numbers/Analysis.v
 Numbers/Sum.v
 Numbers/Floats.v
-Numbers/DyadicFloat.v
+Numbers/FixedDyadic.v
+Numbers/FixedDyadicFloat.v
 Numbers/Bounds.v
 Numbers/Ball.v
 

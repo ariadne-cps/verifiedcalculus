@@ -81,11 +81,11 @@ Record PolynomialModel {F} {FltF : Float F} : Type :=
 Fixpoint Pax_eval (p:list (nat*F)) (x:R) : R :=
     match p with
     | nil => 0
-    | fn :: p0 =>  (FinjR (snd fn) * (pow x (fst fn))) + Pax_eval p0 x
+    | fn :: p0 =>  (F.injR (snd fn) * (Rpow x (fst fn))) + Pax_eval p0 x
     end.
 
 Lemma Pax_eval_eq : forall t p x,
-  Pax_eval (t :: p) x = (FinjR (snd t)) * (pow x (fst t)) + Pax_eval p x.
+  Pax_eval (t :: p) x = (F.injR (snd t)) * (Rpow x (fst t)) + Pax_eval p x.
 Proof.
  intros; trivial.
 Qed.
@@ -93,40 +93,40 @@ Qed.
 (* Polynomial norm: || p || = \sum_u |a_i| *)
 Function Pnorm (p: Polynomial) : F :=
   match p with
-  | nil  => Fnull
-  | (n0,a0) :: l => Fadd_up (Fabs_exact a0) (Pnorm l)
+  | nil  => F.null
+  | (n0,a0) :: l => F.add_up (F.abs_exact a0) (Pnorm l)
   end.
 
 Lemma Pnorm_nil :
-  Pnorm nil = Fnull.
+  Pnorm nil = F.null.
 Proof.
   rewrite Pnorm_equation; trivial.
 Qed.
 
 Lemma Pnorm_cons : forall n0 a0 l,
-  Pnorm ((n0,a0) :: l) = Fadd_up (Fabs_exact a0) (Pnorm l).
+  Pnorm ((n0,a0) :: l) = F.add_up (F.abs_exact a0) (Pnorm l).
 Proof.
   intros n0 a0 l; rewrite Pnorm_equation; trivial.
 Qed.
 
 Lemma Pnorm_property : forall p x,
-  -1 <= x <= 1 -> Rabs (Pax_eval p x) <= FinjR (Pnorm p).
+  -1 <= x <= 1 -> Rabs (Pax_eval p x) <= F.injR (Pnorm p).
 Proof.
   intros p.
   intros x Hx.
   induction p as [|(n0,a0) p].
 
     simpl in *.
-    unfold Fnull; rewrite flt_ninjr; rewrite Rabs_R0; auto with real.
+    unfold F.null; rewrite F.ninjr_spec; rewrite Rabs_R0; auto with real.
 
     rewrite Pnorm_cons.
     simpl in *.
-    apply Rle_trans with ( (FinjR (Fabs_exact a0)) + FinjR (Pnorm p) ); [| apply Rge_le; apply flt_add_up].
-    apply Rle_trans with ( (Rabs (FinjR a0 * (pow x n0))) + (Rabs (Pax_eval p x))); [apply Rabs_triang|].
+    apply Rle_trans with ( (F.injR (F.abs_exact a0)) + F.injR (Pnorm p) ); [| apply Rge_le; apply F.add_up_spec].
+    apply Rle_trans with ( (Rabs (F.injR a0 * (pow x n0))) + (Rabs (Pax_eval p x))); [apply Rabs_triang|].
     apply Rplus_le_compat; [|apply IHp].
-    rewrite flt_abs_exact.
+    rewrite F.abs_exact_spec.
     rewrite Rabs_mult.
-    stepr (Rabs (FinjR a0)*1) by ring.
+    stepr (Rabs (F.injR a0)*1) by ring.
     apply Rmult_le_compat_l; [apply Rabs_pos|].
     destruct Hx as [H1 H2].
     apply Rabs_pow_le_1.
@@ -135,16 +135,16 @@ Proof.
 Qed.
 
 Function PMnorm (t: PolynomialModel) : F :=
-  Fadd up (Pnorm t.(polynomial)) t.(error).
+  F.add up (Pnorm t.(polynomial)) t.(error).
 
 (* `multiplying' by polynomial norm *)
-Definition Pscale_norm e sp := Fmul_up e (Pnorm sp).
+Definition Pscale_norm e sp := F.mul_up e (Pnorm sp).
 
 Definition Pdifference (p:Polynomial) (f:R->R) (x:R) :=
   f(x)-(Pax_eval p x).
 
 Definition PMmodels (t:PolynomialModel) (f:R->R) := forall x,
-  -1 <= x <= 1 -> Rabs ((Pax_eval t.(polynomial) x) - f(x)) <= FinjR (t.(error)) .
+  -1 <= x <= 1 -> Rabs ((Pax_eval t.(polynomial) x) - f(x)) <= F.injR (t.(error)) .
 
 Lemma PMmodels_extensional: forall t f1 f2, PMmodels t f1 -> (forall x, -1<=x<=1 -> f1 x = f2 x) -> PMmodels t f2.
 Proof.
@@ -154,44 +154,44 @@ Proof.
  f_equal. rewrite H_ext. reflexivity. exact Hx.
 Qed.
 
-Lemma PMerror_nonneg : forall t f, PMmodels t f -> 0<=FinjR t.(error).
+Lemma PMerror_nonneg : forall t f, PMmodels t f -> 0<=F.injR t.(error).
 Proof.
  intros t f hyp;
  apply Rle_trans with (Rabs (Pax_eval t.(polynomial) 0 - f 0));[ apply Rabs_pos| apply hyp; auto with real].
 Qed.
 
 Definition PMzero : PolynomialModel :=
-  {| polynomial :=nil;  error:=Fnull |}.
+  {| polynomial :=nil;  error:=F.null |}.
 
 Definition PMconstant a : PolynomialModel :=
-  {| polynomial := (0%nat, a) :: nil; error := Fnull |}.
+  {| polynomial := (0%nat, a) :: nil; error := F.null |}.
 
 Definition PMerror_ball e : PolynomialModel :=
   {| polynomial := nil; error := e |}.
 
 Lemma PMconstant_correct : forall a,
-  PMmodels (PMconstant a) (fun _ => FinjR a).
+  PMmodels (PMconstant a) (fun _ => F.injR a).
 Proof.
   intros a.
   unfold PMmodels, PMconstant.
   simpl.
   intros x Hx.
-  replace (FinjR Fnull) with (0%R) by (unfold Fnull; rewrite -> flt_ninjr; reflexivity).
+  replace (F.injR F.null) with (0%R) by (unfold F.null; rewrite -> F.ninjr_spec; reflexivity).
   rewrite -> Rmult_1_r. rewrite -> Rplus_0_r.
   unfold Rminus. rewrite -> Rplus_opp_r. rewrite -> Rabs_R0. apply Req_le. exact eq_refl.
 Qed.
 
 
 Lemma PMnorm_correct : forall t f,
-  PMmodels t f -> forall x, -1<=x<=1 -> Rabs (f x) <= FinjR (PMnorm t).
+  PMmodels t f -> forall x, -1<=x<=1 -> Rabs (f x) <= F.injR (PMnorm t).
 Proof.
   intros t f H x Hx.
   destruct t as [p e].
   unfold PMmodels in H.
   unfold PMnorm.
   simpl in *.
-  apply Rle_trans with (FinjR (Pnorm p) + FinjR e).
-  apply Rle_trans with (Rabs (Pax_eval p x) + FinjR e).
+  apply Rle_trans with (F.injR (Pnorm p) + F.injR e).
+  apply Rle_trans with (Rabs (Pax_eval p x) + F.injR e).
   - specialize (H x Hx).
     set (px := Pax_eval p x).
     replace (f x) with (px + (f x - px)).
@@ -203,7 +203,7 @@ Proof.
     field.
   - apply Rplus_le_compat_r.
     apply Pnorm_property. exact Hx.
-  - apply flt_add_up_le.
+  - apply F.add_up_le_spec.
 Qed.
 
 Definition PMtail t : PolynomialModel :=
@@ -214,7 +214,7 @@ Definition PMtail t : PolynomialModel :=
   end.
 
 Theorem PMtail_correct:forall t f, PMmodels t f -> forall n a l,
-  t.(polynomial) = (n,a) :: l -> PMmodels (PMtail t) (fun x=>f(x)- (FinjR a)*(pow x n)).
+  t.(polynomial) = (n,a) :: l -> PMmodels (PMtail t) (fun x=>f(x)- (F.injR a)*(pow x n)).
 Proof.
   intros [[|(n0,a0) l0] e] f H_t n a l hyp.
   discriminate hyp.
@@ -222,7 +222,7 @@ Proof.
   unfold PMmodels in *; simpl in *.
   intros x Hx.
   specialize (H_t _ Hx); inversion hyp; subst n0; subst a0; subst l0;
-  stepl (Rabs (FinjR a * x ^ n + Pax_eval l x - f x)); trivial; f_equal. ring.
+  stepl (Rabs (F.injR a * x ^ n + Pax_eval l x - f x)); trivial; f_equal. ring.
 Qed.
 
 
@@ -231,34 +231,34 @@ Qed.
 Fixpoint Peval {FF} {FltFF : Float FF}
   (p : list (nat * FF)) (x : @Bounds FF FltFF) : @Bounds FF FltFF :=
     match p with
-    | nil => bounds Fnull Fnull
+    | nil => bounds F.null F.null
     | a0 :: p1 => let c := bounds (snd a0) (snd a0) in
-                    let y := pow_bounds x (fst a0) in
-                      add_bounds (mul_bounds c y) (Peval p1 x)
+                    let y := Bnds.pow x (fst a0) in
+                      Bnds.add (Bnds.mul c y) (Peval p1 x)
     end.
 
 Lemma Peval_cons : forall a0 p1 x, Peval (a0::p1) x =
-  add_bounds (mul_bounds (bounds (snd a0) (snd a0)) (pow_bounds x (fst a0))) (Peval p1 x).
+  Bnds.add (Bnds.mul (bounds (snd a0) (snd a0)) (Bnds.pow x (fst a0))) (Peval p1 x).
 Proof. intros. simpl. trivial. Qed.
 
 Lemma Pax_eval_cons : forall a0 p1 y, Pax_eval (a0::p1) y =
-  FinjR (snd a0) * (pow y (fst a0)) + (Pax_eval p1 y).
+  F.injR (snd a0) * (pow y (fst a0)) + (Pax_eval p1 y).
 Proof. intros. simpl. trivial. Qed.
 
 
 Lemma Peval_correct :
-  forall p x y, models x y -> models (Peval p x) (Pax_eval p y).
+  forall p x y, Bnds.models x y -> Bnds.models (Peval p x) (Pax_eval p y).
 Proof.
   intros p x y H.
   induction p as [|a0 p1 IHp].
-  - simpl. unfold Fnull.
-    rewrite -> flt_ninjr.
+  - simpl. unfold F.null.
+    rewrite -> F.ninjr_spec.
     split; apply Rle_refl.
   - rewrite -> Peval_cons, Pax_eval_cons.
-    1: apply add_bounds_correct.
-    1: apply mul_bounds_correct.
-    2: apply pow_bounds_correct.
-    -- unfold models. split; apply Rle_refl.
+    1: apply Bnds.add_correct.
+    1: apply Bnds.mul_correct.
+    2: apply Bnds.pow_correct.
+    -- unfold Bnds.models. split; apply Rle_refl.
     -- exact H.
     -- exact IHp.
 Qed.
@@ -266,12 +266,12 @@ Qed.
 
 Definition PMeval {FF} {FltFF : Float FF}
    (t : PolynomialModel) (x : Bounds) : Bounds :=
-  add_bounds
+  Bnds.add
     (Peval t.(polynomial) x)
-    (bounds (Fneg t.(error)) (t.(error))).
+    (bounds (F.neg t.(error)) (t.(error))).
 
 Theorem PMeval_correct : forall t f x y, (-1 <= y <= 1) ->
-  PMmodels t f -> models x y -> models (PMeval t x) (f y).
+  PMmodels t f -> Bnds.models x y -> Bnds.models (PMeval t x) (f y).
 Proof.
   intros t f x y Hy.
   destruct t as [p e].
@@ -282,11 +282,11 @@ Proof.
   intros Hmt Hmx.
   specialize (Hmt y Hy).
   replace (f y) with (g y + (f y - g y)) by ring.
-  apply add_bounds_correct.
+  apply Bnds.add_correct.
   - apply Peval_correct.
     exact Hmx.
-  - unfold models.
-    rewrite -> flt_neg_exact.
+  - unfold Bnds.models.
+    rewrite -> F.neg_exact_spec.
     apply Rabs_ivl.
     rewrite -> Rabs_minus_sym.
     exact Hmt.
