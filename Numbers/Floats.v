@@ -172,21 +172,23 @@ Class Float (F : Type) :=
 
   val_is_exact (fval : F) (rval : R) :=
     injR fval = rval;
-  unop_is_exact (fop : F -> F) (rop : R -> R) :=
+  unary_op_is_exact (fop : F -> F) (rop : R -> R) :=
      forall x : F, injR (fop x) = rop (injR x);
   op_is_exact (fop : F -> F -> F) (rop : R -> R -> R) :=
      forall x1 x2 : F, injR (fop x1 x2)  = rop (injR x1) (injR x2);
 
-  val_is_rounded (fval : Rounding -> F) (rval : R) (rnd : Rounding) :=
+  val_is_rounded (fval : F) (rval : R) (rnd : Rounding) :=
     match rnd with
-    | down => injR (fval down) <= rval
-    | near => forall w, Rdist (injR (fval near)) rval <= Rdist (injR w) rval
-    | up   => injR (fval up) >= rval
+    | down => injR fval <= rval
+    | near => forall w, Rdist (injR fval) rval <= Rdist (injR w) rval
+    | up   => injR fval >= rval
     end;
-  unop_is_rounded (fop : Rounding -> F -> F) (rop : R -> R) (rnd : Rounding) :=
-    forall (x : F), val_is_rounded (fun r => fop rnd x) (rop (injR x)) rnd;
-  binop_is_rounded (fop : Rounding -> F -> F -> F) (rop : R -> R -> R) (rnd : Rounding) :=
-    forall (x1 x2 : F), val_is_rounded (fun r => fop rnd x1 x2) (rop (injR x1) (injR x2)) rnd;
+  nullary_op_is_rounded (fop : Rounding -> F) (rop : R) (rnd : Rounding) :=
+    val_is_rounded (fop rnd) (rop) rnd;
+  unary_op_is_rounded (fop : Rounding -> F -> F) (rop : R -> R) (rnd : Rounding) :=
+    forall (x : F), val_is_rounded (fop rnd x) (rop (injR x)) rnd;
+  binary_op_is_rounded (fop : Rounding -> F -> F -> F) (rop : R -> R -> R) (rnd : Rounding) :=
+    forall (x1 x2 : F), val_is_rounded (fop rnd x1 x2) (rop (injR x1) (injR x2)) rnd;
 
 
   ninjr_spec : forall n : nat, injR (of_nat n) = INR n;
@@ -199,16 +201,13 @@ Class Float (F : Type) :=
   min_exact_spec : forall x1 x2 : F, injR (min x1 x2) = Rmin (injR x1) (injR x2);
   max_exact_spec : forall x1 x2 : F, injR (max x1 x2) = Rmax (injR x1) (injR x2);
 
-  add_rounded_spec : forall rnd x1 x2,
-    (val_is_rounded (fun r => add r x1 x2) (Rplus (injR x1) (injR x2)) rnd);
-  sub_rounded_spec : forall rnd x1 x2,
-    (val_is_rounded (fun r => sub r x1 x2) (Rminus (injR x1) (injR x2)) rnd);
-  mul_rounded_spec : forall rnd x1 x2,
-    (val_is_rounded (fun r => mul r x1 x2) (Rmult (injR x1) (injR x2)) rnd);
+  add_rounded_spec : forall rnd, (binary_op_is_rounded add Rplus) rnd;
+  sub_rounded_spec : forall rnd, (binary_op_is_rounded sub Rminus) rnd;
+  mul_rounded_spec : forall rnd, (binary_op_is_rounded mul Rmult) rnd;
   div_rounded_spec : forall (rnd : Rounding) (x1 x2 : F),
-    (injR x2 <> 0%R) -> (val_is_rounded (fun r => div r x1 x2) (Rdiv (injR x1) (injR x2)) rnd);
+    (injR x2 <> 0%R) -> (val_is_rounded (div rnd x1 x2) (Rdiv (injR x1) (injR x2)) rnd);
   rec_rounded_spec : forall (rnd : Rounding) (x : F),
-    (injR x <> 0%R) -> (val_is_rounded (fun r => rec r x) (Rinv (injR x)) rnd);
+    (injR x <> 0%R) -> (val_is_rounded (rec rnd x) (Rinv (injR x)) rnd);
 
   add_down_spec := add_rounded_spec down;
   add_near_spec := add_rounded_spec near;
@@ -300,7 +299,7 @@ Proof.
 Qed.
 
 
-Lemma val_near_up_abs_spec : forall x y, (forall rnd, val_is_rounded x y rnd) ->
+Lemma val_near_up_abs_spec : forall x y, (forall rnd, nullary_op_is_rounded x y rnd) ->
   Rdist (F.injR (x near)) y <= Rdist (F.injR (x up)) y.
 Proof.
   intros x y H.
@@ -308,14 +307,14 @@ Proof.
   apply H.
 Qed.
 
-Lemma val_near_down_abs_spec : forall x y, (forall rnd, val_is_rounded x y rnd) ->
+Lemma val_near_down_abs_spec : forall x y, (forall rnd, nullary_op_is_rounded x y rnd) ->
   Rdist (F.injR (x near)) y <= Rdist (F.injR (x down)) y.
 Proof.
   intros x y H.
   apply (H near).
 Qed.
 
-Lemma val_near_up_spec : forall x y, (forall rnd, val_is_rounded x y rnd) ->
+Lemma val_near_up_spec : forall x y, (forall rnd, nullary_op_is_rounded x y rnd) ->
   Rdist (F.injR (x near)) y <= F.injR (x up) - y.
 Proof.
   intros x y H.
@@ -326,7 +325,7 @@ Proof.
     -- apply Rge_le. apply Rge_minus. apply (H up).
 Qed.
 
-Lemma val_near_down_spec : forall x y, (forall rnd, val_is_rounded x y rnd) ->
+Lemma val_near_down_spec : forall x y, (forall rnd, nullary_op_is_rounded x y rnd) ->
   Rdist (F.injR (x near)) y <= y - F.injR (x down).
 Proof.
   intros x y H.
@@ -338,7 +337,7 @@ Proof.
 Qed.
 
 
-Lemma val_near_up_down_spec : forall x y, (forall rnd, val_is_rounded x y rnd) ->
+Lemma val_near_up_down_spec : forall x y, (forall rnd, nullary_op_is_rounded x y rnd) ->
   Rdist (F.injR (x near)) y <= ( F.injR (x up) - F.injR (x down) ) / 2.
 Proof.
   intros x y H. unfold Rdist.
@@ -350,7 +349,7 @@ Proof.
     -- apply val_near_down_spec; exact H.
 Qed.
 
-Lemma op_near_up_down_sub_up_spec : forall x y, (forall rnd, val_is_rounded x y rnd) ->
+Lemma op_near_up_down_sub_up_spec : forall x y, (forall rnd, nullary_op_is_rounded x y rnd) ->
   Rdist (F.injR (x near)) y <= F.injR (F.sub up (x up) (x down)) / 2%R.
 Proof.
   intros x y H.
@@ -360,7 +359,7 @@ Proof.
   apply Rge_le. apply sub_up_spec.
 Qed.
 
-Lemma val_near_up_down_sub_hlf_up_spec : forall x y, (forall rnd, val_is_rounded x y rnd) ->
+Lemma val_near_up_down_sub_hlf_up_spec : forall x y, (forall rnd, nullary_op_is_rounded x y rnd) ->
   Rdist (F.injR (x near)) y <= F.injR (F.div2 up (F.sub up (x up) (x down))).
 Proof.
   intros x y H.
@@ -375,7 +374,7 @@ Proof.
 Qed.
 
 (*
-Lemma val_near_up_down_sub_hlf_up_spec' : forall x y, (forall rnd, val_is_rounded x y rnd) ->
+Lemma val_near_up_down_sub_hlf_up_spec' : forall x y, (forall rnd, nullary_op_is_rounded x y rnd) ->
   Rdist (F.injR (x near)) y <= F.injR (F.div2 up (F.sub up (x up) (x down))).
 Proof.
   intros x y Hrnd.
@@ -409,7 +408,7 @@ Lemma op_near_up_down_sub_hlf_up_spec : forall fval x1 x2,
 Proof.
   intros fval x1 x2.
   apply (val_near_up_down_sub_hlf_up_spec (fun rnd => F.apply fval rnd x1 x2) (Rapply fval (F.injR x1) (F.injR x2))).
-  unfold val_is_rounded; destruct rnd; destruct fval; simpl.
+  unfold nullary_op_is_rounded; destruct rnd; destruct fval; simpl.
   - apply (add_down_spec x1 x2).
   - apply (sub_down_spec x1 x2).
   - apply (mul_down_spec x1 x2).
