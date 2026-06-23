@@ -52,6 +52,8 @@ Instance FixedDyadic_Float (n:nat) : Float (FixedDyadic n) :=
 
   rec := W.rec;
 
+  shft := W.shft;
+
   min := W.min;
   max := W.max;
 
@@ -90,6 +92,10 @@ Proof.
     -- apply (W.rec_correct n down).
     -- apply (W.rec_correct n near).
     -- apply (W.rec_correct n up).
+  - intros rnd; destruct rnd.
+    -- apply (W.shft_correct n down).
+    -- apply (W.shft_correct n near).
+    -- apply (W.shft_correct n up).
 Qed.
 
 Close Scope Z_scope.

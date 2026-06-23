@@ -426,6 +426,13 @@ Definition lt {n1 n2 : nat} (x1 : FixedDyadic n1) (x2 : FixedDyadic n2) : Prop :
 Definition toQ {n : nat} (x : FixedDyadic n) : Q :=
   Qdiv (inject_Z (mantissa x)) (inject_Z (Zpow2 n)).
 
+Definition shft {n : nat} (rnd : Rounding) (x : FixedDyadic n) (z : Z) : (FixedDyadic n) :=
+  match z with
+  | Z0 => x
+  | Zpos m => make n ( mantissa x * (Zpos (2^m)) )
+  | Zneg m => div rnd x ( make n (Zpos (2^m)) )
+  end.
+
 Close Scope Z_scope.
 
 
@@ -796,6 +803,12 @@ Proof.
   apply (div_correct n rnd).
   exact Hn.
 Qed.
+
+Lemma shft_correct : forall n rnd (w : FixedDyadic n) (z : Z),
+  is_rounded rnd (shft rnd w z) (Rshft (injR w) z).
+Proof.
+Admitted.
+
 
 End W.
 

@@ -133,6 +133,8 @@ Class Float (F : Type) :=
 
   div_nat_spec : Rounding -> F -> nat -> F := fun r x n => div r x (of_nat n);
 
+  shft : Rounding -> F -> Z -> F;
+
   min : F -> F -> F;
   max : F -> F -> F;
 
@@ -208,6 +210,9 @@ Class Float (F : Type) :=
     (injR x2 <> 0%R) -> (val_is_rounded (div rnd x1 x2) (Rdiv (injR x1) (injR x2)) rnd);
   rec_rounded_spec : forall (rnd : Rounding) (x : F),
     (injR x <> 0%R) -> (val_is_rounded (rec rnd x) (Rinv (injR x)) rnd);
+
+  shft_rounded_spec : forall (rnd : Rounding) (x : F) (n : Z),
+    (val_is_rounded (shft rnd x n) (Rshft (injR x) n) rnd);
 
   add_down_spec := add_rounded_spec down;
   add_near_spec := add_rounded_spec near;

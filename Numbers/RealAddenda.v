@@ -843,5 +843,22 @@ Proof.
   rewrite -> Rabs_R0. apply Rabs_pos.
 Qed.
 
+Definition Rshft (x : R) (n : Z) : R := Rmult x (powerRZ 2 n).
+
+Lemma Rshft_zero : forall x, Rshft x 0 = x.
+Proof. intros x. unfold Rshft. rewrite -> powerRZ_O. now rewrite -> Rmult_1_r. Qed.
+
+Lemma Rshft_dbl : forall x, Rshft x 1 = x * 2.
+Proof. intros x. replace (1%Z) with (Z.succ 0) by auto. unfold Rshft. now rewrite -> powerRZ_1. Qed.
+
+Lemma Rshft_hlf : forall x, Rshft x (-1) = x / 2.
+Proof.
+  intros x. unfold Rshft. replace (-1)%Z with (-(1))%Z. rewrite -> powerRZ_neg'.
+  replace (1%Z) with (Z.succ 0) by auto. now rewrite -> powerRZ_1.
+  auto.
+Qed.
+
+Lemma Rshft_add : forall x m n, Rshft x (m + n) = Rshft (Rshft x m) n.
+Proof. intros x m n. unfold Rshft. rewrite -> powerRZ_add. symmetry. now apply Rmult_assoc. lra. Qed.
 
 Close Scope R_scope.
