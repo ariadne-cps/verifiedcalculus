@@ -42,10 +42,6 @@ Require Export Floats.
 Require Export Bounds.
 
 
-Section Polynomial_Models.
-
-Context `{F : Type} `{FltF : Float F}.
-
 Open Scope R_scope.
 
 
@@ -64,19 +60,24 @@ Proof.
  intros C x0 x1 xs2 Hxs. inversion Hxs. injection H1; intros H_; subst x1; assumption.
 Qed.
 
-Definition Polynomial := list (nat*F).
+Definition Polynomial (F : Type) := list (nat*F).
 
-Definition Ptail p : list (nat * F) :=
+Definition Ptail {F} (p : list (nat * F)) : list (nat * F) :=
   match p with
   | nil => nil
   | a0 :: p1 => p1
   end
 .
 
-Record PolynomialModel {F} {FltF : Float F} : Type :=
-{ polynomial : list (nat * F);
-  error: F;
-}.
+Record PolynomialModel {F : Type} {FltF : Float F} : Type :=
+  { polynomial : list (nat * F); error: F; }.
+
+Arguments PolynomialModel (F) {FltF}.
+
+
+Section Polynomial_Models.
+
+Context `{F : Type} `{FltF : Float F}.
 
 Fixpoint Pax_eval (p:list (nat*F)) (x:R) : R :=
     match p with
@@ -91,7 +92,7 @@ Proof.
 Qed.
 
 (* Polynomial norm: || p || = \sum_u |a_i| *)
-Function Pnorm (p: Polynomial) : F :=
+Function Pnorm (p: Polynomial F) : F :=
   match p with
   | nil  => F.null
   | (n0,a0) :: l => F.add_up (F.abs_exact a0) (Pnorm l)
@@ -134,16 +135,16 @@ Proof.
     auto.
 Qed.
 
-Function PMnorm (t: PolynomialModel) : F :=
+Function PMnorm (t: PolynomialModel F) : F :=
   F.add up (Pnorm t.(polynomial)) t.(error).
 
 (* `multiplying' by polynomial norm *)
 Definition Pscale_norm e sp := F.mul_up e (Pnorm sp).
 
-Definition Pdifference (p:Polynomial) (f:R->R) (x:R) :=
+Definition Pdifference (p:Polynomial F) (f:R->R) (x:R) :=
   f(x)-(Pax_eval p x).
 
-Definition PMmodels (t:PolynomialModel) (f:R->R) := forall x,
+Definition PMmodels (t:PolynomialModel F) (f:R->R) := forall x,
   -1 <= x <= 1 -> Rabs ((Pax_eval t.(polynomial) x) - f(x)) <= F.injR (t.(error)) .
 
 Lemma PMmodels_extensional: forall t f1 f2, PMmodels t f1 -> (forall x, -1<=x<=1 -> f1 x = f2 x) -> PMmodels t f2.
@@ -160,13 +161,13 @@ Proof.
  apply Rle_trans with (Rabs (Pax_eval t.(polynomial) 0 - f 0));[ apply Rabs_pos| apply hyp; auto with real].
 Qed.
 
-Definition PMzero : PolynomialModel :=
+Definition PMzero : PolynomialModel F :=
   {| polynomial :=nil;  error:=F.null |}.
 
-Definition PMconstant a : PolynomialModel :=
+Definition PMconstant a : PolynomialModel F :=
   {| polynomial := (0%nat, a) :: nil; error := F.null |}.
 
-Definition PMerror_ball e : PolynomialModel :=
+Definition PMerror_ball e : PolynomialModel F :=
   {| polynomial := nil; error := e |}.
 
 Lemma PMconstant_correct : forall a,
@@ -206,7 +207,7 @@ Proof.
   - apply F.add_up_le_spec.
 Qed.
 
-Definition PMtail t : PolynomialModel :=
+Definition PMtail t : PolynomialModel F :=
   match t with
   | {| polynomial := nil |} => PMzero
   | {| polynomial := a0 :: p1; error :=e |} =>
@@ -264,8 +265,7 @@ Proof.
 Qed.
 
 
-Definition PMeval {FF} {FltFF : Float FF}
-   (t : PolynomialModel) (x : Bounds) : Bounds :=
+Definition PMeval (t : PolynomialModel F) (x : Bounds F) : Bounds F :=
   Bnds.add
     (Peval t.(polynomial) x)
     (bounds (F.neg t.(error)) (t.(error))).

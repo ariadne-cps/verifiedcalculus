@@ -32,18 +32,19 @@ Require Import Analysis.
 
 Module Bll.
 
-Section Ball_section.
-
-Open Scope R_scope.
-
 Inductive Ball {F:Type} {FltF : Float F} :=
   ball (value:F) (error:F).
 
 Arguments Ball (F) {FltF}.
 
+Check ball.
+
+
+Section Ball_section.
+
 Context `{F : Type} `{FltF : Float F}.
 
-Check ball.
+Open Scope R_scope.
 
 Definition value (x : @Ball F FltF) : F := match x with ball v _ => v end.
 Definition error (x : @Ball F FltF) : F := match x with ball _ e => e end.

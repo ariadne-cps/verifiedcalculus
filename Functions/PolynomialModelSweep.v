@@ -38,7 +38,7 @@ Context `{F : Type} `{FltF : Float F}.
 Open Scope R_scope.
 
 (*
-Fixpoint Psweep (r : (nat * F) -> bool) (p : Polynomial) : (Polynomial * F) :=
+Fixpoint Psweep (r : (nat * F) -> bool) (p : Polynomial F) : (Polynomial F * F) :=
   match p with
   | nil => (nil,F.null)
   | p0 :: p1 => let (sp1, e1) := (Psweep r p1) in
@@ -47,7 +47,7 @@ Fixpoint Psweep (r : (nat * F) -> bool) (p : Polynomial) : (Polynomial * F) :=
 .
 *)
 
-Fixpoint Psweep (r : (nat * F) -> bool) (p : Polynomial) : (Polynomial * F) :=
+Fixpoint Psweep (r : (nat * F) -> bool) (p : Polynomial F) : (Polynomial F * F) :=
   match p with
   | nil => (nil,F.null)
   | p0 :: p1 => if (r p0)
@@ -56,7 +56,7 @@ Fixpoint Psweep (r : (nat * F) -> bool) (p : Polynomial) : (Polynomial * F) :=
   end
 .
 
-Fixpoint Psweep_ax_error (r : (nat * F) -> bool) (p : Polynomial) : R :=
+Fixpoint Psweep_ax_error (r : (nat * F) -> bool) (p : Polynomial F) : R :=
   match p with
   | nil => 0%R
   | p0::p1 => (if (r p0) then Rabs (F.injR (snd p0)) else 0%R) + Psweep_ax_error r p1
@@ -275,7 +275,7 @@ Qed.
 
 
 
-Definition PMsweep (r : (nat * F) -> bool) (t : PolynomialModel) : PolynomialModel :=
+Definition PMsweep (r : (nat * F) -> bool) (t : PolynomialModel F) : PolynomialModel F :=
   match t with
   | {| polynomial:=p; error :=e |} =>
         {| polynomial:=fst (Psweep r p); error := F.add up e (snd (Psweep r p)) |}

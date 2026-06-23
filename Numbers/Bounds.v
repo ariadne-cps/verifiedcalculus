@@ -30,19 +30,19 @@ Require Import RealAddenda.
 Require Import Floats.
 
 Module Bnds.
-
-Section Bounds_section.
-
-Open Scope R_scope.
-
 Inductive Bounds {F:Type} {FltF : Float F} :=
   bounds (lower:F) (upper:F).
 
 Arguments Bounds (F) {FltF}.
 
+Check bounds.
+
+
+Section Bounds_section.
+
 Context `{F : Type} `{FltF : Float F}.
 
-Check bounds.
+Open Scope R_scope.
 
 
 Definition models : Bounds F -> R -> Prop :=

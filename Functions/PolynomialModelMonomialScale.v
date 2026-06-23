@@ -70,7 +70,7 @@ Proof.
    apply Nat.add_lt_mono_l; exact (is_sorted_fst_cons_lt _ _ _ H_aap).
 Qed.
 
-Definition PMmonomial_scale (n : nat) (t : PolynomialModel) : PolynomialModel :=
+Definition PMmonomial_scale (n : nat) (t : PolynomialModel F) : PolynomialModel F :=
  {| polynomial := Pmonomial_scale n t.(polynomial)
   ; error := t.(error) |}.
 

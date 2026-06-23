@@ -24,12 +24,14 @@
  *)
 
 
-Require Export PolynomialModels.
 From Stdlib Require Import Recdef.
 From Stdlib Require Import Lia.
 From Stdlib Require Import Lra.
 From Stdlib Require Import Ring.
 From Stdlib Require Import Arith.Compare_dec.
+
+Require Export PolynomialModels.
+
 
 Section Polynomial_Model_Add.
 
@@ -219,12 +221,12 @@ Qed.
 Definition PMadd_error t1 t2 : F := F.add_up (F.add_up t1.(error) t2.(error)) (Padd_error t1.(polynomial) t2.(polynomial)).
 
 
-Definition PMadd (t1 t2 : PolynomialModel) : PolynomialModel :=
+Definition PMadd (t1 t2 : PolynomialModel F) : PolynomialModel F :=
   {| polynomial:= Padd_approx t1.(polynomial) t2.(polynomial);
      error:=PMadd_error t1 t2 |}.
 
 
-Lemma Padd_correct : forall (p1 p2:Polynomial) x,  -1 <= x <= 1 ->
+Lemma Padd_correct : forall (p1 p2:Polynomial F) x,  -1 <= x <= 1 ->
   Rabs (Pax_eval p1 x + Pax_eval p2 x - Pax_eval (Padd_approx p1 p2) x) <=
     F.injR (Padd_error p1 p2).
 Proof.
@@ -295,7 +297,7 @@ Proof.
 Qed.
 
 
-Theorem PMadd_correct : forall (t1 t2: PolynomialModel) (f1 f2:R -> R),
+Theorem PMadd_correct : forall (t1 t2: PolynomialModel F) (f1 f2:R -> R),
    PMmodels t1 f1 -> PMmodels t2 f2 -> PMmodels (PMadd t1 t2) (fun x=> f1(x)+ f2(x)).
 Proof.
   intros t1 t2 f1 f2 H1 H2 x Hx.

@@ -75,7 +75,7 @@ Proof.
 Qed.
 
 
-Definition PMneg (t : PolynomialModel) : PolynomialModel :=
+Definition PMneg (t : PolynomialModel F) : PolynomialModel F :=
   {| polynomial := Pnegate t.(polynomial);
      error := t.(error) |}.
 

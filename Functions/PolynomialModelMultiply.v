@@ -41,8 +41,8 @@ Context `{F : Type} `{FltF : Float F}.
 Open Scope R_scope.
 
 
-Function Pmul (p1 p2 : Polynomial)
-    {measure (fun p => length p) p1} : PolynomialModel :=
+Function Pmul (p1 p2 : Polynomial F)
+    {measure (fun p => length p) p1} : PolynomialModel F :=
   match p1 with
   | nil => PMzero
   | (n0,c0) :: p1' =>
@@ -143,14 +143,14 @@ Proof.
 Qed.
 
 
-Definition PMmul (t1 t2 : PolynomialModel) : PolynomialModel :=
+Definition PMmul (t1 t2 : PolynomialModel F) : PolynomialModel F :=
     PMadd (Pmul t1.(polynomial) t2.(polynomial))
                {| polynomial := nil
                 ; error:=  (F.add_up (Pscale_norm t1.(error) t2.(polynomial))
                                    (F.add_up (Pscale_norm t2.(error) t1.(polynomial))
                                            (F.mul_up t1.(error) t2.(error)))) |}.
 
-Theorem PMmul_correct : forall (t1 t2 : PolynomialModel) (f1 f2 : R->R),
+Theorem PMmul_correct : forall (t1 t2 : PolynomialModel F) (f1 f2 : R->R),
   PMmodels t1 f1 -> PMmodels t2 f2 -> PMmodels (PMmul t1 t2) (fun x=> f1(x)*f2(x)).
 Proof.
  intros t1 t2 f1 f2 H1 H2.

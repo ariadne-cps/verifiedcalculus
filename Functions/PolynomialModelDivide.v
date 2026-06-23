@@ -97,7 +97,7 @@ Proof.
 Qed.
 
 
-Definition PMrec (n : nat) (t : PolynomialModel) : PolynomialModel :=
+Definition PMrec (n : nat) (t : PolynomialModel F) : PolynomialModel F :=
   let t' := PMsub (PMconstant F.unit) t in
   let d' := PMnorm t' in
   PMadd (PMgeometric n t') (PMerror_ball (F.div up (F.pow_up d' (n+1)) (F.sub down F.unit d'))).
@@ -106,7 +106,7 @@ Definition PMrec (n : nat) (t : PolynomialModel) : PolynomialModel :=
 Definition PMunit_mig t :=
    F.injR (F.sub down F.unit (PMnorm (PMsub (PMconstant F.unit) t))).
 
-Theorem PMrec_correct : forall (n : nat) (t : PolynomialModel) (f : R->R),
+Theorem PMrec_correct : forall (n : nat) (t : PolynomialModel F) (f : R->R),
   (PMunit_mig t > 0) -> PMmodels t f ->
       PMmodels (PMrec n t) (fun x => / f(x)).
 Proof.

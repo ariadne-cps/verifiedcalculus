@@ -80,11 +80,11 @@ Definition Pscal_error c : list (nat * F) -> F :=
 Definition PMscal_error c t : F :=
   F.add_up (F.mul_up (F.abs_exact c) t.(error)) (Pscal_error c t.(polynomial)).
 
-Definition PMscal (c:F) (t:PolynomialModel) : PolynomialModel :=
+Definition PMscal (c:F) (t:PolynomialModel F) : PolynomialModel F :=
   {| polynomial := Pscal c t.(polynomial);
      error := PMscal_error c t |}.
 
-Lemma Pscal_error_nonneg : forall c (t: PolynomialModel), 0<= F.injR (Pscal_error c t.(polynomial)).
+Lemma Pscal_error_nonneg : forall c (t: PolynomialModel F), 0<= F.injR (Pscal_error c t.(polynomial)).
 Proof.
  intros c [p e]; induction p; simpl in *.
   simpl; rewrite -> F.null_spec; auto with real.
@@ -105,7 +105,7 @@ Proof.
      - apply IHp; assumption.
 Qed.
 
-Lemma Pscal_error_correct : forall c (p:Polynomial) x,  -1 <= x <= 1 ->
+Lemma Pscal_error_correct : forall c (p:Polynomial F) x,  -1 <= x <= 1 ->
    Rabs ((F.injR c)*Pax_eval p x - Pax_eval (Pscal c p) x) <=
         F.injR (Pscal_error c p).
 Proof.
@@ -142,7 +142,7 @@ Proof.
 Qed.
 
 
-Theorem PMscal_correct : forall (c:F) (t:PolynomialModel) (f:R->R),
+Theorem PMscal_correct : forall (c:F) (t:PolynomialModel F) (f:R->R),
   PMmodels t f -> PMmodels (PMscal c t) (fun x=> (F.injR c) * f(x)).
 Proof.
  intros c t f H x hyp_x.
