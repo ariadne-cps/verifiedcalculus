@@ -386,6 +386,7 @@ Definition add {n : nat} (_ : Rounding) (x1 : FixedDyadic n) (x2 : FixedDyadic n
 Definition sub {n : nat} (_ : Rounding) (x1 : FixedDyadic n) (x2 : FixedDyadic n) : (FixedDyadic n) :=
   make n (mantissa x1 - mantissa x2).
 
+
 Definition mul {n : nat}
   (rnd : Rounding) (x1 : FixedDyadic n) (x2 : FixedDyadic n) : (FixedDyadic n) :=
     let p1 := mantissa x1 in
