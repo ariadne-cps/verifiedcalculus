@@ -121,6 +121,22 @@ Proof.
 Qed.
 
 
+Definition neg : Ball F -> Ball F :=
+  fun x => match x with ball v e => ball (F.neg v) e end.
+
+Lemma neg_correct :
+  forall (x : Ball F) (y : R),
+    models x y -> models (neg x) (-y).
+Proof.
+  intros x y H.
+  destruct x as (v & e).
+  unfold models in H;
+  unfold models; unfold neg.
+  rewrite -> F.neg_exact_spec.
+  unfold Rdist in *.
+  rewrite -> Rminus_def, <- Ropp_plus_distr, -> Rabs_Ropp.
+  exact H.
+Qed.
 
 Definition add : Ball F -> Ball F -> Ball F :=
   fun x1 x2 =>
