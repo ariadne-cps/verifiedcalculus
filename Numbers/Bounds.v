@@ -49,6 +49,25 @@ Definition models : Bounds F -> R -> Prop :=
   fun x y => match x with bounds l u => F.injR l <= y /\ y <= F.injR u end.
 
 
+Definition neg : Bounds F -> Bounds F :=
+  fun x => match x with bounds l u => bounds (F.neg u) (F.neg l) end.
+
+Lemma neg_correct :
+  forall (x : Bounds F) (y : R),
+    models x y -> models (neg x) (-y).
+Proof.
+  intros x y H.
+  destruct x as (l & u).
+  unfold models in H;
+  unfold models; unfold neg.
+  split.
+  - rewrite -> F.neg_exact_spec.
+    now apply Ropp_le_contravar.
+  - rewrite -> F.neg_exact_spec.
+    now apply Ropp_le_contravar.
+Qed.
+
+
 Definition add : Bounds F -> Bounds F -> Bounds F :=
   fun x1 x2 =>
     match x1 with bounds l1 u1
