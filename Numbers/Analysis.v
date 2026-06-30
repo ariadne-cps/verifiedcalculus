@@ -284,4 +284,26 @@ Proof.
 Qed.
 
 
+Lemma strictly_increasing_implies_increasing : forall (f : R -> R),
+  (forall (x y : R), x<y -> f x < f y) -> (forall (x y : R), x<=y -> f x <= f y).
+Proof.
+  intros f H x y. specialize (H x y).
+  intro Hle. destruct Hle as [Hlt | Heq].
+  - apply Rlt_le. exact (H Hlt).
+  - apply Req_le. f_equal. exact Heq.
+Qed.
+
+Lemma rec_diff : forall x, 0<x -> 1-/x <= x-1.
+Proof.
+  intros x H.
+  apply Rmult_le_reg_r with (r:=x); [exact H|].
+  rewrite -> Rmult_minus_distr_r, Rmult_1_l.
+  rewrite <- Rinv_l_sym; [|apply Rgt_not_eq; exact H].
+  apply Rle_zero_Rminus.
+  set (y:=x-1); replace x with (y+1); [|exact (Rminus_plus_cancel x 1)].
+  rewrite -> Rmult_plus_distr_l, Rmult_1_r.
+  rewrite -> Rplus_minus_cancel.
+  apply Rmult_mult_nonneg.
+Qed.
+
 End Analysis.

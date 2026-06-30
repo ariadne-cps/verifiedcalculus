@@ -25,10 +25,12 @@
 
 From Stdlib Require Import Reals.
 From Stdlib Require Import Lia.
+From Stdlib Require Import Lra.
 
 Require Import RealAddenda.
 Require Import Floats.
 Require Import Analysis.
+Require Import Bounds.
 
 Module Bll.
 
@@ -632,8 +634,82 @@ Qed.
 Axiom mag_hlf : forall x, (F.injR (mag (hlf x))) = F.injR (Fhlf (mag x)).
 
 
+Definition ball_to_bounds (x : Ball F) : Bounds F :=
+  let (v,e) := (value x, error x) in
+    bounds (F.sub down v e) (F.add up v e).
+
+Proposition ball_to_bounds_correct :
+  forall (x : Ball F) (y : R),
+    models x y -> Bnds.models (ball_to_bounds x) y.
+Proof.
+  intros x y H.
+  destruct x as (v & e).
+  unfold ball_to_bounds; unfold models in H; unfold Bnds.models; simpl.
+  unfold Rdist in H; apply Rabs_ivl in H; destruct H as (Hl&Hu).
+  split.
+  - apply Rle_trans with (r2:=F.injR v - F.injR e).
+    apply F.sub_down_spec.
+    lra.
+  - apply Rle_trans with (r2:=F.injR v + F.injR e).
+    lra.
+    apply Rge_le; apply F.add_up_spec.
+Qed.
+
+
+Definition bounds_to_ball (x : Bounds F) : (Ball F) :=
+  let (l,u) := (Bnds.lower x, Bnds.upper x) in
+    let v := F.div near (F.add near l u) (F.of_nat 2) in
+      let e := F.max (F.sub up v l) (F.sub up u v) in
+        ball v e.
+
+Proposition bounds_to_ball_correct :
+  forall (x : Bounds F) (y : R),
+    Bnds.models x y -> models (bounds_to_ball x) y.
+Proof.
+  intros x y H.
+  destruct x as (l & u).
+  unfold bounds_to_ball; unfold Bnds.models in H; unfold models; simpl.
+  destruct H as (Hl&Hu).
+  set (v:=F.div near (F.add near l u) (F.of_nat 2)).
+  unfold Rdist.
+  assert (F.injR v <= y \/ y <= F.injR v) as Hvy; [apply Rle_or_le|].
+  destruct Hvy as [Hvley|Hylev].
+  - assert (F.injR v - y <= 0) as Hvsy. { apply Rle_minus. exact Hvley. }
+    rewrite -> Rabs_neg_eq by (exact Hvsy).
+    rewrite -> Ropp_minus_distr.
+    apply Rle_trans with (r2:=Rmax (F.injR v - F.injR l) (F.injR u - F.injR v)).
+    apply Rle_trans with (r2:=F.injR u - F.injR v).
+    -- apply Rplus_le_compat_r.
+       exact Hu.
+    -- apply Rmax_r.
+    -- rewrite -> F.max_exact_spec.
+       apply Rle_max_compat.
+       apply Rge_le; apply F.sub_up_spec.
+       apply Rge_le; apply F.sub_up_spec.
+  - assert (0<=F.injR v - y) as Hvsy. { apply Rle_Rminus_zero. exact Hylev. }
+    rewrite -> Rabs_pos_eq by (exact Hvsy).
+    apply Rle_trans with (r2:=Rmax (F.injR v - F.injR l) (F.injR u - F.injR v)).
+    apply Rle_trans with (r2:=F.injR v - F.injR l).
+    -- apply Rplus_le_compat_l.
+       apply Ropp_le_contravar.
+       exact Hl.
+    -- apply Rmax_l.
+    -- rewrite -> F.max_exact_spec.
+       apply Rle_max_compat.
+       apply Rge_le; apply F.sub_up_spec.
+       apply Rge_le; apply F.sub_up_spec.
+Qed.
+
+
 End Ball_section.
 
 End Bll.
 
 Export Bll(Ball,ball).
+
+Declare Scope Ball_scope.
+Notation "- x" := (Bll.neg x) : Ball_scope.
+Infix "+" := Bll.add : Ball_scope.
+Infix "-" := Bll.sub : Ball_scope.
+Infix "*" := Bll.mul : Ball_scope.
+Infix "/" := Bll.div : Ball_scope.
