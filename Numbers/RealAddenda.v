@@ -81,15 +81,6 @@ Declare Left Step Rneq_stepl.
 Declare Right Step Rneq_stepr.
 
 
-Lemma Rle_max_compat : forall w x y z, w <= y -> x <= z -> Rmax w x <= Rmax y z.
-Proof.
-  intros w x y z Hwy Hxz.
-  transitivity (Rmax w z).
-  now apply Rle_max_compat_l.
-  now apply Rle_max_compat_r.
-Qed.
-
-
 Lemma Ropp_0_le_contravar : forall (x:R), x <= 0 <-> 0 <= -x.
 Proof.
   intro x.
@@ -128,6 +119,26 @@ Proof.
  intros r1 r2 H; lra.
 Qed.
 
+Lemma Rminus_le_compat:
+  forall r1 r2 r3 r4 : R, r1 <= r2 -> r4 <= r3 -> r1 - r3 <= r2 - r4.
+Proof.
+  intros r1 r2 r3 r4 H12 H34;
+  lra.
+Qed.
+
+Lemma Rminus_le_compat_l:
+  forall r1 r2 r3 : R, r1 <= r2 <-> r1 - r3 <= r2 - r3.
+Proof.
+  intros r1 r2 r3. split. all: intro H12; lra.
+Qed.
+
+Lemma Rminus_le_compat_r :
+  forall r1 r2 r3 : R, r3 <= r2 <-> r1 - r2 <= r1 - r3.
+Proof.
+  intros r1 r2 r3. split. all: intro H12; lra.
+Qed.
+
+
 Lemma Rlt_Rminus_zero : forall r1 r2:R , r2 < r1 -> 0 < r1-r2.
 Proof.
  intros r1 r2 H; lra.
@@ -137,6 +148,17 @@ Lemma Rlt_not_eq': forall r1 r2 : R, r1 < r2 -> r2 <> r1.
 Proof.
  intros r1 r2 H; apply sym_not_eq; apply Rlt_not_eq; assumption.
 Qed.
+
+Lemma Rminus_plus_cancel : forall (x y : R), (x-y)+y = x.
+Proof.
+  intros x y; unfold Rminus; rewrite -> Rplus_assoc, -> Rplus_opp_l, -> Rplus_0_r; reflexivity.
+Qed.
+
+Lemma Rplus_minus_cancel : forall (x y : R), (x+y)-y = x.
+Proof.
+  intros x y; unfold Rminus; rewrite -> Rplus_assoc, -> Rplus_opp_r, -> Rplus_0_r; reflexivity.
+Qed.
+
 
 Lemma Rmult_reg_nonzero_r: forall r1 r2 : R, r1 * r2 <> 0 -> r2 <> 0.
 Proof.
@@ -188,6 +210,48 @@ Qed.
 Lemma Rlt_mult_neg_pos: forall r1 r2 : R, 0<r1 -> r2<0 -> r1 * r2<0.
 Proof.
  intros r1 r2 Hr1 Hr2; apply Ropp_lt_cancel; stepl R0; [|ring]; stepr (r1*(-r2)); [|ring]; apply Rlt_mult_pos_pos; auto.
+Qed.
+
+Lemma Ropp_mult_distr: forall r1 r2 : R, - (r1 * r2) = (- r1 * r2).
+Proof.
+ intros r1 r2; ring.
+Qed.
+
+Lemma Rmult_le_opp_compat_l : forall (r r1 r2 : R), r<=0 -> r1 <= r2 -> r*r2 <= r*r1.
+Proof.
+  intros r r1 r2 Hr0 Hr12.
+  assert (0 <= -r) as H0r. { apply Ropp_0_ge_le_contravar. apply Rle_ge. exact Hr0. }
+  apply Ropp_le_cancel;
+  rewrite -> Ropp_mult_distr; rewrite -> Ropp_mult_distr.
+  apply Rmult_le_compat_l; [exact H0r|]; exact Hr12.
+Qed.
+
+Lemma Rmult_le_opp_compat_r : forall (r r1 r2 : R), r<=0 -> r1 <= r2 -> r2*r <= r1*r.
+Proof.
+  intros r r1 r2 Hr0 Hr12.
+  assert (r1 * r = r * r1) as H1c; [apply Rmult_comm|].
+  assert (r2 * r = r * r2) as H2c; [apply Rmult_comm|].
+  rewrite -> H1c; rewrite -> H2c.
+  apply Rmult_le_opp_compat_l. assumption. assumption.
+Qed.
+
+
+
+Lemma Rdiv_lt_compat_l : forall r r1 r2 : R, 0 < r -> 0 < r2 < r1 -> r / r1 < r / r2.
+Proof.
+  intros r r1 r2 Hr0 [Hr1 Hr12].
+  repeat rewrite -> Rdiv_def.
+  apply Rmult_lt_compat_l.
+  exact Hr0.
+  now apply Rinv_0_lt_contravar.
+Qed.
+
+Lemma Rdiv_lt_compat_r : forall r r1 r2 : R, 0 < r -> r1 < r2 -> r1 / r < r2 / r.
+Proof.
+  intros r r1 r2 Hr0.
+  repeat rewrite -> Rdiv_def.
+  apply Rmult_lt_compat_r.
+  now apply Rinv_pos.
 Qed.
 
 Lemma Rdiv_Rmult_pos_neg_Rle: forall x y z t, R0 < z -> t < R0 -> x / z <= y / t -> y * z <= x * t.
@@ -289,11 +353,6 @@ Lemma Rplus_Rdiv:forall x y z t, z<>R0 -> t<>R0 -> (x/z + y/t = (x*t+y*z)/(z*t))
 Proof.
  intros x y z t Hz Ht; field; split; trivial.
 Defined.
-
-Lemma Ropp_mult_distr: forall r1 r2 : R, - (r1 * r2) = (- r1 * r2).
-Proof.
- intros r1 r2; ring.
-Qed.
 
 Lemma Rle_pos_nonneg_Rmult: forall r1 r2 : R, 0 < r1 ->  0 <= r2 * r1 -> 0<= r2.
 Proof.
@@ -423,7 +482,7 @@ Proof.
  stepl ((y*y')*(a*(x/y)*(x'/y')+b*(x/y)+c*(x'/y')+d))%R; auto; field; auto.
 Qed.
 
-(* Unused *)
+
 Lemma Rle_or_ge : forall (x1 x2 : R), x1<=x2 \/ x1 >=x2.
 Proof.
   intros x1 x2.
@@ -432,7 +491,6 @@ Proof.
   - right. unfold Rge. destruct H. right. assumption. left. assumption.
   - apply Rtotal_order.
 Qed.
-
 
 Lemma Rle_or_le : forall (x1 x2 : R), x1<=x2 \/ x2 <=x1.
 Proof.
@@ -742,6 +800,38 @@ Qed.
 Lemma Rabs_Rle_1 : forall (x : R), -1 <= x <= 1 -> Rabs x <= 1.
 Proof.
   intros x H. apply Rabs_le. lra.
+Qed.
+
+
+Lemma Rsqr_pos_incr : forall x y, 0 <= x -> x <= y -> Rsqr x <= Rsqr y.
+Proof.
+  intros x y Hx0 Hxy. apply (Rsqr_incr_1 x y Hxy Hx0).
+  apply (Rle_trans _ x). exact Hx0. exact Hxy.
+Qed.
+
+Lemma Rsqr_neg_decr : forall x y, y <= 0 -> x <= y -> Rsqr y <= Rsqr x.
+Proof.
+  intros x y Hy0 Hxy. rewrite -> (Rsqr_neg x), (Rsqr_neg y).
+  apply (Rsqr_incr_1 (-y) (-x)).
+  - apply Ropp_le_contravar. exact Hxy.
+  - apply Ropp_0_le_contravar. exact Hy0.
+  - apply Ropp_0_le_contravar. apply (Rle_trans _ y). exact Hxy. exact Hy0.
+Qed.
+
+Lemma Rle_min_compat : forall (r1 r2 r3 r4 : R), r1<=r3 -> r2<=r4 -> Rmin r1 r2 <= Rmin r3 r4.
+Proof.
+  intros r1 r2 r3 r4 H13 H24.
+  apply Rle_trans with (r2 := Rmin r1 r4).
+  apply Rle_min_compat_l; exact H24.
+  apply Rle_min_compat_r; exact H13.
+Qed.
+
+Lemma Rle_max_compat : forall (r1 r2 r3 r4 : R), r1<=r3 -> r2<=r4 -> Rmax r1 r2 <= Rmax r3 r4.
+Proof.
+  intros r1 r2 r3 r4 H13 H24.
+  apply Rle_trans with (r2 := Rmax r1 r4).
+  apply Rle_max_compat_l; exact H24.
+  apply Rle_max_compat_r; exact H13.
 Qed.
 
 

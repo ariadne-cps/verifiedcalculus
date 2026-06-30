@@ -28,8 +28,10 @@ From Stdlib Require Import Lra.
 
 Require Import RealAddenda.
 Require Import Floats.
+Require Import Analysis.
 
 Module Bnds.
+
 Inductive Bounds {F:Type} {FltF : Float F} :=
   bounds (lower:F) (upper:F).
 
@@ -48,6 +50,8 @@ Open Scope R_scope.
 Definition models : Bounds F -> R -> Prop :=
   fun x y => match x with bounds l u => F.injR l <= y /\ y <= F.injR u end.
 
+Definition lower (x : Bounds F) : F := match x with | bounds l _ => l end.
+Definition upper (x : Bounds F) : F := match x with | bounds _ u => u end.
 
 Definition of_nat (n : nat) : Bounds F := bounds (F.of_nat n) (F.of_nat n).
 
@@ -84,7 +88,6 @@ Definition add : Bounds F -> Bounds F -> Bounds F :=
       => match x2 with bounds l2 u2
         => bounds (F.add down l1 l2) (F.add up u1 u2) end end.
 (*
-
   fun (bounds l1 u1) (bounds l2 u2) bounds (add down l1 l2) (add up u1 u2).
 *)
 
@@ -106,17 +109,9 @@ Proof.
 Qed.
 
 
-(* Definition sub ((bounds l1 u1) : Bounds F) (x2 : Bounds F) : Bounds F *)
 Definition sub (x1 x2 : Bounds F) : Bounds F :=
   match x1 with bounds l1 u1 => match x2 with bounds l2 u2
       => bounds (F.sub down l1 u2) (F.sub up u1 l2) end end.
-
-Lemma Rminus_le_compat:
-  forall r1 r2 r3 r4 : R, r1 <= r2 -> r4 <= r3 -> r1 - r3 <= r2 - r4.
-Proof.
-  intros r1 r2 r3 r4 H12 H34;
-  lra.
-Qed.
 
 Lemma sub_correct :
   forall (x1 x2 : Bounds F) (y1 y2 : R),
@@ -165,27 +160,9 @@ Definition mul (x1 x2 : Bounds F) : Bounds F :=
   end
 .
 
-(* Unused *)
-Lemma Rle_or_ge : forall (x1 x2 : R), x1<=x2 \/ x1 >=x2.
-Proof.
-  intros x1 x2.
-  apply or_ind with (A:=x1<x2) (B:=x1=x2\/x1>x2).
-  - left. unfold Rle. left. assumption.
-  - right. unfold Rge. destruct H. right. assumption. left. assumption.
-  - apply Rtotal_order.
-Qed.
-
-Lemma Rle_or_le : forall (x1 x2 : R), x1<=x2 \/ x2 <=x1.
-Proof.
-  intros x1 x2.
-  apply or_ind with (A:=x1<x2) (B:=x1=x2\/x1>x2).
-  - left. unfold Rle. left. assumption.
-  - intro H. destruct H. left. unfold Rle. right. assumption. right. unfold Rle. left. apply Rgt_lt. assumption.
-  - apply Rtotal_order.
-Qed.
 
 Local Lemma Fnot_leb :
-  forall (x1 x2 : F), (false = F.leb x1 x2) -> (F.injR x2 <= F.injR x1).
+  forall (x1 x2 : F), (false = F.leb x1 x2) -> (F.injR x2 < F.injR x1).
 Proof.
   intros x1 x2. intro H.
   assert (F.injR x1 <= F.injR x2 -> False). {
@@ -193,10 +170,15 @@ Proof.
      apply F.leb_spec in Hge.
      destruct (F.leb x1 x2); discriminate.
   }
-  apply or_ind with (A:=F.injR x1 <= F.injR x2) (B:=F.injR x2 <= F.injR x1).
-  - contradiction.
-  - auto.
-  - exact (Rle_or_le (F.injR x1) (F.injR x2)).
+  now apply Rnot_le_lt.
+Qed.
+
+Lemma Fnot_leb_le :
+  forall (x1 x2 : F), (false = F.leb x1 x2) -> (F.injR x2 <= F.injR x1).
+Proof.
+  intros x1 x2 H.
+  apply Rlt_le.
+  now apply Fnot_leb.
 Qed.
 
 Local Lemma Fgeb_0 :
@@ -218,47 +200,13 @@ Qed.
 Local Lemma Fnot_geb_0 :
   forall (x:F), (false = F.leb F.null x) -> (F.injR x <= 0).
 Proof.
-  intro x. replace 0 with (F.injR (F.of_nat 0%nat)) by (apply F.ninjr_spec); apply Fnot_leb.
+  intro x. replace 0 with (F.injR (F.of_nat 0%nat)) by (apply F.ninjr_spec). apply Fnot_leb_le.
 Qed.
 
 Local Lemma Fnot_leb_0 :
   forall (x:F), (false = F.leb x F.null) -> (0 <= F.injR x).
 Proof.
-  intro x. replace 0 with (F.injR (F.of_nat 0%nat)) by (apply F.ninjr_spec); apply Fnot_leb.
-Qed.
-
-Lemma Rle_min_compat : forall (r1 r2 r3 r4 : R), r1<=r3 -> r2<=r4 -> Rmin r1 r2 <= Rmin r3 r4.
-Proof.
-  intros r1 r2 r3 r4 H13 H24.
-  apply Rle_trans with (r2 := Rmin r1 r4).
-  apply Rle_min_compat_l; exact H24.
-  apply Rle_min_compat_r; exact H13.
-Qed.
-
-Lemma Rle_max_compat : forall (r1 r2 r3 r4 : R), r1<=r3 -> r2<=r4 -> Rmax r1 r2 <= Rmax r3 r4.
-Proof.
-  intros r1 r2 r3 r4 H13 H24.
-  apply Rle_trans with (r2 := Rmax r1 r4).
-  apply Rle_max_compat_l; exact H24.
-  apply Rle_max_compat_r; exact H13.
-Qed.
-
-Lemma Rmult_le_opp_compat_l : forall (r r1 r2 : R), r<=0 -> r1 <= r2 -> r*r2 <= r*r1.
-Proof.
-  intros r r1 r2 Hr0 Hr12.
-  assert (0 <= -r) as H0r. { apply Ropp_0_ge_le_contravar. apply Rle_ge. exact Hr0. }
-  apply Ropp_le_cancel;
-  rewrite -> Ropp_mult_distr; rewrite -> Ropp_mult_distr.
-  apply Rmult_le_compat_l; [exact H0r|]; exact Hr12.
-Qed.
-
-Lemma Rmult_le_opp_compat_r : forall (r r1 r2 : R), r<=0 -> r1 <= r2 -> r2*r <= r1*r.
-Proof.
-  intros r r1 r2 Hr0 Hr12.
-  assert (r1 * r = r * r1) as H1c; [apply Rmult_comm|].
-  assert (r2 * r = r * r2) as H2c; [apply Rmult_comm|].
-  rewrite -> H1c; rewrite -> H2c.
-  apply Rmult_le_opp_compat_l. assumption. assumption.
+  intro x. replace 0 with (F.injR (F.of_nat 0%nat)) by (apply F.ninjr_spec); apply Fnot_leb_le.
 Qed.
 
 Lemma mul_correct :
@@ -521,9 +469,6 @@ Definition div (x1 x2 : Bounds F) : Bounds F :=
     end
   end
 .
-
-Definition lower (x : @Bounds F FltF) : F := match x with bounds l _ => l end.
-Definition upper (x : @Bounds F FltF) : F := match x with bounds _ u => u end.
 
 Lemma Ropp_0_lt_contravar : forall r : R, r < 0 <-> 0 < - r.
 Proof.
@@ -881,9 +826,105 @@ Proof.
 Qed.
 
 
+Axiom Fhlf : F -> F.
+Axiom Fhlf_exact_spec : forall x, F.injR (Fhlf x) = (F.injR x) / 2.
+Axiom Fsub_down_less : forall u, F.injR u < 1 -> F.injR (F.sub down F.unit u) > 0.
+
+Definition sqr : Bounds F -> Bounds F :=
+  fun x => match x with bounds l u =>
+    if F.leb F.null l then
+      bounds (F.mul down l l) (F.mul up u u)
+    else if F.leb u F.null then
+      bounds (F.mul down u u) (F.mul up l l)
+    else
+      bounds (F.null) (F.max (F.mul up l l) (F.mul up u u))
+  end.
+
+Lemma sqr_correct : forall x y, models x y -> models (sqr x) (Rsqr y).
+Proof.
+  intros x y H. destruct x as (l & u). destruct H as [Hl Hu].
+  unfold sqr, models in *.
+  remember (F.leb F.null l) as bl.
+  remember (F.leb u F.null) as bu.
+  destruct bl.
+  2: destruct bu.
+  - assert (0 <= F.injR l) as Hl0. apply Fgeb_0. exact Heqbl.
+    assert (0 <= y) as Hy0. transitivity (F.injR l); assumption.
+    split.
+    -- transitivity (Rsqr (F.injR l)).
+       rewrite -> Rsqr_def. apply F.mul_down_spec.
+       apply Rsqr_pos_incr. exact Hl0. exact Hl.
+    -- transitivity (Rsqr (F.injR u)).
+       apply Rsqr_pos_incr. exact Hy0. exact Hu.
+       rewrite -> Rsqr_def. apply F.mul_up_le_spec.
+  - assert (F.injR u <= 0) as Hu0. apply Fleb_0. exact Heqbu.
+    assert (y <= 0) as Hy0. transitivity (F.injR u); assumption.
+    split.
+    -- transitivity (Rsqr (F.injR u)).
+       rewrite -> Rsqr_def. apply F.mul_down_spec.
+       apply Rsqr_neg_decr. exact Hu0. exact Hu.
+    -- transitivity (Rsqr (F.injR l)).
+       apply Rsqr_neg_decr. exact Hy0. exact Hl.
+       rewrite -> Rsqr_def. apply F.mul_up_le_spec.
+  - assert (F.injR l <= 0) as Hl0. apply Fnot_geb_0. exact Heqbl.
+    assert (0 <= F.injR u) as Hu0. apply Fnot_leb_0. exact Heqbu.
+    split.
+    -- rewrite -> F.null_spec. exact (Rle_0_sqr y).
+    -- rewrite -> Rsqr_def.
+       rewrite -> F.max_exact_spec.
+       destruct (Rle_or_le y 0) as [Hyle0|H0ley].
+       --- transitivity (F.injR (F.mul up l l)).
+           transitivity (Rsqr (F.injR l)).
+           ---- apply Rsqr_neg_decr. exact Hyle0. exact Hl.
+           ---- rewrite -> Rsqr_def. apply F.mul_up_le_spec.
+           ---- now apply Rmax_l.
+       --- transitivity (F.injR (F.mul up u u)).
+           transitivity (Rsqr (F.injR u)).
+           ---- apply Rsqr_pos_incr. exact H0ley. exact Hu.
+           ---- rewrite -> Rsqr_def. apply F.mul_up_le_spec.
+           ---- now apply Rmax_r.
+Qed.
+
+
+Definition hlf : Bounds F -> Bounds F :=
+  fun x => match x with bounds l u => bounds (Fhlf l) (Fhlf u) end.
+
+Lemma hlf_bounds_correct : forall x y, models x y -> models (hlf x) (y/2).
+Proof.
+  intros x y H.
+  destruct x as (l,u).
+  unfold hlf.
+  unfold models in *.
+  repeat rewrite -> Fhlf_exact_spec.
+  lra.
+Qed.
+
+Lemma mag_hlf :
+  forall x, (F.injR (mag (hlf x))) = F.injR (Fhlf (mag x)).
+Proof.
+  intro x. destruct x as (l, u). unfold mag, hlf; simpl.
+  rewrite -> F.max_exact_spec, F.neg_exact_spec, Fhlf_exact_spec, Fhlf_exact_spec.
+  rewrite -> Fhlf_exact_spec, F.max_exact_spec, F.neg_exact_spec.
+  rewrite <- Rdiv_opp_l. repeat rewrite -> Rdiv_mult_inv.
+  rewrite -> (Rmult_comm (-F.injR l)), (Rmult_comm  (F.injR u)).
+  rewrite -> RmaxRmult.
+  now apply Rmult_comm.
+  apply Rlt_le.
+  exact pos_half_prf.
+Qed.
+
+
+Close Scope R_scope.
+
 End Bounds_section.
 
 End Bnds.
 
-
 Export Bnds(Bounds,bounds).
+
+Declare Scope Bounds_scope.
+Notation "- x" := (Bnds.neg x) : Bounds_scope.
+Infix "+" := Bnds.add : Bounds_scope.
+Infix "-" := Bnds.sub : Bounds_scope.
+Infix "*" := Bnds.mul : Bounds_scope.
+Infix "/" := Bnds.div : Bounds_scope.

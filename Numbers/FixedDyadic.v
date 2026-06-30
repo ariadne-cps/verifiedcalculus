@@ -362,6 +362,9 @@ Definition exponent {n : nat} (x : FixedDyadic n) : nat :=
 Definition of_nat (n : nat) :=
   fun k => make n ((Z.of_nat k) * Z.pow 2 (Z.of_nat n)).
 
+Definition injQ {n : nat} (x : FixedDyadic n) : Q :=
+  inject_Z (mantissa x) / inject_Z (Zpow2 n).
+
 Definition injR {n : nat} (x : FixedDyadic n) : R :=
   IZR (mantissa x) / IZR (Zpow2 n).
 

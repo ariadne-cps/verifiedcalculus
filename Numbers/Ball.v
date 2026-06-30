@@ -25,10 +25,12 @@
 
 From Stdlib Require Import Reals.
 From Stdlib Require Import Lia.
+From Stdlib Require Import Lra.
 
 Require Import RealAddenda.
 Require Import Floats.
 Require Import Analysis.
+Require Import Bounds.
 
 Module Bll.
 
@@ -598,8 +600,217 @@ Proof.
 Qed.
 
 
+Definition ball_to_bounds (x : Ball F) : Bounds F :=
+  let (v,e) := (value x, error x) in
+    bounds (F.sub down v e) (F.add up v e).
+
+Proposition ball_to_bounds_correct :
+  forall (x : Ball F) (y : R),
+    models x y -> Bnds.models (ball_to_bounds x) y.
+Proof.
+  intros x y H.
+  destruct x as (v & e).
+  unfold ball_to_bounds; unfold models in H; unfold Bnds.models; simpl.
+  unfold Rdist in H; apply Rabs_ivl in H; destruct H as (Hl&Hu).
+  split.
+  - apply Rle_trans with (r2:=F.injR v - F.injR e).
+    apply F.sub_down_spec.
+    lra.
+  - apply Rle_trans with (r2:=F.injR v + F.injR e).
+    lra.
+    apply Rge_le; apply F.add_up_spec.
+Qed.
+
+
+Definition bounds_to_ball (x : Bounds F) : (Ball F) :=
+  let (l,u) := (Bnds.lower x, Bnds.upper x) in
+    let v := F.div near (F.add near l u) (F.of_nat 2) in
+      let e := F.max (F.sub up v l) (F.sub up u v) in
+        ball v e.
+
+Proposition bounds_to_ball_correct :
+  forall (x : Bounds F) (y : R),
+    Bnds.models x y -> models (bounds_to_ball x) y.
+Proof.
+  intros x y H.
+  destruct x as (l & u).
+  unfold bounds_to_ball; unfold Bnds.models in H; unfold models; simpl.
+  destruct H as (Hl&Hu).
+  set (v:=F.div near (F.add near l u) (F.of_nat 2)).
+  unfold Rdist.
+  assert (F.injR v <= y \/ y <= F.injR v) as Hvy; [apply Rle_or_le|].
+  destruct Hvy as [Hvley|Hylev].
+  - assert (F.injR v - y <= 0) as Hvsy. { apply Rle_minus. exact Hvley. }
+    rewrite -> Rabs_neg_eq by (exact Hvsy).
+    rewrite -> Ropp_minus_distr.
+    apply Rle_trans with (r2:=Rmax (F.injR v - F.injR l) (F.injR u - F.injR v)).
+    apply Rle_trans with (r2:=F.injR u - F.injR v).
+    -- apply Rplus_le_compat_r.
+       exact Hu.
+    -- apply Rmax_r.
+    -- rewrite -> F.max_exact_spec.
+       apply Rle_max_compat.
+       apply Rge_le; apply F.sub_up_spec.
+       apply Rge_le; apply F.sub_up_spec.
+  - assert (0<=F.injR v - y) as Hvsy. { apply Rle_Rminus_zero. exact Hylev. }
+    rewrite -> Rabs_pos_eq by (exact Hvsy).
+    apply Rle_trans with (r2:=Rmax (F.injR v - F.injR l) (F.injR u - F.injR v)).
+    apply Rle_trans with (r2:=F.injR v - F.injR l).
+    -- apply Rplus_le_compat_l.
+       apply Ropp_le_contravar.
+       exact Hl.
+    -- apply Rmax_l.
+    -- rewrite -> F.max_exact_spec.
+       apply Rle_max_compat.
+       apply Rge_le; apply F.sub_up_spec.
+       apply Rge_le; apply F.sub_up_spec.
+Qed.
+
+
+Lemma Rdist_ge : forall (r1 r2 : R), r1>=r2 -> Rdist r1 r2 = r1-r2.
+Proof.
+  intros r1 r2 H; unfold Rdist.
+  apply Rabs_pos_eq; apply Rle_Rminus_zero; apply Rge_le; exact H.
+Qed.
+
+Lemma Rdist_le : forall (r1 r2 : R), r1<=r2 -> Rdist r1 r2 = r2-r1.
+Proof.
+  intros r1 r2 H; unfold Rdist.
+  rewrite <- (Ropp_minus_distr r1 r2); apply Rabs_neg_eq; apply Rle_minus; exact H.
+Qed.
+
+
+Lemma flt_add_near_up : forall (x y : F), F.injR (F.add near x y) <= F.injR (F.add up x y).
+Proof.
+  intros x y.
+  assert (Rdist (F.injR (F.add near x y)) (F.injR x + F.injR y) <= Rdist (F.injR (F.add up x y)) (F.injR x + F.injR y)) as Hn;
+    [apply F.add_near_spec|].
+  assert ((F.injR x + F.injR y) <= F.injR (F.add up x y)) as Hu; [apply Rge_le; apply F.add_up_spec|].
+  set (zn := F.injR (F.add near x y)) in *;
+  set (zu := F.injR (F.add up x y)) in *;
+  set (ze := F.injR x + F.injR y) in *.
+  rewrite -> (Rdist_ge zu ze) in Hn; [|apply Rle_ge; exact Hu].
+  unfold Rdist in Hn.
+  apply Rabs_ivl in Hn.
+  apply Rplus_le_reg_r with (r:=-ze).
+  apply Hn.
+Qed.
+
+Lemma flt_add_near_down : forall (x y : F), F.injR (F.add down x y) <= F.injR (F.add near x y).
+Proof.
+  intros x y.
+  assert (Rdist (F.injR (F.add near x y)) (F.injR x + F.injR y) <= Rdist (F.injR (F.add down x y)) (F.injR x + F.injR y)) as Hn;
+    [apply F.add_near_spec|].
+  assert (F.injR (F.add down x y) <= (F.injR x + F.injR y)) as Hl; [apply F.add_down_spec|].
+  set (zn := F.injR (F.add near x y)) in *;
+  set (zl := F.injR (F.add down x y)) in *;
+  set (ze := F.injR x + F.injR y) in *.
+  rewrite -> (Rdist_le zl ze) in Hn; [|exact Hl].
+  unfold Rdist in Hn.
+  apply Rabs_ivl in Hn.
+  rewrite -> Ropp_minus_distr in Hn.
+  apply Rplus_le_reg_r with (r:=-ze).
+  apply Hn.
+Qed.
+
+Lemma flt_add_near_monotone : forall (x1 x2 y1 y2 : F),
+  F.injR x1 <= F.injR x2 -> F.injR y1 <= F.injR y2 ->
+    F.injR (F.add near x1 y1) <= F.injR (F.add near x2 y2).
+Proof.
+(* z1<z2; |w1-z1|<=|w2-z1|; |w2-z2|<=|w1-z2| *)
+  assert (forall (x1 x2 : F), (F.injR x1 = F.injR x2) -> x1=x2) as HFinjR. { admit. }
+
+  intros x1 x2 y1 y2 Hx Hy.
+  set (z1 := F.injR x1 + F.injR y1).
+  set (z2 := F.injR x2 + F.injR y2).
+  assert ((x1=x2 /\ y1=y2) \/ z1<z2) as Hz. {
+    destruct Hx as [Hx|Hx].
+    - right. apply Rplus_lt_le_compat; [exact Hx|exact Hy].
+    - destruct Hy as [Hy|Hy].
+      right. apply Rplus_le_lt_compat; [apply Req_le;exact Hx|exact Hy].
+      left. split. apply HFinjR. exact Hx. apply HFinjR. exact Hy.
+  }
+  destruct Hz as [Hzeq | Hzlt].
+  - apply Req_le. f_equal. f_equal. apply Hzeq. apply Hzeq.
+  - apply Rlt_le in Hzlt as Hzle.
+    assert (Rdist (F.injR (F.add near x1 y1)) z1 <= (Rdist (F.injR (F.add near x2 y2)) z1)) as Hz1. {
+      apply F.add_near_spec. }
+    assert (Rdist (F.injR (F.add near x2 y2)) z2 <= (Rdist (F.injR (F.add near x1 y1)) z2)) as Hz2. {
+      apply F.add_near_spec. }
+    set (w1 := F.injR (F.add near x1 y1)) in *.
+    set (w2 := F.injR (F.add near x2 y2)) in *.
+    assert (w1<=z2 \/ z1<=w2 \/ (z2<=w1 /\ w2<=z1)) as Hd. {
+      assert (w1<=z2 \/ z2<=w1) as Hw1; [apply Rle_or_le|].
+      assert (z1<=w2 \/ w2<=z1) as Hw2; [apply Rle_or_le|].
+      destruct Hw1 as [Hw1lez2|Hz2lew1].
+      - left. exact Hw1lez2.
+      - right. destruct Hw2 as [Hz1lew2|Hw2lez1].
+        -- left. exact Hz1lew2.
+        -- right. split. exact Hz2lew1. exact Hw2lez1.
+    }
+    destruct Hd as [Hw1lez2 | [Hz1lew2 | Hw2lez1ltz2lew1]].
+    -- rewrite -> (Rdist_le w1 z2) in Hz2.
+       unfold Rdist in Hz2; apply Rabs_ivl in Hz2.
+       rewrite -> Ropp_minus_distr in Hz2.
+       apply Rplus_le_reg_r with (r:=-z2).
+       apply Hz2.
+       exact Hw1lez2.
+    -- rewrite -> (Rdist_ge w2 z1) in Hz1.
+       unfold Rdist in Hz1; apply Rabs_ivl in Hz1.
+       apply Rplus_le_reg_r with (r:=-z1).
+       apply Hz1.
+       apply Rle_ge; exact Hz1lew2.
+    -- destruct Hw2lez1ltz2lew1 as (Hz2lew1 & Hw2lez1).
+       rewrite -> (Rdist_le w2 z1) in Hz1; [|exact Hw2lez1].
+       rewrite -> (Rdist_ge w1 z2) in Hz2; [|apply Rle_ge; exact Hz2lew1].
+       unfold Rdist in Hz1; apply Rabs_ivl in Hz1.
+       unfold Rdist in Hz2; apply Rabs_ivl in Hz2.
+       rewrite -> Ropp_minus_distr in Hz2.
+       assert ((w1-z1)+(z2-w1)<=(z1-w2)+(w2-z2)) as Hc. {
+         apply Rplus_le_compat. apply Hz1. apply Hz2. }
+       lra.
+Admitted.
+
+Lemma flt_mul_near_monotone : forall (x1 x2 y1 y2 : F),
+  0 <= F.injR x1 -> 0<=F.injR y1 -> F.injR x1 <= F.injR x2 -> F.injR y1 <= F.injR y2 ->
+    F.injR (F.mul near x1 y1) <= F.injR (F.mul near x2 y2).
+Proof. Admitted.
+
+Lemma flt_mul_near_monotone_r : forall (x1 x2 y : F),
+  0<=F.injR y -> F.injR x1 <= F.injR x2 ->
+    F.injR (F.mul near x1 y) <= F.injR (F.mul near x2 y).
+Proof. Admitted.
+
+Lemma flt_div_near_monotone : forall (x1 x2 y : F),
+  0 <= F.injR x1 -> 0<=F.injR y -> F.injR x1 <= F.injR x2 ->
+    F.injR (F.div near x1 y) <= F.injR (F.div near x1 y).
+Proof. Admitted.
+
+Lemma flt_mul_near_up : forall (x y : F), F.injR (F.mul near x y) <= F.injR (F.mul up x y).
+Proof. Admitted.
+
+Lemma flt_div_near_up : forall (x y : F), F.injR (F.div near x y) <= F.injR (F.div up x y).
+Proof. Admitted.
+
+Lemma flt_add_monotone : forall rnd (x1 x2 y1 y2 : F),
+  F.injR x1 <= F.injR x2 -> F.injR y1 <= F.injR y2 ->
+    F.injR (F.add rnd x1 y1) <= F.injR (F.add rnd x2 y2).
+Proof. Admitted.
+
+Definition Fle (x1 x2 : F) : Prop := F.leb x1 x2 = true.
+
+Lemma bounds_error : forall (l u x1 x2 : R), l<=x1<=u -> l<=x2<=u -> Rdist x1 x2 <= u-l.
+Proof. intros; unfold Rdist; apply Rabs_le; lra. Qed.
+
 End Ball_section.
 
 End Bll.
 
 Export Bll(Ball,ball).
+
+Declare Scope Ball_scope.
+Notation "- x" := (Bll.neg x) : Ball_scope.
+Infix "+" := Bll.add : Ball_scope.
+Infix "-" := Bll.sub : Ball_scope.
+Infix "*" := Bll.mul : Ball_scope.
+Infix "/" := Bll.div : Ball_scope.
