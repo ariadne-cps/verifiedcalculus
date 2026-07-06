@@ -39,6 +39,12 @@ Open Scope R_scope.
 
 Notation Rpow := Rpow_def.pow.
 
+Lemma Rpow_zero : forall x, Rpow x (0%nat) = 1.
+Proof. reflexivity. Qed.
+Lemma Rpow_one : forall x, Rpow x (1%nat) = x.
+Proof. intro x. simpl. exact (Rmult_1_r x). Qed.
+
+
 Lemma Rlt_stepl:forall x y z, Rlt x y -> x=z -> Rlt z y.
 Proof.
  intros x y z H_lt H_eq; subst; assumption.
@@ -52,6 +58,16 @@ Defined.
 Declare Left Step Rlt_stepl.
 Declare Right Step Rlt_stepr.
 
+Lemma Rlt_le_rng : forall {x1 x2 x3}, x1 < x2 < x3 -> x1 <= x2 <= x3.
+Proof. intros; split. all: now apply Rlt_le. Qed.
+
+
+
+Lemma Rle_eq_trans : forall x1 x2 x3, x1 <= x2 -> x2 = x3 -> x1 <= x3.
+Proof. intros x1 x2 x3 H12 H23. rewrite <- H23. exact H12. Qed.
+
+Lemma Req_le_trans : forall x1 x2 x3, x1 = x2 -> x2 <= x3 -> x1 <= x3.
+Proof. intros x1 x2 x3 H12 H23. rewrite -> H12. exact H23. Qed.
 
 Lemma Rle_stepl:forall x y z, Rle x y -> x=z -> Rle z y.
 Proof.
@@ -80,6 +96,8 @@ Defined.
 Declare Left Step Rneq_stepl.
 Declare Right Step Rneq_stepr.
 
+Lemma Ropp_0_le_le_contravar : forall r, 0 <= r -> -r <= 0.
+Proof. intros r Hr. apply Rge_le. now apply Ropp_0_le_ge_contravar. Qed.
 
 Lemma Ropp_0_le_contravar : forall (x:R), x <= 0 <-> 0 <= -x.
 Proof.
@@ -138,6 +156,19 @@ Proof.
   intros r1 r2 r3. split. all: intro H12; lra.
 Qed.
 
+Lemma Rminus_plus_cancel : forall (x y : R), (x-y)+y = x.
+Proof. intros x y; unfold Rminus; rewrite -> Rplus_assoc, -> Rplus_opp_l, -> Rplus_0_r; reflexivity. Qed.
+
+Lemma Rplus_minus_cancel : forall (x y : R), (x+y)-y = x.
+Proof. intros x y; unfold Rminus; rewrite -> Rplus_assoc, -> Rplus_opp_r, -> Rplus_0_r; reflexivity. Qed.
+
+Lemma Rminus_plus_eqv : forall r r1 r2, r = r1 - r2 <-> r + r2 = r1.
+Proof.
+  intros r r1 r2.
+  split.
+  - intro Hr. rewrite -> Hr, <- Rplus_minus_swap. now rewrite -> Rplus_minus_cancel.
+  - intro Hr1. rewrite <- Hr1. now rewrite -> Rplus_minus_cancel.
+Qed.
 
 Lemma Rlt_Rminus_zero : forall r1 r2:R , r2 < r1 -> 0 < r1-r2.
 Proof.
@@ -147,16 +178,6 @@ Qed.
 Lemma Rlt_not_eq': forall r1 r2 : R, r1 < r2 -> r2 <> r1.
 Proof.
  intros r1 r2 H; apply sym_not_eq; apply Rlt_not_eq; assumption.
-Qed.
-
-Lemma Rminus_plus_cancel : forall (x y : R), (x-y)+y = x.
-Proof.
-  intros x y; unfold Rminus; rewrite -> Rplus_assoc, -> Rplus_opp_l, -> Rplus_0_r; reflexivity.
-Qed.
-
-Lemma Rplus_minus_cancel : forall (x y : R), (x+y)-y = x.
-Proof.
-  intros x y; unfold Rminus; rewrite -> Rplus_assoc, -> Rplus_opp_r, -> Rplus_0_r; reflexivity.
 Qed.
 
 
@@ -254,6 +275,23 @@ Proof.
   now apply Rinv_pos.
 Qed.
 
+Lemma Rdiv_integral_contrapositive : 
+  forall x y, x <> 0 -> y <> 0 -> x / y <> 0.
+Proof.
+  intros x y Hx Hy.
+  rewrite -> Rdiv_def.
+  apply (Rmult_integral_contrapositive x (/y)).
+  split. exact Hx. apply Rinv_resp_nonzero; exact Hy.
+Qed.
+
+Lemma Rdiv_mult_eqv : forall r r1 r2, r2 <> 0 -> r = r1 / r2 <-> r * r2 = r1.
+Proof.
+  intros r r1 r2 Hr2.
+  split.
+  - intro Hr. rewrite -> Hr, <- Rmult_div_swap. exact (Rmult_div_l r1 r2 Hr2).
+  - intro Hr1. rewrite <- Hr1. now rewrite -> (Rmult_div_l r r2 Hr2).
+Qed.
+
 Lemma Rdiv_Rmult_pos_neg_Rle: forall x y z t, R0 < z -> t < R0 -> x / z <= y / t -> y * z <= x * t.
 Proof.
  intros x y z t Hz Ht Hxyzt; stepl ((z*t)*(y/t)); [|field; auto]; stepr ((z*t)*(x/z)); [|field; auto];
@@ -331,6 +369,14 @@ Lemma Rdiv_Rminus_Rmult: forall x y z, y<>R0 -> (x/y - z = (x-y*z)/y)%R.
 Proof.
  intros x y z Hy; field; auto.
 Qed.
+
+Lemma Rdiv_le_compat_r : forall r1 r2 r, 0 < r -> r1 <= r2 -> r1 / r <= r2 / r.
+Proof. 
+  intros r1 r2 r Hr Hr12. repeat rewrite -> Rdiv_def. apply Rmult_le_compat_r. 
+  apply Rlt_le. exact (Rinv_pos r Hr). exact Hr12.
+Qed.
+
+
 
 Lemma Rminus_Rdiv_Rmult: forall x y z, ~(y=R0)->(z-x/y=(y*z-x)/y)%R.
 Proof.
@@ -771,8 +817,26 @@ Proof.
 Qed.
 
 
+Lemma Rpow_0_succ : forall n, Rpow (0%R) (S n) = 0.
+Proof. intros n. apply pow_i. exact (Nat.lt_0_succ n). Qed.
+
 Lemma Rpow_incr : forall (x y : R) (n : nat), 0<=x<=y -> x^n <= y^n.
 Proof. apply pow_incr. Qed.
+
+Lemma Rpow_succ_strict_incr : forall x1 x2 n, 0 <= x1 -> x1 < x2 -> Rpow x1 (S n) < Rpow x2 (S n).
+Proof.
+  intros x1 x2 n Hx1 Hx12.
+  induction n.
+  - repeat rewrite -> pow_1. exact Hx12.
+  - replace (Rpow x1 (S (S n))) with (x1 * Rpow x1 (S n)) by reflexivity.
+    replace (Rpow x2 (S (S n))) with (x2 * Rpow x2 (S n)) by reflexivity.
+    apply Rmult_le_0_lt_compat.
+    -- exact Hx1.
+    -- apply pow_le. exact Hx1.
+    -- exact Hx12.
+    -- exact IHn.
+Qed.
+
 
 Lemma pow_Rle_1  : forall (x : R) (n : nat), -1 <= x <= 1 -> -1 <= pow x n <= 1.
 Proof.
@@ -985,4 +1049,57 @@ Qed.
 Lemma Rshft_add : forall x m n, Rshft x (m + n) = Rshft (Rshft x m) n.
 Proof. intros x m n. unfold Rshft. rewrite -> powerRZ_add. symmetry. now apply Rmult_assoc. lra. Qed.
 
+
+
+Definition Rfact (n : nat) := INR (Factorial.fact n).
+
+Lemma Rfact_succ : forall n, Rfact (S n) = INR (S n) * Rfact n.
+Proof.
+  intro n. unfold Rfact. rewrite -> fact_simpl. now apply mult_INR.
+Qed.
+
+Lemma Rfact_succ_cancel : forall n x, INR (S n) * x / Rfact (S n) = x / Rfact n.
+Proof.
+ intros n x. 
+  rewrite -> Rmult_comm, -> Rfact_succ, <- Rmult_div_assoc, -> Rdiv_mult_distr.
+  rewrite -> Rdiv_diag, -> Rmult_div_assoc, -> Rmult_1_r. reflexivity.
+  exact (not_O_S_INR n).
+Qed.
+
+Lemma Rfact_pos : forall n, 0 < Rfact n. 
+Proof.
+  induction n.
+  - replace (Rfact 0) with 1 by reflexivity. exact Rlt_0_1.
+  - rewrite -> Rfact_succ. apply Rlt_mult_pos_pos.
+    exact (pos_S_INR n). exact IHn.
+Qed.
+
+Lemma Rfact_nonzero : forall n, Rfact n <> 0. 
+Proof. intro n. symmetry. apply Rlt_not_eq. now apply Rfact_pos. Qed.
+
+
+Lemma Rfact_0 : Rfact 0 = 1. Proof. reflexivity. Qed.
+Lemma Rfact_1 : Rfact 1 = 1. Proof. reflexivity. Qed.
+Lemma Rfact_2 : Rfact 2 = 2. Proof. reflexivity. Qed.
+Lemma Rfact_3 : Rfact 3 = 6.
+Proof.
+  rewrite -> Rfact_succ. rewrite -> Rfact_2. replace (INR 3) with 3. lra.
+  rewrite -> INR_IZR_INZ. f_equal.
+Qed.
+Lemma Rfact_4 : Rfact 4 = 24.
+Proof.
+  rewrite -> Rfact_succ. rewrite -> Rfact_3. replace (INR 4) with 4. lra.
+  rewrite -> INR_IZR_INZ. f_equal.
+Qed.
+Lemma Rfact_5 : Rfact 5 = 120.
+Proof.
+  rewrite -> Rfact_succ. rewrite -> Rfact_4. replace (INR 5) with 5. lra.
+  rewrite -> INR_IZR_INZ. f_equal.
+Qed.
+
+
 Close Scope R_scope.
+
+
+
+
