@@ -35,6 +35,18 @@ Section Calculus.
 
 Open Scope R_scope.
 
+Definition Polynomial X := list X.
+
+Fixpoint eval (p : Polynomial R) (x : R) : R :=
+  match p with
+  | nil => 0
+  | cons ch pt => let n := (length pt) : nat in (eval pt x) + ch * x^n
+  end.
+
+Local Lemma eval_cons : forall ch pt x, eval (cons ch pt) x = eval pt x + ch*x^(length pt).
+Proof. reflexivity. Qed.
+
+
 Lemma strictly_increasing_implies_increasing : forall (f : R -> R),
   (forall (x y : R), x<y -> f x < f y) -> (forall (x y : R), x<=y -> f x <= f y).
 Proof.
@@ -249,6 +261,30 @@ Qed.
 Definition smooth_pt_lim (fd : nat -> R -> R) (x : R) : Prop :=
   forall n, derivable_pt_lim (fd n) x (fd (S n) x).
 
+Fixpoint taylor_polynomial (fd : nat -> R -> R) (Pdf : forall y, smooth_pt_lim fd y) 
+    (n : nat) (x0 : R) : Polynomial R :=
+  match n with 
+  | O => cons (fd O x0) nil
+  | S m => cons (fd (S m) x0 / Rfact (S m)) (taylor_polynomial fd Pdf m x0) 
+  end.
+
+Local Lemma taylor_polynomial_succ : forall fd Pdf n x0,
+  taylor_polynomial fd Pdf (S n) x0 = cons (fd (S n) x0 / Rfact (S n)) (taylor_polynomial fd Pdf n x0).
+Proof. reflexivity. Qed.
+
+Local Lemma taylor_polynomial_length : 
+  forall fd Pdf n x0, length (taylor_polynomial fd Pdf n x0) = S n.
+Proof.
+  intros. induction n. reflexivity. 
+  rewrite -> taylor_polynomial_succ.
+  rewrite -> List.length_cons.
+  now rewrite -> IHn.
+Qed.
+
+
+Definition taylor_function fd Pdf n x0 x :=
+  eval (taylor_polynomial fd Pdf n x0) (x-x0).
+
 Fixpoint taylor_series (fd : nat -> R -> R) (Pdf : forall y, smooth_pt_lim fd y) (n : nat) (x0 : R) : R -> R :=
   fun x =>
     match n with 
@@ -263,6 +299,27 @@ Proof. reflexivity. Qed.
 Lemma taylor_series_succ : forall fd Pdf n x0 x, 
   taylor_series fd Pdf (S n) x0 x = taylor_series fd Pdf n x0 x + fd (S n) x0 * (x - x0)^(S n) / Rfact (S n).
 Proof. reflexivity. Qed.
+
+Local Lemma Rplus_reg :
+  forall (a b c d : R), a = c -> b = d -> a+b = c+d.
+Admitted.
+
+Local Lemma taylor_series_function_ext_eq : forall fd Pdf n x0 x,
+  taylor_series fd Pdf n x0 x = taylor_function fd Pdf n x0 x.
+Proof.
+  intros. induction n.
+  - unfold taylor_function, taylor_polynomial, taylor_series. simpl.
+    now rewrite -> Rplus_0_l, Rmult_1_r. 
+  - rewrite -> taylor_series_succ.
+    unfold taylor_function. 
+    rewrite -> taylor_polynomial_succ.
+    rewrite -> eval_cons. 
+    rewrite -> IHn.
+    apply Rplus_reg.
+    reflexivity.
+    rewrite -> taylor_polynomial_length.
+    lra.
+Qed.
 
 
 Local Lemma derivable_pt_lim_eq : forall y1 f x y2, y1 = y2 ->
