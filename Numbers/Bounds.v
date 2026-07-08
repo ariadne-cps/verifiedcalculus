@@ -49,6 +49,16 @@ Definition models : Bounds F -> R -> Prop :=
   fun x y => match x with bounds l u => F.injR l <= y /\ y <= F.injR u end.
 
 
+Definition of_nat (n : nat) : Bounds F := bounds (F.of_nat n) (F.of_nat n).
+
+Lemma of_nat_correct : forall n, models (of_nat n) (INR n).
+Proof.
+  intros n. unfold models, of_nat.
+  rewrite -> F.ninjr_spec.
+  split; exact (Rle_refl n).
+Qed.
+
+
 Definition neg : Bounds F -> Bounds F :=
   fun x => match x with bounds l u => bounds (F.neg u) (F.neg l) end.
 
@@ -95,6 +105,7 @@ Proof.
     -- apply Rge_le; apply F.add_up_spec.
 Qed.
 
+
 (* Definition sub ((bounds l1 u1) : Bounds F) (x2 : Bounds F) : Bounds F *)
 Definition sub (x1 x2 : Bounds F) : Bounds F :=
   match x1 with bounds l1 u1 => match x2 with bounds l2 u2
@@ -123,7 +134,6 @@ Proof.
     -- apply Rminus_le_compat; [apply H1|]; apply H2.
     -- apply Rge_le; apply F.sub_up_spec.
 Qed.
-
 
 
 Definition mul (x1 x2 : Bounds F) : Bounds F :=
@@ -155,7 +165,6 @@ Definition mul (x1 x2 : Bounds F) : Bounds F :=
   end
 .
 
-
 (* Unused *)
 Lemma Rle_or_ge : forall (x1 x2 : R), x1<=x2 \/ x1 >=x2.
 Proof.
@@ -174,7 +183,6 @@ Proof.
   - intro H. destruct H. left. unfold Rle. right. assumption. right. unfold Rle. left. apply Rgt_lt. assumption.
   - apply Rtotal_order.
 Qed.
-
 
 Local Lemma Fnot_leb :
   forall (x1 x2 : F), (false = F.leb x1 x2) -> (F.injR x2 <= F.injR x1).
@@ -219,8 +227,6 @@ Proof.
   intro x. replace 0 with (F.injR (F.of_nat 0%nat)) by (apply F.ninjr_spec); apply Fnot_leb.
 Qed.
 
-
-
 Lemma Rle_min_compat : forall (r1 r2 r3 r4 : R), r1<=r3 -> r2<=r4 -> Rmin r1 r2 <= Rmin r3 r4.
 Proof.
   intros r1 r2 r3 r4 H13 H24.
@@ -236,9 +242,6 @@ Proof.
   apply Rle_max_compat_l; exact H24.
   apply Rle_max_compat_r; exact H13.
 Qed.
-
-
-
 
 Lemma Rmult_le_opp_compat_l : forall (r r1 r2 : R), r<=0 -> r1 <= r2 -> r*r2 <= r*r1.
 Proof.
@@ -257,8 +260,6 @@ Proof.
   rewrite -> H1c; rewrite -> H2c.
   apply Rmult_le_opp_compat_l. assumption. assumption.
 Qed.
-
-
 
 Lemma mul_correct :
   forall (x1 x2 : Bounds F) (y1 y2 : R),
@@ -597,9 +598,6 @@ Proof.
   intros x1 x2 Hne0. apply Rge_le. apply F.div_up_spec. exact Hne0.
 Qed.
 
-
-
-
 Lemma div_correct :
   forall (x1 x2 : Bounds F) (y1 y2 : R),
     models x1 y1 -> models x2 y2 -> (0 < F.injR (lower x2) \/ F.injR (upper x2) < 0) -> models (div x1 x2) (y1/y2).
@@ -788,7 +786,55 @@ Proof.
     }
 Qed.
 
-Notation Rpow := Rpow_def.pow.
+
+Definition rec (x : Bounds F) : Bounds F :=
+  match x with bounds l u =>
+    bounds (F.rec down u) (F.rec up l)
+  end
+.
+
+Lemma rec_correct :
+  forall (x : Bounds F) (y : R),
+    models x y -> (0 < F.injR (lower x) \/ F.injR (upper x) < 0) -> models (rec x) (/y).
+Proof.
+  intros x y H Hor.
+  destruct x as (l & u).
+  destruct H as (Hl,Hu).
+  remember (conj Hl Hu) as H.
+  unfold lower in Hor; unfold upper in Hor.
+  unfold models.
+  unfold rec.
+  assert (F.injR l <= F.injR u) as Hlleu. {
+    apply Rle_trans with (r2:=y). exact Hl. exact Hu. }
+  destruct Hor as [H0ltl|Hult0].
+  - assert (0 < y) as H0lty. {
+      apply Rlt_le_trans with (r2:=F.injR l). exact H0ltl. exact Hl. }
+    assert (F.injR l <> 0%R) as Hlne0. {
+      apply Rgt_not_eq. apply Rlt_gt. exact H0ltl. }
+    assert (F.injR u <> 0%R) as Hune0. {
+      apply Rgt_not_eq. apply Rlt_gt. apply Rlt_le_trans with (r2:=F.injR l). exact H0ltl. exact Hlleu. }
+    split.
+    -- transitivity (/ F.injR u).
+       apply F.rec_down_spec. exact Hune0.
+       apply Rinv_le_contravar. exact H0lty. exact Hu.
+    -- transitivity (/ F.injR l).
+       apply Rinv_le_contravar. exact H0ltl. exact Hl.
+       apply Rge_le; apply F.rec_up_spec. exact Hlne0.
+  - assert (y < 0) as Hylt0. {
+      apply Rle_lt_trans with (r2:=F.injR u). exact Hu. exact Hult0. }
+    assert (F.injR u <> 0%R) as Hune0. {
+      apply Rlt_not_eq. exact Hult0. }
+    assert (F.injR l <> 0%R) as Hlne0. {
+      apply Rlt_not_eq. apply Rle_lt_trans with (r2:=F.injR u). exact Hlleu. exact Hult0. }
+    split.
+    -- transitivity (/ F.injR u).
+       apply F.rec_down_spec. exact Hune0.
+       apply Rinv_le_compat. right. exact Hult0. exact Hu.
+    -- transitivity (/ F.injR l).
+       apply Rinv_le_compat. right. exact Hylt0. exact Hl.
+       apply Rge_le; apply F.rec_up_spec. exact Hlne0.
+Qed.
+
 
 Fixpoint pow (x : Bounds F) (n:nat) : Bounds F :=
   match n with
@@ -815,6 +861,25 @@ Proof.
     rewrite -> pow_1.
     reflexivity.
 Qed.
+
+
+Definition mag (x : Bounds F) : F :=
+  F.max (F.neg (lower x)) (upper x).
+
+Lemma mag_correct : forall x r, models x r -> Rabs r <= F.injR (mag x).
+Proof.
+  unfold models, mag.
+  intros x r Hxr.
+  destruct x as [l u]; simpl.
+  rewrite -> F.max_exact_spec, F.neg_exact_spec.
+  set (F.injR l) as yl; set (F.injR u) as yu.
+  destruct (Rle_or_le r 0) as [Hrle0|H0ler].
+  - rewrite -> Rabs_neg_eq. transitivity (-yl).
+    apply Ropp_le_contravar; exact (proj1 Hxr). exact (Rmax_l _ _). exact Hrle0.
+  - rewrite -> Rabs_pos_eq. transitivity yu.
+    exact (proj2 Hxr). exact (Rmax_r _ _). exact H0ler.
+Qed.
+
 
 End Bounds_section.
 
