@@ -81,6 +81,15 @@ Declare Left Step Rneq_stepl.
 Declare Right Step Rneq_stepr.
 
 
+Lemma Rle_max_compat : forall w x y z, w <= y -> x <= z -> Rmax w x <= Rmax y z.
+Proof.
+  intros w x y z Hwy Hxz.
+  transitivity (Rmax w z).
+  now apply Rle_max_compat_l.
+  now apply Rle_max_compat_r.
+Qed.
+
+
 Lemma Ropp_0_le_contravar : forall (x:R), x <= 0 <-> 0 <= -x.
 Proof.
   intro x.
@@ -414,6 +423,26 @@ Proof.
  stepl ((y*y')*(a*(x/y)*(x'/y')+b*(x/y)+c*(x'/y')+d))%R; auto; field; auto.
 Qed.
 
+(* Unused *)
+Lemma Rle_or_ge : forall (x1 x2 : R), x1<=x2 \/ x1 >=x2.
+Proof.
+  intros x1 x2.
+  apply or_ind with (A:=x1<x2) (B:=x1=x2\/x1>x2).
+  - left. unfold Rle. left. assumption.
+  - right. unfold Rge. destruct H. right. assumption. left. assumption.
+  - apply Rtotal_order.
+Qed.
+
+
+Lemma Rle_or_le : forall (x1 x2 : R), x1<=x2 \/ x2 <=x1.
+Proof.
+  intros x1 x2.
+  apply or_ind with (A:=x1<x2) (B:=x1=x2\/x1>x2).
+  - left. unfold Rle. left. assumption.
+  - intro H. destruct H. left. unfold Rle. right. assumption. right. unfold Rle. left. apply Rgt_lt. assumption.
+  - apply Rtotal_order.
+Qed.
+
 Lemma Rle_dec_weak:forall (x y:R), {Rle x y}+{(Rle y x)}.
 Proof.
  intros x y; case (Rlt_le_dec x y); intros; [ left | right ]; trivial; apply Rlt_le; trivial.
@@ -683,26 +712,6 @@ Proof.
   - apply Rle_trans with (r2:=(Rabs a)). apply Rle_abs. exact H.
 Qed.
 
-
-(* Unused *)
-Lemma Rle_or_ge : forall (x1 x2 : R), x1<=x2 \/ x1 >=x2.
-Proof.
-  intros x1 x2.
-  apply or_ind with (A:=x1<x2) (B:=x1=x2\/x1>x2).
-  - left. unfold Rle. left. assumption.
-  - right. unfold Rge. destruct H. right. assumption. left. assumption.
-  - apply Rtotal_order.
-Qed.
-
-
-Lemma Rle_or_le : forall (x1 x2 : R), x1<=x2 \/ x2 <=x1.
-Proof.
-  intros x1 x2.
-  apply or_ind with (A:=x1<x2) (B:=x1=x2\/x1>x2).
-  - left. unfold Rle. left. assumption.
-  - intro H. destruct H. left. unfold Rle. right. assumption. right. unfold Rle. left. apply Rgt_lt. assumption.
-  - apply Rtotal_order.
-Qed.
 
 Lemma Rpow_incr : forall (x y : R) (n : nat), 0<=x<=y -> x^n <= y^n.
 Proof. apply pow_incr. Qed.

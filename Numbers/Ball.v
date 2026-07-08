@@ -121,6 +121,16 @@ Proof.
 Qed.
 
 
+Definition of_nat (n : nat) : Ball F := ball (F.of_nat n) F.null.
+
+Lemma of_nat_correct : forall n, models (of_nat n) (INR n).
+Proof.
+  intros n. unfold models, of_nat.
+  rewrite -> F.null_spec, F.ninjr_spec, Rdist_eq.
+  exact (Rle_refl 0).
+Qed.
+
+
 Definition neg : Ball F -> Ball F :=
   fun x => match x with ball v e => ball (F.neg v) e end.
 
@@ -137,6 +147,7 @@ Proof.
   rewrite -> Rminus_def, <- Ropp_plus_distr, -> Rabs_Ropp.
   exact H.
 Qed.
+
 
 Definition add : Ball F -> Ball F -> Ball F :=
   fun x1 x2 =>
@@ -214,7 +225,6 @@ Proof.
 Qed.
 
 
-
 Definition Fmul_err_up v1 v2 e1 e2 re :=
   F.add up (F.add up re (F.mul up e1 e2))
           (F.add up (F.mul up (F.abs v1) e2) (F.mul up e1 (F.abs v2))).
@@ -235,8 +245,6 @@ Proof.
     -- apply F.mul_up_le_spec.
 Qed.
 
-
-
 Definition mul (x1 x2 : Ball F) : Ball F :=
   match x1 with ball v1 e1 =>
     match x2 with ball v2 e2 =>
@@ -246,7 +254,6 @@ Definition mul (x1 x2 : Ball F) : Ball F :=
     end
   end
 .
-
 
 Lemma mul_correct :
   forall (x1 x2 : Ball F) (y1 y2 : R),
@@ -280,7 +287,6 @@ Proof.
 Qed.
 
 
-
 Definition div_err_up v1 v2 e1 e2 re :=
   F.add up re (F.div up (F.add up e1 (F.mul up e2 (F.div up (F.abs v1) (F.abs v2)))) (F.sub down (F.abs v2) e2)).
 
@@ -297,7 +303,6 @@ Proof.
   exact H.
   apply F.sub_down_spec.
 Qed.
-
 
 Lemma Rminus_ge_0 : forall a b, 0<=b -> a-b <= a.
 Proof.
@@ -423,10 +428,6 @@ Proof.
 Qed.
 
 
-
-
-
-
 Definition rec_err_up v e re :=
   F.add up re (F.div up e (F.mul down (F.abs v) (F.sub down (F.abs v) e))).
 
@@ -462,7 +463,6 @@ Proof.
     apply Rlt_le; exact H0.
     apply F.sub_down_spec.
 Qed.
-
 
 Lemma rec_err_up_correct : forall v e re,
   0<=F.injR e ->
@@ -541,10 +541,8 @@ Proof.
 Qed.
 
 
-
 Definition div' (x1 x2 : Ball F) : Ball F :=
   mul x1 (rec x2).
-
 
 Lemma div_correct' :
   forall (x1 x2 : Ball F) (y1 y2 : R),
@@ -560,6 +558,79 @@ Proof.
     exact H2.
     exact Hor.
 Qed.
+
+
+Fixpoint pow (x : Ball F) (n : nat) : Ball F :=
+  match n with | O => ball F.unit F.null | S m => mul (pow x m) x end.
+
+Lemma pow_succ : forall x n, pow x (S n) = mul (pow x n) x.
+Proof. reflexivity. Qed.
+
+Lemma pow_correct : forall x r n, models x r -> models (pow x n) (Rpow r n).
+Proof.
+  intros x r n Hxr.
+  induction n.
+  - unfold pow, Rpow, models.
+    rewrite -> F.null_spec, F.unit_spec, Rdist_eq.
+    exact (Rle_refl 0).
+  - rewrite -> pow_succ. replace (Rpow r (S n)) with (Rpow r n * r).
+    apply mul_correct. exact IHn. exact Hxr.
+    simpl. now apply Rmult_comm.
+Qed.
+
+
+Axiom Fhlf : F -> F.
+Axiom Fhlf_exact_spec : forall x, F.injR (Fhlf x) = (F.injR x) / 2.
+
+Definition sqr : Ball F -> Ball F :=
+  fun x => mul x x.
+
+Lemma sqr_correct : forall x y, models x y -> models (sqr x) (Rsqr y).
+Proof.
+  intros x y H. unfold sqr; rewrite -> Rsqr_def. now apply mul_correct.
+Qed.
+
+
+Definition hlf : Ball F -> Ball F :=
+  fun x => match x with ball v e => ball (Fhlf v) (Fhlf e) end.
+
+Lemma hlf_correct : forall x y, models x y -> models (hlf x) (y/2).
+Proof.
+  intros x y H.
+  destruct x as (v,e).
+  unfold hlf.
+  unfold models, Rdist in *.
+  repeat rewrite -> Fhlf_exact_spec.
+  rewrite <- Rdiv_minus_distr.
+  repeat rewrite -> Rdiv_def.
+  rewrite -> Rabs_mult.
+  assert (0 <= /2) as Hp.
+    apply Rlt_le, Rinv_pos; exact Rlt_0_2.
+  rewrite -> (Rabs_pos_eq (/2) ).
+  now apply Rmult_le_compat_r.
+  exact Hp.
+Qed.
+
+
+Definition mag (x : Ball F) : F :=
+  F.max (F.sub up (error x) (value x)) (F.add up (value x) (error x)).
+
+Lemma mag_correct : forall x r, models x r -> Rabs r <= F.injR (mag x).
+Proof.
+  unfold models, mag.
+  intros x r Hxr.
+  destruct x as [v e]; simpl.
+  rewrite -> F.max_exact_spec.
+  set (F.injR v) as yv; set (F.injR e) as ye.
+  transitivity (Rmax (ye-yv) (yv+ye)).
+  - rewrite -> Rdist_sym in Hxr. now apply Rdist_abs_ivl.
+  - apply Rle_max_compat.
+    now apply F.sub_up_le_spec.
+    now apply F.add_up_le_spec.
+Qed.
+
+Axiom mag_hlf : forall x, (F.injR (mag (hlf x))) = F.injR (Fhlf (mag x)).
+
 
 End Ball_section.
 
