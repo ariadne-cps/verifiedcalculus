@@ -76,14 +76,6 @@ Proof.
   unfold INR. reflexivity.
 Qed.
 
-Lemma Rabs_neg_eq : forall x : R, Rle x 0 -> Rabs x = Ropp x.
-Proof.
-  intro x. intro H.
-  rewrite <- Rabs_pos_eq.
-  apply eq_sym. apply Rabs_Ropp.
-  apply Ropp_0_le_contravar; exact H.
-Qed.
-
 
 
 
@@ -270,21 +262,20 @@ Proof.
   unfold F.unit. apply ninjr_spec.
 Qed.
 
-Lemma add_up_le_spec : forall (x y:F),
-  (F.injR x) + (F.injR y) <= F.injR (F.add up x y).
-Proof.
-  intros x y.
-  apply Rge_le; apply add_up_spec.
-Qed.
+Lemma add_up_le_spec : forall x y, F.injR x + F.injR y <= F.injR (F.add up x y).
+Proof. intros x y; apply Rge_le; now apply add_up_spec. Qed.
 
-Lemma mul_up_le_spec : forall (x y:F),
-  (F.injR x) * (F.injR y) <= F.injR (F.mul up x y).
-Proof.
-  intros x y.
-  apply Rge_le; apply mul_up_spec.
-Qed.
+Lemma sub_up_le_spec : forall x y, F.injR x - F.injR y <= F.injR (F.sub up x y).
+Proof. intros x y; apply Rge_le; now apply sub_up_spec. Qed.
 
-Lemma pow_up_spec : forall (x:F) (n:nat),
+Lemma mul_up_le_spec : forall x y, F.injR x * F.injR y <= F.injR (F.mul up x y).
+Proof. intros x y; apply Rge_le; now apply mul_up_spec. Qed.
+
+Lemma div_up_le_spec : forall x y, 
+  injR y <> 0 -> F.injR x / F.injR y <= F.injR (F.div up x y).
+Proof. intros x y Hy; apply Rge_le; now apply div_up_spec. Qed.
+
+Lemma pow_up_spec : forall x n,
   (F.injR x >= 0) -> F.injR (F.pow_up x n) >= (F.injR x)^n.
 Proof.
   intros x n Hp.
@@ -296,7 +287,7 @@ Proof.
     -- apply Rmult_ge_compat_l.  exact Hp. exact IHn.
 Qed.
 
-Lemma pow_up_le_spec : forall (x:F) (n:nat),
+Lemma pow_up_le_spec : forall x n,
   (0 <= F.injR x) -> (F.injR x)^n <= F.injR (F.pow_up x n).
 Proof.
   intros x n Hp.

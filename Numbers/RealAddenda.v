@@ -641,6 +641,14 @@ Proof.
   auto.
 Qed.
 
+Lemma Rabs_neg_eq : forall x : R, Rle x 0 -> Rabs x = Ropp x.
+Proof.
+  intro x. intro H.
+  rewrite <- Rabs_pos_eq.
+  apply eq_sym. apply Rabs_Ropp.
+  apply Ropp_0_le_contravar; exact H.
+Qed.
+
 Lemma Rabs_dist_triang : forall x y z:R, Rabs (x-z) <= Rabs (x-y) + Rabs (y-z).
 Proof.
   intros.
@@ -648,8 +656,15 @@ Proof.
   apply Rabs_triang.
 Qed.
 
-
-
+Lemma Rivl_abs_le_max : forall (a b x : R), (a <= x <= b) -> Rabs x <= Rmax (-a) b.
+Proof.
+  intros a b x Hx.
+  destruct (Rle_or_le x 0) as [Hxle0|H0lex].
+  - rewrite -> (Rabs_neg_eq _ Hxle0). transitivity (-a).
+    apply Ropp_le_contravar. exact (proj1 Hx). exact (Rmax_l _ _).
+  - rewrite -> (Rabs_pos_eq _ H0lex). transitivity b.
+    exact (proj2 Hx). exact (Rmax_r _ _).
+Qed.
 
 Lemma Rabs_ivl : forall (a b : R), (Rabs a <= b) -> -b <= a <= b.
 Proof.
@@ -784,7 +799,7 @@ Proof.
   apply Rabs_triang.
 Qed.
 
-Lemma Rabs_dist_ivl : forall x y z, Rdist x y <= z -> y-z <= x /\ x <= y+z.
+Lemma Rdist_ivl : forall x y z, Rdist x y <= z -> y-z <= x <= y+z.
 Proof.
   intros x y z.
   intros H.
@@ -801,6 +816,16 @@ Proof.
     rewrite -> Rplus_comm.
     exact H1.
 Qed.
+
+Lemma Rdist_abs_ivl : forall x y z, Rdist x y <= z -> Rabs x <= Rmax (z-y) (y+z).
+Proof.
+  intros x y z.
+  - intro H. apply Rdist_ivl in H.
+    destruct (Rle_or_le x 0) as [Hxle0|H0lex].
+    -- rewrite -> Rabs_neg_eq. transitivity (z-y). lra. now apply Rmax_l. exact Hxle0.
+    -- rewrite -> Rabs_pos_eq. transitivity (y+z). lra. now apply Rmax_r. exact H0lex.
+Qed.
+
 
 
 Lemma Rabs_dist_mult_l : forall x y z : R, Rabs x * Rdist y z = Rdist (x*y) (x*z).
