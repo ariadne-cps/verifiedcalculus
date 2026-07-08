@@ -826,6 +826,43 @@ Proof.
 Qed.
 
 
+Lemma sig_log2_up : forall (x : F), { n : nat | (2 : R) ^ n > F.injR (F.abs x) }.
+Proof.
+  intro x.
+  set (y := F.injR (F.abs x)).
+  pose proof (INR_unbounded y) as Hy.
+  apply ConstructiveEpsilon.constructive_indefinite_ground_description_nat_direct in Hy.
+  - destruct Hy as [n Hyn].
+    set (m := Nat.log2_up n).
+    assert (0 <= m)%nat as H0lem by now apply Nat.le_0_l.
+    exists m.
+    apply (Rge_gt_trans _ n _).
+    -- apply Rle_ge.
+       replace (Rpow 2 m) with (INR (Nat.pow 2 m)) by now apply pow_INR.
+       apply le_INR.
+       destruct (Nat.eq_0_gt_0_cases n).
+       --- rewrite -> H; now apply Nat.le_0_l.
+       --- unfold m. apply Nat.log2_up_le_pow2. exact H. now apply Nat.le_refl.
+    -- assumption.
+  - intro n.
+    remember (F.leb (F.of_nat n) (F.abs x)) as b.
+    destruct b.
+    -- right.
+       apply Rle_not_gt.
+       apply eq_sym in Heqb.
+       apply F.leb_spec in Heqb.
+       unfold y.
+       rewrite <- F.ninjr_spec.
+       exact Heqb.
+    -- left.
+       apply Rlt_gt.
+       apply Fnot_leb in Heqb.
+       unfold y.
+       rewrite <- F.ninjr_spec.
+       exact Heqb.
+Qed.
+
+
 Axiom Fhlf : F -> F.
 Axiom Fhlf_exact_spec : forall x, F.injR (Fhlf x) = (F.injR x) / 2.
 Axiom Fsub_down_less : forall u, F.injR u < 1 -> F.injR (F.sub down F.unit u) > 0.
@@ -889,7 +926,7 @@ Qed.
 Definition hlf : Bounds F -> Bounds F :=
   fun x => match x with bounds l u => bounds (Fhlf l) (Fhlf u) end.
 
-Lemma hlf_bounds_correct : forall x y, models x y -> models (hlf x) (y/2).
+Lemma hlf_correct : forall x y, models x y -> models (hlf x) (y/2).
 Proof.
   intros x y H.
   destruct x as (l,u).
@@ -913,6 +950,114 @@ Proof.
   exact pos_half_prf.
 Qed.
 
+
+Definition Rexp : R -> R := exp.
+
+Definition exp_unit : Bounds F -> Bounds F :=
+  fun x =>
+    match x with bounds l u
+      => bounds (F.add down F.unit l) (F.rec up (F.sub down F.unit u)) end.
+
+Lemma exp_unit_correct :
+  forall (x : Bounds F) (y : R),
+    models x y -> (F.injR (F.sub down F.unit (upper x)) > 0) -> models (exp_unit x) (exp y).
+Proof.
+  intros x y H H1mu.
+  destruct x as (l & u).
+  simpl in H1mu.
+  assert (F.injR u < 1) as Hu. {
+    apply Rlt_zero_Rminus; apply Rgt_lt.
+    rewrite <- F.unit_spec.
+    apply Rge_gt_trans with (r2 := F.injR (F.sub down F.unit u)).
+    - apply Rle_ge. apply F.sub_down_spec.
+    - apply H1mu.
+  }
+  unfold models in H.
+  unfold models; unfold exp_unit; simpl.
+  split.
+  - apply Rle_trans with (r2:=1+y).
+    apply Rle_trans with (r2:=F.injR F.unit + F.injR l).
+    -- apply F.add_down_spec.
+    -- apply Rplus_le_compat.
+       rewrite -> F.unit_spec. apply Rle_refl.
+       apply H.
+    -- apply exp_ge.
+  - apply Rle_trans with (r2:=/ (1%R-F.injR u)).
+    apply Rle_trans with (r2:=exp (F.injR u)).
+    -- apply exp_incr. apply H.
+    -- apply exp_le. exact Hu.
+    -- apply Rle_trans with (r2:=/ F.injR (F.sub down F.unit u)).
+       --- apply Rinv_le_contravar.
+           exact H1mu.
+           rewrite <- F.unit_spec.
+           apply F.sub_down_spec.
+       --- apply Rge_le.
+           apply F.rec_up_spec.
+           apply Rgt_not_eq. exact H1mu.
+Qed.
+
+
+Fixpoint exp_reduce (n : nat) : Bounds F -> Bounds F :=
+  fun x => match n with | O => exp_unit x | S m => sqr (exp_reduce m (hlf x)) end.
+
+Lemma exp_reduce_correct :
+  forall (n : nat) (x : Bounds F) (y : R),
+    F.injR (mag x) < Rpow 2 n ->
+      models x y -> models (exp_reduce n x) (Rexp y).
+Proof.
+  induction n.
+  - intros x y H0 H.
+    destruct x as (l & u).
+    assert (F.injR (F.sub down F.unit u) > 0) as Hu. {
+      replace (2^0) with 1 in H0 by lra.
+      unfold mag in H0.
+      rewrite -> F.max_exact_spec in H0.
+        apply Fsub_down_less.
+      now apply (Rle_lt_trans _ _ _ (Rmax_r _ _) H0).
+    }
+    unfold exp_reduce.
+    now apply exp_unit_correct.
+  - intros x y HSn Hx.
+    simpl.
+    assert (F.injR (mag (hlf x)) < 2^n) as Hhlfx. {
+      replace (2^n) with (2^(S n)/2). 2: simpl; lra.
+      rewrite -> mag_hlf.
+      rewrite -> Fhlf_exact_spec.
+      apply Rdiv_lt_compat_r. lra. exact HSn.
+    }
+    assert (models (hlf x) (y/2)) as Hhlfy. {
+      now apply hlf_correct.
+    }
+    specialize (IHn (hlf x) (y / 2)).
+    specialize (IHn Hhlfx Hhlfy).
+    replace (Rexp y) with (Rsqr (Rexp (y/2))).
+    2: apply eq_sym; now apply exp_hlf_sqr.
+    apply sqr_correct.
+    exact IHn.
+Qed.
+
+
+Definition exp : Bounds F -> Bounds F :=
+  fun x => exp_reduce (proj1_sig (sig_log2_up (F.max (F.neg (lower x)) (upper x)))) x.
+
+Lemma exp_correct :
+  forall (x : Bounds F) (y : R),
+    models x y -> models (exp x) (Rexp y).
+Proof.
+  intros x y H.
+  destruct x as (l & u).
+  unfold exp; simpl.
+  apply exp_reduce_correct. 2: exact H.
+  unfold mag.
+  remember (F.max (F.neg l) u) as w.
+  remember (sig_log2_up w) as Hz.
+  destruct Hz as [z Hz].
+  simpl.
+  apply (Rle_lt_trans _ (F.injR (F.abs w)) _).
+  - rewrite <- Heqw. rewrite -> F.abs_exact_spec.
+    now apply Rle_abs.
+  - now apply (Rgt_lt _ _ Hz).
+Qed.
 
 Close Scope R_scope.
 

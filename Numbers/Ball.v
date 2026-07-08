@@ -29,6 +29,7 @@ From Stdlib Require Import Lra.
 
 Require Import RealAddenda.
 Require Import Floats.
+Require Import Calculus.
 Require Import Analysis.
 Require Import Bounds.
 
@@ -667,6 +668,80 @@ Proof.
 Qed.
 
 
+Definition Rexp : R -> R := exp.
+
+Definition exp (x : Ball F) : Ball F :=
+  bounds_to_ball (Bnds.exp (ball_to_bounds x)).
+
+Theorem exp_correct :
+  forall (x : Ball F) (y : R),
+    (F.injR (F.sub down F.unit (F.add up (value x) (error x))) > 0) ->
+      (models x y) -> (models (exp x) (Rexp y)).
+Proof.
+  intros x y Hu H.
+  unfold exp.
+  apply bounds_to_ball_correct.
+  apply Bnds.exp_correct.
+  apply ball_to_bounds_correct.
+  exact H.
+Qed.
+
+Definition Rexp_approx (x : R) : R :=
+  (x / 2 + 1) * x + 1.
+
+Definition exp_approx' (rnd : Rounding) (x : F) : F :=
+  F.add rnd (F.mul rnd (F.add rnd (F.div rnd x (F.of_nat 2)) F.unit) x) F.unit.
+
+Definition exp_approx (x : F) : F := exp_approx' near x.
+
+Definition exp_approx_rng (x : F) : F :=
+  F.sub up (exp_approx' up x) (exp_approx' down x).
+
+Lemma exp_approx_down :
+  forall (x : F), (0 <= F.injR x) -> F.injR (exp_approx' down x) <= Rexp_approx (F.injR x).
+Proof.
+  intros x  Hx.
+  unfold exp_approx', Rexp_approx.
+  apply Rle_trans with (r2:=F.injR (F.mul down (F.add down (F.div down x (F.of_nat 2)) F.unit) x) + 1).
+  rewrite <- F.unit_spec.
+  apply F.add_down_spec.
+  apply Rplus_le_compat_r.
+  apply Rle_trans with (r2:=F.injR (F.add down (F.div down x (F.of_nat 2)) F.unit) * F.injR x).
+  apply F.mul_down_spec.
+  apply Rmult_le_compat_r. apply Hx.
+  apply Rle_trans with (r2:=F.injR (F.div down x (F.of_nat 2)) + 1).
+  rewrite <- F.unit_spec.
+  apply F.add_down_spec.
+  apply Rplus_le_compat_r.
+  replace 2 with (F.injR (F.of_nat 2%nat)).
+  apply F.div_down_spec.
+  rewrite -> F.ninjr_spec. apply not_0_INR. auto.
+  rewrite -> F.ninjr_spec. auto.
+Qed.
+
+Lemma exp_approx_up :
+  forall (x : F), (0 <= F.injR x) -> F.injR (exp_approx' up x) >= Rexp_approx (F.injR x).
+Proof.
+  intros x  Hx.
+  unfold exp_approx', Rexp_approx.
+  apply Rge_trans with (r2:=F.injR (F.mul up (F.add up (F.div up x (F.of_nat 2)) F.unit) x) + 1).
+  rewrite <- F.unit_spec.
+  apply F.add_up_spec.
+  apply Rplus_ge_compat_r.
+  apply Rge_trans with (r2:=F.injR (F.add up (F.div up x (F.of_nat 2)) F.unit) * F.injR x).
+  apply F.mul_up_spec.
+  apply Rmult_ge_compat_r. apply Rle_ge; apply Hx.
+  apply Rge_trans with (r2:=F.injR (F.div up x (F.of_nat 2)) + 1).
+  rewrite <- F.unit_spec.
+  apply F.add_up_spec.
+  apply Rplus_ge_compat_r.
+  replace 2 with (F.injR (F.of_nat 2%nat)).
+  apply F.div_up_spec.
+  rewrite -> F.ninjr_spec. apply not_0_INR. auto.
+  rewrite -> F.ninjr_spec. auto.
+Qed.
+
+
 Lemma Rdist_ge : forall (r1 r2 : R), r1>=r2 -> Rdist r1 r2 = r1-r2.
 Proof.
   intros r1 r2 H; unfold Rdist.
@@ -799,8 +874,208 @@ Proof. Admitted.
 
 Definition Fle (x1 x2 : F) : Prop := F.leb x1 x2 = true.
 
+Lemma exp_approx_le : forall (x : F), (0<=F.injR x) -> Fle (exp_approx' near x) (exp_approx' up x).
+Proof.
+  intros x H0lex.
+  unfold exp_approx'.
+  assert (F.injR (F.div near x (F.of_nat 2)) <= F.injR (F.div up x (F.of_nat 2))) as H0. {
+    apply flt_div_near_up. }
+  assert ( F.injR (F.add near (F.div near x (F.of_nat 2)) F.unit)
+             <= F.injR (F.add up (F.div up x (F.of_nat 2)) F.unit) ) as H1. {
+    apply Rle_trans with (r2:=F.injR (F.add near (F.div up x (F.of_nat 2)) F.unit)).
+    apply flt_add_near_monotone.
+    exact H0.
+    apply Req_le; reflexivity.
+    apply flt_add_near_up.
+  }
+  assert ( F.injR (F.mul near (F.add near (F.div near x (F.of_nat 2)) F.unit) x)
+             <= F.injR (F.mul up (F.add up (F.div up x (F.of_nat 2)) F.unit) x) ) as H2. {
+    apply Rle_trans with (r2:=F.injR (F.mul near (F.add up (F.div up x (F.of_nat 2)) F.unit) x)).
+    apply flt_mul_near_monotone_r.
+    exact H0lex.
+    exact H1.
+    apply flt_mul_near_up.
+  }
+  assert (F.injR (F.add near (F.mul near (F.add near (F.div near x (F.of_nat 2)) F.unit) x) F.unit)
+            <= F.injR (F.add up (F.mul up (F.add up (F.div up x (F.of_nat 2)) F.unit) x) F.unit)) as H3. {
+    apply Rle_trans with (r2:=F.injR (F.add near (F.mul up (F.add up (F.div up x (F.of_nat 2)) F.unit) x) F.unit)).
+    apply flt_add_near_monotone.
+    exact H2.
+    apply Req_le; reflexivity.
+    apply flt_add_near_up.
+  }
+  set (wn:=(F.add near (F.mul near (F.add near (F.div near x (F.of_nat 2)) F.unit) x) F.unit)) in *.
+  set (wu:=(F.add up (F.mul up (F.add up (F.div up x (F.of_nat 2)) F.unit) x) F.unit)) in *.
+  unfold Fle.
+  apply F.leb_spec.
+  exact H3.
+Qed.
+
 Lemma bounds_error : forall (l u x1 x2 : R), l<=x1<=u -> l<=x2<=u -> Rdist x1 x2 <= u-l.
 Proof. intros; unfold Rdist; apply Rabs_le; lra. Qed.
+
+Lemma exp_approx_ge : forall (x : F), (0<=F.injR x) -> Fle (exp_approx' down x) (exp_approx' near x).
+Proof. Admitted.
+
+Lemma exp_approx_correct :
+  forall (x : F), (0<=F.injR x) -> Rdist (Rexp_approx (F.injR x)) (F.injR (exp_approx x)) <= F.injR (exp_approx_rng x).
+Proof.
+  intros x Hx.
+  unfold exp_approx, exp_approx_rng.
+  set (wl := exp_approx' down x).
+  set (wu := exp_approx' up x).
+  assert (F.injR wu - F.injR wl <= F.injR (F.sub up wu wl) ) as He. {
+    apply Rge_le; apply F.sub_up_spec. }
+  set (zn := F.injR (exp_approx' near x)).
+  set (ze := Rexp_approx (F.injR x)).
+  apply Rle_trans with (r2:=F.injR wu - F.injR wl).
+  set (zl := F.injR wl) in *.
+  set (zu := F.injR wu) in *.
+(*
+  assert (zl <= zn) as Hln. { apply exp_approx_ge. exact Hx. }
+  assert (zn <= zu) as Hnu. { apply exp_approx_le. apply Hx. }
+  assert (zl <= ze) as Hle. { apply exp_approx_down. exact Hx. }
+  assert (ze <= zu) as Heu. { apply Rge_le; apply exp_approx_up. exact Hx. }
+  unfold Rdist; apply Rabs_le.
+  lra.
+  exact He.
+*)
+Admitted.
+
+Local Definition fd_exp := fun (_ : nat) => Rexp.
+
+Local Definition Pdf_exp : forall y, smooth_pt_lim fd_exp y :=
+  fun y n => derivable_pt_lim_exp y.
+
+Definition taylor_series_exp := fun n => taylor_series fd_exp Pdf_exp n 0.
+
+Fixpoint taylor_series_exp_ball (n : nat) (x : Ball F) : Ball F :=
+  match n with
+  | O => ball F.unit F.null
+  | S m => add (taylor_series_exp_ball m x)
+             (div (pow x (S m)) (of_nat (Factorial.fact (S m))))
+  end.
+
+Local Definition taylor_series_exp_error_float (n : nat) (w : F) : F :=
+  F.mul up (F.of_nat 3) (F.div up (F.pow_up w (S n)) (F.of_nat (Factorial.fact (S n)))).
+
+Local Lemma taylor_exp_succ :
+  forall n x, taylor_series_exp_ball (S n) x = add (taylor_series_exp_ball n x)
+    (div (pow x (S n)) (of_nat (Factorial.fact (S n)))).
+Proof. reflexivity. Qed.
+
+
+Axiom Fsub_zero_exact : forall rnd (x : F), F.sub rnd x (F.null) = x.
+
+Local Lemma taylor_series_correct :
+  forall n x r, models x r -> models (taylor_series_exp_ball n x) (taylor_series_exp n r).
+Proof.
+  intros n x r Hxr. induction n.
+  - unfold taylor_series_exp, taylor_series, fd_exp, Rexp. simpl.
+    rewrite -> F.null_spec, F.unit_spec, exp_0, Rdist_eq. now apply Rle_refl.
+  - unfold taylor_series_exp. rewrite -> taylor_series_succ, taylor_exp_succ.
+    apply add_correct. 1: exact IHn.
+    unfold fd_exp, Rexp. rewrite -> exp_0, Rmult_1_l, Rminus_0_r.
+    apply div_correct.
+    -- now apply pow_correct.
+    -- unfold Rfact. now apply of_nat_correct.
+    -- unfold div_defined, value, F.of_nat.
+       remember (Factorial.fact (S n)) as Snfact.
+       simpl.
+       rewrite -> Fsub_zero_exact, F.abs_exact_spec, F.ninjr_spec.
+       apply Rabs_pos_lt. replace (INR Snfact) with (Rfact (S n)).
+       apply Rfact_nonzero. now rewrite -> HeqSnfact.
+Qed.
+
+
+
+Local Lemma mul_up_step : forall x1 x2 r1 r2,
+  0 <= r1 -> 0 <= r2 -> r1 <= F.injR x1 -> r2 <= F.injR x2
+    -> r1 * r2 <= F.injR (F.mul up x1 x2).
+Proof. intros x1 x2 r1 r2 Hr1 Hr2 Hx1 Hx2.
+  transitivity ((F.injR x1) * (F.injR x2)).
+  now apply Rmult_le_compat.
+  now apply F.mul_up_le_spec.
+Qed.
+
+Local Lemma div_up_step : forall x1 x2 r1 r2,
+  0 <= r1 -> 0 < F.injR x2 -> r1 <= F.injR x1 -> F.injR x2 <= r2
+    -> r1 / r2 <= F.injR (F.div up x1 x2).
+Proof. intros x1 x2 r1 r2 Hr1 Hr2 Hx1 Hx2.
+  transitivity ((F.injR x1) / (F.injR x2)).
+  - rewrite -> Rdiv_def. apply Rmult_le_compat.
+    -- exact Hr1.
+    -- apply Rlt_le; apply Rinv_pos. apply (Rlt_le_trans _ (F.injR x2)).
+       exact Hr2. exact Hx2.
+    -- exact Hx1.
+    -- apply Rinv_le_contravar.
+       exact Hr2. exact Hx2.
+  - apply F.div_up_le_spec.
+    apply Rgt_not_eq. apply Rlt_gt. exact Hr2.
+Qed.
+
+Local Lemma pow_up_step : forall x r n,
+  0 <= r -> r <= F.injR x ->
+    Rpow r n <= F.injR (F.pow_up x n).
+Proof. intros x r n Hr Hx.
+  transitivity (Rpow (F.injR x) n).
+  - now apply pow_incr.
+  - apply F.pow_up_le_spec.
+    now apply (Rle_trans _ r).
+Qed.
+
+
+Definition exp_unit (n : nat) (x : Ball F) : Ball F :=
+  add (taylor_series_exp_ball n x) (ball F.null (taylor_series_exp_error_float n (mag x))).
+
+Theorem exp_unit_correct : forall n x r, 0 < r -> (F.injR (mag x) <= 1) ->
+  models x r -> models (exp_unit n x) (Rexp r).
+Proof.
+  intros n x r H0ltr Hmag Hxr.
+  assert (r <= 1) as Hrle1. {
+    transitivity (F.injR (mag x)).
+    transitivity (Rabs r).
+    exact (Rle_abs r).
+    exact (mag_correct x r Hxr).
+    exact Hmag.
+  }
+  pose proof (taylor_series_remainder fd_exp Pdf_exp n 0 r) H0ltr as [c [Pc Hc]].
+  unfold exp_unit.
+  replace (Rexp r) with (fd_exp 0 r) by reflexivity.
+  rewrite -> Hc; clear Hc.
+  apply add_correct.
+  - now apply taylor_series_correct.
+  - unfold models, taylor_series_exp_error_float.
+    unfold Rdist. rewrite -> F.null_spec, Rabs_minus_sym, Rminus_0_r, Rminus_0_r.
+    replace (fd_exp (S n)) with Rexp by reflexivity.
+    rewrite <- Rmult_div_assoc.
+    rewrite -> Rabs_mult.
+    apply mul_up_step.
+    -- now apply Rabs_pos.
+    -- now apply Rabs_pos.
+    -- rewrite -> Rabs_pos_eq, F.ninjr_spec.
+       transitivity (Rexp 1).
+       --- apply exp_incr. transitivity r. apply Rlt_le; exact (proj2 Pc). exact Hrle1.
+       --- replace (INR 3) with (3%R). exact exp_le_3.
+           rewrite -> INR_IZR_INZ; f_equal.
+       --- apply Rlt_le; apply exp_pos.
+    -- rewrite -> Rdiv_def, Rabs_mult, Rabs_inv, <- Rdiv_def.
+       apply div_up_step.
+       --- now apply Rabs_pos.
+       --- rewrite -> F.ninjr_spec.
+           stepr (Rfact (S n)).
+           now apply Rfact_pos.
+           reflexivity.
+       --- rewrite <- RPow_abs.
+           apply (pow_up_step (mag x) (Rabs r) (S n)).
+           now apply Rabs_pos.
+           now apply mag_correct.
+       --- rewrite -> Rabs_pos_eq.
+           apply Req_le.
+           rewrite -> F.ninjr_spec.
+           reflexivity.
+           apply Rlt_le; now apply Rfact_pos.
+Qed.
 
 End Ball_section.
 
