@@ -23,15 +23,39 @@
  *)
 
 
+From Stdlib Require Ncring.
+From Stdlib Require Import Rings_R.
+
+Section Eval.
+
+Definition Polynomial' X := list X.
+
+Context {X:Type} `{RingOps_X : Ncring.Ring_ops X}.
+
+Fixpoint eval' {Y} (p : Polynomial' Y) (x : X) (smul : Y -> X -> X) : X :=
+  let N := BinNums.N in
+  let Xzero : X := ring0 in
+  let Xadd : X -> X -> X := fun x1 x2 => add (x1 ) ( x2) : X in
+  let Xpow : X -> N -> X := fun x n => pow_N x n in
+  match p with
+  | nil => Xzero
+  | cons ch pt => let n := BinNatDef.N.of_nat (length pt) : N in 
+     (Xadd (eval' pt x smul) (smul ch (Xpow x n)))
+  end.
+
+Local Lemma eval_cons' {Y} : forall ch (pt : Polynomial' Y) x smul, eval' (cons ch pt) x smul = 
+  add (eval' pt x smul) ( smul ch (pow_N x (BinNatDef.N.of_nat (length pt))) ).
+Proof. reflexivity. Qed.
+
+End Eval.
+
+
 From Stdlib Require Import Reals.
 From Stdlib Require Import Lra.
 
 Require Import RealAddenda.
 
-
-
 Section Calculus.
-
 
 Open Scope R_scope.
 
