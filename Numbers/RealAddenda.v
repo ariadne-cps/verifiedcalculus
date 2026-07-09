@@ -38,12 +38,33 @@ From Stdlib Require Import Lra.
 Open Scope R_scope.
 
 Notation Rpow := Rpow_def.pow.
+Definition Rpow_N := @Ring_theory.pow_N R 1 Rmult.
 
 Lemma Rpow_zero : forall x, Rpow x (0%nat) = 1.
 Proof. reflexivity. Qed.
 Lemma Rpow_one : forall x, Rpow x (1%nat) = x.
 Proof. intro x. simpl. exact (Rmult_1_r x). Qed.
+Lemma Rpow_cons : forall x n, Rpow x (S n) = x * Rpow x n.
+Proof. reflexivity. Qed.
 
+Lemma Rpow_N_nat : forall (x : R) (n : N), Rpow_N x n = Rpow x (BinNat.N.to_nat n).
+Proof.
+  intros x n.
+  induction n.
+  reflexivity.
+  unfold pow_N in *; unfold BinNat.N.to_nat.
+  induction p.
+  - rewrite -> Pos2Nat.inj_xI. simpl.
+    rewrite -> Nat.add_0_r, pow_add. 
+    rewrite <- IHp.
+    reflexivity.
+  - rewrite -> Pos2Nat.inj_xO. simpl.
+    rewrite -> Nat.add_0_r, Rfunctions.pow_add.
+    rewrite <- IHp.
+    reflexivity.
+  - simpl. rewrite -> Rmult_1_r.
+    reflexivity.
+Qed.
 
 Lemma Rlt_stepl:forall x y z, Rlt x y -> x=z -> Rlt z y.
 Proof.

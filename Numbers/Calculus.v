@@ -23,8 +23,17 @@
  *)
 
 
+
+
+From Stdlib Require Import Reals.
+From Stdlib Require Import Lra.
+
+Require Import RealAddenda.
+
+
 From Stdlib Require Ncring.
 From Stdlib Require Import Rings_R.
+From Stdlib Require Import BinNat.
 
 Section Eval.
 
@@ -50,11 +59,6 @@ Proof. reflexivity. Qed.
 End Eval.
 
 
-From Stdlib Require Import Reals.
-From Stdlib Require Import Lra.
-
-Require Import RealAddenda.
-
 Section Calculus.
 
 Open Scope R_scope.
@@ -70,6 +74,17 @@ Fixpoint eval (p : Polynomial R) (x : R) : R :=
 Local Lemma eval_cons : forall ch pt x, eval (cons ch pt) x = eval pt x + ch*x^(length pt).
 Proof. reflexivity. Qed.
 
+Lemma eval_eq : forall p x, eval p x = eval' p x Rmult.
+Proof.
+  intros p x; induction p.
+  reflexivity.
+  rewrite -> eval_cons, IHp.
+  simpl. f_equal. f_equal. simpl.
+  rewrite <- (Nnat.Nat2N.id (length p)).
+  rewrite <- Rpow_N_nat.
+  rewrite -> (Nnat.Nat2N.id (length p)).
+  reflexivity.
+Qed.
 
 Lemma strictly_increasing_implies_increasing : forall (f : R -> R),
   (forall (x y : R), x<y -> f x < f y) -> (forall (x y : R), x<=y -> f x <= f y).
@@ -246,7 +261,7 @@ Qed.
 
 
 Lemma derivable_pt_lim_pow_succ : 
-  forall n x, derivable_pt_lim (fun x => pow x (S n)) x (INR (S n) * x ^ n).
+  forall n x, derivable_pt_lim (fun x => Rpow x (S n)) x (INR (S n) * x ^ n).
 Proof.
   intros n x.
   replace (INR (S n) * x^n) with (INR (S n) * Rpow x (Init.Nat.pred (S n))).
