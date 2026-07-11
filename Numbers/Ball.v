@@ -28,8 +28,10 @@ From Stdlib Require Import Lia.
 From Stdlib Require Import Lra.
 
 Require Import RealAddenda.
-Require Import Floats.
+Require Import Calculus.
 Require Import Analysis.
+Require Import Floats.
+Require Import FloatTranscendentals.
 Require Import Bounds.
 
 Module Bll.
@@ -692,6 +694,188 @@ Proof.
        apply Rge_le; apply F.sub_up_spec.
 Qed.
 
+
+Definition Rexp : R -> R := exp.
+
+Definition exp_via_bounds (x : Ball F) : Ball F :=
+  bounds_to_ball (Bnds.exp (ball_to_bounds x)).
+
+Theorem exp_via_bounds_correct :
+  forall (x : Ball F) (y : R),
+    (F.injR (F.sub down F.unit (F.add up (value x) (error x))) > 0) ->
+      (models x y) -> (models (exp_via_bounds x) (Rexp y)).
+Proof.
+  intros x y Hu H.
+  unfold exp_via_bounds.
+  apply bounds_to_ball_correct.
+  apply Bnds.exp_correct.
+  apply ball_to_bounds_correct.
+  exact H.
+Qed.
+
+
+Local Definition fd_exp := fun (_ : nat) => Rexp.
+
+Local Definition Pdf_exp : forall y, smooth_pt_lim fd_exp y :=
+  fun y n => derivable_pt_lim_exp y.
+
+Definition taylor_series_exp := fun n => taylor_series fd_exp Pdf_exp n 0.
+
+Fixpoint taylor_series_exp_ball (n : nat) (x : Ball F) : Ball F :=
+  match n with
+  | O => ball F.unit F.null
+  | S m => add (taylor_series_exp_ball m x)
+             (div (pow x (S m)) (of_nat (Factorial.fact (S m))))
+  end.
+
+Local Definition taylor_series_exp_error_float (n : nat) (w : F) : F :=
+  F.mul up (F.of_nat 3) (F.div up (F.pow up w (S n)) (F.of_nat (Factorial.fact (S n)))).
+
+Local Lemma taylor_exp_succ :
+  forall n x, taylor_series_exp_ball (S n) x = add (taylor_series_exp_ball n x)
+    (div (pow x (S n)) (of_nat (Factorial.fact (S n)))).
+Proof. reflexivity. Qed.
+
+
+Axiom Fsub_zero_exact : forall rnd (x : F), F.sub rnd x (F.null) = x.
+
+Local Lemma taylor_series_correct :
+  forall n x r, models x r -> models (taylor_series_exp_ball n x) (taylor_series_exp n r).
+Proof.
+  intros n x r Hxr. induction n.
+  - unfold taylor_series_exp, taylor_series, fd_exp, Rexp. simpl.
+    rewrite -> F.null_spec, F.unit_spec, exp_0, Rdist_eq. now apply Rle_refl.
+  - unfold taylor_series_exp. rewrite -> taylor_series_succ, taylor_exp_succ.
+    apply add_correct. 1: exact IHn.
+    unfold fd_exp, Rexp. rewrite -> exp_0, Rmult_1_l, Rminus_0_r.
+    apply div_correct.
+    -- now apply pow_correct.
+    -- unfold Rfact. now apply of_nat_correct.
+    -- unfold div_defined, value, F.of_nat.
+       remember (Factorial.fact (S n)) as Snfact.
+       simpl.
+       rewrite -> Fsub_zero_exact, F.abs_exact_spec, F.ninjr_spec.
+       apply Rabs_pos_lt. replace (INR Snfact) with (Rfact (S n)).
+       apply Rfact_nonzero. now rewrite -> HeqSnfact.
+Qed.
+
+
+Definition exp_unit (n : nat) (x : Ball F) : Ball F :=
+  add (taylor_series_exp_ball n x) (ball F.null (taylor_series_exp_error_float n (mag x))).
+
+Theorem exp_unit_correct : forall n x r, (F.injR (mag x) <= 1) -> 
+  models x r -> models (exp_unit n x) (Rexp r).
+Proof.
+  intros n x r Hmag Hxr.
+  assert (r <= 1) as Hrle1. {
+    transitivity (F.injR (mag x)).
+    transitivity (Rabs r).
+    exact (Rle_abs r).
+    exact (mag_correct x r Hxr).
+    exact Hmag.
+  }
+  pose proof (taylor_series_remainder fd_exp Pdf_exp n 0 r) as [c [Pc Hc]].
+  unfold exp_unit.
+  replace (Rexp r) with (fd_exp 0 r) by reflexivity.
+  rewrite -> Hc; clear Hc.
+  apply add_correct.
+  - now apply taylor_series_correct.
+  - unfold models, taylor_series_exp_error_float.
+    unfold Rdist. rewrite -> F.null_spec, Rabs_minus_sym, Rminus_0_r, Rminus_0_r.
+    replace (fd_exp (S n)) with Rexp by reflexivity.
+    rewrite <- Rmult_div_assoc.
+    rewrite -> Rabs_mult.
+    apply F.mul_up_step.
+    -- now apply Rabs_pos.
+    -- now apply Rabs_pos.
+    -- rewrite -> Rabs_pos_eq, F.ninjr_spec.
+       transitivity (Rexp 1).
+       --- apply exp_incr.
+           lra.
+       --- replace (INR 3) with (3%R). exact exp_le_3.
+           rewrite -> INR_IZR_INZ; f_equal.
+       --- apply Rlt_le; apply exp_pos.
+    -- rewrite -> Rdiv_def, Rabs_mult, Rabs_inv, <- Rdiv_def.
+       apply F.div_up_step.
+       --- now apply Rabs_pos.
+       --- rewrite -> F.ninjr_spec.
+           stepr (Rfact (S n)).
+           now apply Rfact_pos.
+           reflexivity.
+       --- rewrite <- RPow_abs.
+           apply (F.pow_up_step (mag x) (Rabs r) (S n)).
+           now apply Rabs_pos.
+           now apply mag_correct.
+       --- rewrite -> Rabs_pos_eq.
+           apply Req_le.
+           rewrite -> F.ninjr_spec.
+           reflexivity.
+           apply Rlt_le; now apply Rfact_pos.
+Qed.
+
+
+Fixpoint exp_reduce (m : nat) (n : nat) : Ball F -> Ball F :=
+  fun x => match m with | O => exp_unit n x | S m' => sqr (exp_reduce m' n (hlf x)) end.
+
+Definition exp_deg (n : nat) : Ball F -> Ball F :=
+  fun x => exp_reduce (proj1_sig (FT.sig_log2_up (mag x))) n x.
+
+Definition exp := exp_deg 7.
+
+Lemma exp_reduce_correct :
+  forall (m n : nat) (x : Ball F) (y : R), Nat.Odd n ->
+    F.injR (mag x) < Rpow 2 m ->
+      models x y -> models (exp_reduce m n x) (Rexp y).
+Proof.
+  induction m.
+  - intros n x y Hn H0 H.
+    destruct x as (v & e).
+    unfold exp_reduce.
+    rewrite -> pow_O in H0; apply Rlt_le in H0.
+    now apply exp_unit_correct.
+  - intros n x y Hn HSm Hx.
+    simpl.
+    assert (F.injR (mag (hlf x)) < 2^m) as Hhlfx. {
+      replace (2^m) with (2^(S m)/2). 2: simpl; lra.
+      rewrite -> mag_hlf.
+      rewrite -> Fhlf_exact_spec.
+      apply Rdiv_lt_compat_r. lra. exact HSm.
+    }
+    assert (models (hlf x) (y/2)) as Hhlfy. {
+      now apply hlf_correct.
+    }
+    specialize (IHm n (hlf x) (y / 2)).
+    specialize (IHm Hn Hhlfx Hhlfy).
+    replace (Rexp y) with (Rsqr (Rexp (y/2))).
+    2: apply eq_sym; now apply exp_hlf_sqr.
+    apply sqr_correct.
+    exact IHm.
+Qed.
+
+Lemma exp_deg_correct :
+  forall (n : nat) (x : Ball F) (y : R), Nat.Odd n ->
+    models x y -> models (exp_deg n x) (Rexp y).
+Proof.
+  intros n x y Hn H.
+  destruct x as (l & u).
+  unfold exp_deg; simpl.
+  apply exp_reduce_correct. exact Hn. 2: exact H.
+  remember (mag (ball l u)) as w.
+  remember (FT.sig_log2_up w) as Hz.
+  destruct Hz as [z Hz].
+  simpl.
+  apply (Rle_lt_trans _ (F.injR (F.abs w)) _).
+  rewrite -> F.abs_exact_spec; now apply Rle_abs.
+  now apply (Rgt_lt _ _ Hz).
+Qed.
+
+Lemma exp_correct :
+  forall (x : Ball F) (y : R),
+    models x y -> models (exp x) (Rexp y).
+Proof.
+  intros x y H0lty. unfold exp. apply exp_deg_correct.
+  unfold Nat.Odd. exists (3%nat). reflexivity. exact H0lty.
+Qed.
 
 End Ball_section.
 
