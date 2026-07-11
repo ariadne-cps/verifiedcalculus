@@ -321,8 +321,287 @@ Proof.
   exact Hf.
 Qed.
 
-Lemma Rlt_le_rng : forall {x1 x2 x3}, x1 < x2 < x3 -> x1 <= x2 <= x3.
-Proof. intros; split. all: now apply Rlt_le. Qed.
 
+Lemma exp_strict_incr :  forall (x y : R), x<y -> exp x < exp y.
+Proof.
+  exact Rpower.exp_increasing.
+Qed.
+
+Lemma exp_incr :  forall (x y : R), x<=y -> exp x <= exp y.
+Proof.
+  exact (strictly_increasing_implies_increasing exp exp_strict_incr).
+Qed.
+
+
+Lemma exp_hlf_sqr : forall (x : R), exp x = Rsqr (exp (x/2)).
+Proof.
+  intro x.
+  replace (exp x) with (exp (x/2 + x/2)). 2: f_equal; lra.
+  rewrite -> exp_plus.
+  now rewrite <- Rsqr_def.
+Qed.
+
+Lemma exp_ge : forall (x : R), 1+x <= exp(x).
+Proof.
+  exact exp_ineq1_le.
+Qed.
+
+Lemma exp_le : forall (x : R), x<1 -> exp(x) <= / (1-x).
+Proof.
+  intros x Hxlt1.
+  unfold Rminus.
+  assert (1 + (-x) <= exp (-x)) as Hnegx. { exact (exp_ineq1_le (-x)). }
+  rewrite -> exp_Ropp in Hnegx.
+  assert (0 < 1+-x) as H1minusx. { apply Rlt_Rminus_zero. exact Hxlt1. }
+  assert (0 < exp x) as Hexpxpos. { exact (exp_pos x). }
+  apply Rinv_le_contravar in Hnegx.
+  rewrite -> Rinv_inv in Hnegx.
+  - exact Hnegx.
+  - exact H1minusx.
+Qed.
+
+
+(* If |y-w|<=d, then |e^y - e^w| <= e^w|e^(y-w)-1| <= e^w(e^d-1) *)
+Definition exp_err w d :=
+  ((exp d) - 1) * (exp w).
+
+Lemma exp_err_correct : forall w d y,
+  Rdist w y <= d ->
+    Rdist (exp w) (exp y) <= exp_err w d.
+Proof.
+  intros w d y H.
+  rewrite -> Rdist_sym in H.
+  unfold Rdist in H.
+  apply Rabs_ivl in H.
+  unfold exp_err.
+  assert ((y-w)+w=y) as Hy; [apply Rminus_plus_cancel|].
+  rewrite <- Hy.
+  rewrite -> exp_plus.
+  assert (forall x y, Rdist y (x*y) = Rdist (1*y) (x*y)) as H1. {
+    intros; rewrite -> Rmult_1_l; reflexivity. }
+  rewrite -> H1.
+  rewrite <- Rdist_mult_r; [|apply Rlt_le; apply exp_pos].
+  apply Rmult_le_compat_r; [apply Rlt_le; apply exp_pos|].
+  unfold Rdist.
+  apply Rabs_le.
+  split.
+  - rewrite -> Ropp_minus_distr.
+    apply Rplus_le_compat_l.
+    apply Ropp_le_contravar.
+    apply exp_incr.
+    apply H.
+  - apply Rle_trans with (r2 := 1-exp (-d)).
+    -- apply Ropp_le_cancel.
+       rewrite -> Ropp_minus_distr.
+       rewrite -> Ropp_minus_distr.
+       apply Rplus_le_compat_r.
+       apply exp_incr.
+       apply H.
+    -- rewrite -> exp_Ropp.
+       set (x := exp d).
+       assert (0<x) as Hx; [apply exp_pos|].
+       apply Rmult_le_reg_r with (r:=x); [exact Hx|].
+       rewrite -> Rmult_minus_distr_r, Rmult_1_l.
+       rewrite <- Rinv_l_sym; [|apply Rgt_not_eq; exact Hx].
+       apply Rle_zero_Rminus.
+       set (z:=x-1); replace x with (z+1); [|exact (Rminus_plus_cancel x 1)].
+       rewrite -> Rmult_plus_distr_l, Rmult_1_r.
+       rewrite -> Rplus_minus_cancel.
+       now apply Rmult_mult_nonneg.
+Qed.
+
+
+
+Lemma exp_le_deg_0 : forall (x b c : R), x <= b -> exp b <= c -> exp x <= c.
+Proof.
+  intros x b c Hx Hc.
+  transitivity (exp b).
+  now apply exp_incr.
+  exact Hc.
+Qed.
+
+Lemma exp_le_deg_1 : forall (x b c : R), 0 <= x <= b -> exp b <= c -> exp x <= 1+c*x.
+Proof.
+  intros x b c Hx Hc.
+  set (f := plus_fct (fun x => 1) (mult_real_fct c id)).
+  set (df := fun x : R => c).
+  apply (integral_comparison_lim exp f exp df 0 x).
+  - apply Hx.
+  - intros y _. now apply derivable_pt_lim_exp.
+  - intros y _. unfold df. replace (c) with (0 + c * 1) by lra. unfold f. apply derivable_pt_lim_plus.
+    -- now apply derivable_pt_lim_const.
+    -- apply derivable_pt_lim_scal.
+       now apply derivable_pt_lim_id.
+  - rewrite -> exp_0. unfold f, plus_fct, mult_real_fct, id. simpl. lra.
+  - intros y Hy. apply (exp_le_deg_0 y b). transitivity x. now apply Hy. now apply Hx.
+    unfold df; simpl. exact Hc.
+Qed.
+
+
+Lemma smooth_pt_lim_exp : forall x, smooth_pt_lim (fun n y => exp y) x.
+Proof.
+  unfold smooth_pt_lim. intros x _. exact (derivable_pt_lim_exp x).
+Qed.
+
+
+Fixpoint taylor_exp n x :=
+  match n with | 0 => 1 | S m => taylor_exp m x + x^(S m) / Rfact (S m) end.
+
+Lemma taylor_exp_zero : forall x, taylor_exp O x = 1.
+Proof. intros x; reflexivity. Qed.
+
+Lemma taylor_exp_succ : forall n x, taylor_exp (S n) x = taylor_exp n x + x^(S n) / Rfact (S n).
+Proof. intros n x; reflexivity. Qed.
+
+Lemma taylor_exp_0 : forall n, taylor_exp n 0 = 1.
+Proof. induction n. reflexivity. rewrite -> taylor_exp_succ, IHn, pow_i. lra. now apply Nat.lt_0_succ. Qed.
+
+
+
+Lemma derivable_pt_lim_taylor_exp : forall n x,
+  derivable_pt_lim (taylor_exp (S n)) x (taylor_exp n x).
+Proof.
+  induction n.
+  - intro x.
+    unfold taylor_exp.
+    apply (derivable_pt_lim_ext (fun x => 1 + 1 * x)).
+    intro z. unfold Rfact. replace (Factorial.fact 1) with 1%nat by reflexivity.
+    replace (INR 1) with 1 by reflexivity.
+    lra.
+    now apply derivable_pt_lim_affine.
+  - intro x.
+    rewrite -> (taylor_exp_succ n).
+    apply (derivable_pt_lim_ext (fun x => taylor_exp (S n) x + x^(S (S n)) / Rfact (S (S n)))).
+    -- intro z. rewrite -> (taylor_exp_succ (S n)). reflexivity.
+    -- apply derivable_pt_lim_plus. now apply IHn.
+       apply (derivable_pt_lim_ext (fun x => x^(S (S n)) / (INR (S (S n))) / (Rfact (S n)))).
+       intro z; rewrite -> (Rfact_succ (S n)).
+       now rewrite -> Rdiv_mult_distr.
+       apply derivable_pt_lim_div_scal.
+       replace (x^(S n)) with ((INR (S (S n))) * x^(S n) / (INR (S (S n)))).
+       apply derivable_pt_lim_div_scal.
+       now apply derivable_pt_lim_pow.
+       rewrite -> Rmult_div_r. reflexivity. now apply not_O_S_INR.
+Qed.
+
+Lemma exp_ge_taylor_pos : forall n, forall (x : R), 0 <= x -> taylor_exp n x <= exp x.
+Proof.
+  induction n.
+  - intros x Hx.
+    unfold taylor_exp. rewrite <- exp_0. apply exp_incr. exact Hx.
+  - intros x Hx.
+    apply (integral_comparison_lim (taylor_exp (S n)) exp (taylor_exp n) exp 0 x Hx).
+    -- intros y _. now apply derivable_pt_lim_taylor_exp.
+    -- intros y _; now apply derivable_pt_lim_exp.
+    -- now rewrite -> taylor_exp_0, exp_0.
+    -- intros y Hy. apply IHn. now apply Hy.
+Qed.
+
+
+Lemma exp_le_taylor_up_pos : forall (n : nat) (x b c : R), 0 <= x <= b -> exp b <= c ->
+  exp x <= taylor_exp n x + c * x^(S n) / Rfact (S n).
+Proof.
+  induction n.
+  - intros x b c Hx Hc.
+    rewrite -> taylor_exp_zero. rewrite -> pow_1. rewrite -> Rfact_1. rewrite -> Rdiv_1_r.
+    apply ( integral_comparison_lim exp (fun x => 1+c*x) exp (fun _ => c) 0 x (proj1 Hx)).
+    -- intros y _; now apply derivable_pt_lim_exp.
+    -- intros y _; now apply derivable_pt_lim_affine.
+    -- rewrite -> exp_0; lra.
+    -- intros y Hy. transitivity (exp b).
+       apply exp_incr; transitivity x; [now apply Hy|now apply Hx]. exact Hc.
+  - intros x b c Hx Hc.
+    set ( f := fun x => taylor_exp (S n) x + c * Rpow x (S (S n)) / Rfact (S (S n)) ).
+    set ( df := fun x => taylor_exp n x + c * Rpow x (S n) / Rfact (S n) ).
+    apply ( integral_comparison_lim exp f exp df 0 x (proj1 Hx)).
+    -- intros y _; now apply derivable_pt_lim_exp.
+    -- intros y Hy; unfold f, df.
+       apply ( derivable_pt_lim_ext (plus_fct (taylor_exp (S n)) (fun x => c * pow x (S (S n)) / Rfact (S (S n)))) ).
+       --- intro z. unfold plus_fct. reflexivity.
+       --- apply derivable_pt_lim_plus.
+           ---- now apply derivable_pt_lim_taylor_exp.
+           ---- now apply derivable_pt_lim_cnst_mul_pow_div_fact.
+    -- unfold f; rewrite -> taylor_exp_0, -> pow_i, -> Rmult_0_r, -> Rdiv_0_l, Rplus_0_r. 
+       2: now apply Nat.lt_0_succ.
+       rewrite -> exp_0. now apply Rle_refl.
+    -- intros y Hy. apply (IHn y b c).
+       --- split. now apply Hy. transitivity x; [now apply Hy|now apply Hx].
+       --- exact Hc.
+Qed.
+
+
+
+
+Local Lemma exp_le_ge_taylor_even_odd_neg : forall n,
+  (forall x, x <= 0 -> exp x <= taylor_exp (2*n) x) /\
+    (forall x, x <= 0 -> taylor_exp (2*n+1) x <= exp x).
+Proof.
+  induction n.
+  - assert (forall x, x <= 0 -> exp x <= taylor_exp 0 x) as H0. {
+      intros x Hx. rewrite -> taylor_exp_zero. rewrite <- exp_0. apply exp_incr. exact Hx. }
+    split. now apply H0.
+    intros x Hx.
+    replace (2*0+1)%nat with (1%nat) by reflexivity.
+    apply (integral_comparison_lim_neg (taylor_exp 1) (exp) (taylor_exp 0) (exp)).
+    -- intros y _. now apply derivable_pt_lim_taylor_exp.
+    -- intros y _. now apply derivable_pt_lim_exp.
+    -- rewrite -> taylor_exp_0. rewrite -> exp_0. now apply Rle_refl.
+    -- exact H0.
+    -- exact Hx.
+  - assert (forall x, x <= 0 -> exp x <= taylor_exp (2*(S n)) x) as He. {
+      intros x Hx.
+      replace ((2 * (S n))%nat) with (S (2*n+1)).
+        2: rewrite -> Nat.mul_succ_r; symmetry; now apply Nat.add_succ_r.
+      apply (integral_comparison_lim_neg (exp) (taylor_exp (S (2*n+1))) (exp) (taylor_exp (2 * n + 1)) ).
+      -- intros y _. now apply derivable_pt_lim_exp.
+      -- intros y _. now apply derivable_pt_lim_taylor_exp.
+      -- rewrite -> taylor_exp_0. rewrite -> exp_0. now apply Rle_refl.
+      -- now apply IHn.
+      -- exact Hx.
+    }
+    split. now apply He.
+    intros x Hx.
+    replace (2*(S n)+1)%nat with (S (2 * (S n))) by now rewrite -> Nat.add_1_r.
+    apply (integral_comparison_lim_neg (taylor_exp (S (2*(S n)))) (exp) (taylor_exp (2*(S n))) (exp)).
+    -- intros y _. now apply derivable_pt_lim_taylor_exp.
+    -- intros y _. now apply derivable_pt_lim_exp.
+    -- rewrite -> taylor_exp_0. rewrite -> exp_0. now apply Rle_refl.
+    -- exact He.
+    -- exact Hx.
+Qed.
+
+Theorem exp_le_taylor_even_neg : forall n x, x <= 0 -> exp x <= taylor_exp (2*n) x.
+Proof. now apply exp_le_ge_taylor_even_odd_neg. Qed.
+
+Theorem exp_ge_taylor_odd_neg : forall n x, x <= 0 -> taylor_exp (2*n+1) x <= exp x.
+Proof. now apply exp_le_ge_taylor_even_odd_neg. Qed.
+
+Theorem exp_ge_taylor_odd : forall n x, taylor_exp (2*n+1) x <= exp x.
+  intros n x. destruct (Rle_or_le 0 x).
+   - now apply exp_ge_taylor_pos.
+   - now apply exp_ge_taylor_odd_neg.
+Qed.
+
+Theorem exp_le_taylor_even_up : forall n x b c, x <= b -> exp b <= c -> 1 <= c ->
+  exp x <= taylor_exp (2*n+1) x + c * x^(2*(S n)) / Rfact (2*(S n)).
+Proof.
+  intros n x b c Hxb Hc H1c.
+  replace (2*(S n))%nat with (S (2*n+1)). 2: now rewrite -> Nat.mul_succ_r.
+  destruct (Rle_or_le 0 x) as [Hxge0|Hxlex].
+   - assert (0 <= x <= b) as Hx. split; [assumption|assumption].
+     exact (exp_le_taylor_up_pos (2*n+1) x b c Hx Hc).
+   - transitivity (taylor_exp (2 * (S n)) x).
+     -- now apply exp_le_taylor_even_neg.
+     -- replace (2*(S n))%nat with (S (2*n+1)). 2: now rewrite -> Nat.mul_succ_r.
+        rewrite -> taylor_exp_succ. apply Rplus_le_compat_l.
+        replace (S (2*n+1)) with  (2*(S n))%nat. 2: now rewrite -> Nat.mul_succ_r.
+        apply Rdiv_le_compat_r.
+        unfold Rfact. now apply INR_fact_lt_0.
+        assert (0 <= Rpow x (2*(S n))) as Hf. {
+          rewrite -> pow_Rsqr. apply pow_le. now apply Rle_0_sqr. }
+        pose proof (Rmult_le_compat_r (Rpow x (2 * S n)) 1 c Hf H1c) as H.
+        rewrite -> Rmult_1_l in H.
+        exact H.
+Qed.
 
 End Analysis.
