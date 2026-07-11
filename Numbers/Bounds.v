@@ -28,6 +28,7 @@ From Stdlib Require Import Lra.
 
 Require Import RealAddenda.
 Require Import Floats.
+Require Import FloatTranscendentals.
 Require Import Analysis.
 
 Module Bnds.
@@ -759,6 +760,7 @@ Proof.
 Qed.
 
 
+
 Axiom Fhlf : F -> F.
 Axiom Fhlf_exact_spec : forall x, F.injR (Fhlf x) = (F.injR x) / 2.
 Axiom Fsub_down_less : forall u, F.injR u < 1 -> F.injR (F.sub down F.unit u) > 0.
@@ -822,7 +824,7 @@ Qed.
 Definition hlf : Bounds F -> Bounds F :=
   fun x => match x with bounds l u => bounds (Fhlf l) (Fhlf u) end.
 
-Lemma hlf_bounds_correct : forall x y, models x y -> models (hlf x) (y/2).
+Lemma hlf_correct : forall x y, models x y -> models (hlf x) (y/2).
 Proof.
   intros x y H.
   destruct x as (l,u).
@@ -844,6 +846,144 @@ Proof.
   now apply Rmult_comm.
   apply Rlt_le.
   exact pos_half_prf.
+Qed.
+
+
+
+Notation fact := Factorial.fact.
+
+Notation Rexp := exp.
+Notation Rtaylor_exp := taylor_exp.
+Notation Rtaylor_exp_succ := taylor_exp_succ.
+
+
+
+Definition exp_unit n : Bounds F -> Bounds F :=
+  fun x =>
+    match x with bounds l u
+      => bounds (FT.exp_unit down n l) (FT.exp_unit up n u) end.
+
+Local Lemma three_eq : (3%R) = (3%nat).
+Proof. rewrite -> INR_IZR_INZ. f_equal. Qed.
+
+Lemma exp_unit_correct :
+  forall (n : nat) (x : Bounds F) (y : R), Nat.Odd n ->
+    models x y -> (F.injR (F.sub down F.unit (upper x)) > 0) ->
+      models (exp_unit n x) (exp y).
+Proof.
+  intros n x y Hn Hxy H1mu.
+  unfold Nat.Odd in Hn.
+  destruct Hn as [m Hm].
+  assert (S n = 2 * (S m))%nat as HSn. {
+    rewrite -> Hm. simpl. f_equal. rewrite -> Nat.add_0_r.
+    rewrite <- Nat.add_assoc. f_equal. now rewrite -> Nat.add_1_r.
+  }
+  destruct x as (l & u).
+  simpl in H1mu.
+  assert (F.injR u < 1) as Hu. {
+    apply Rlt_zero_Rminus; apply Rgt_lt.
+    rewrite <- F.unit_spec.
+    apply Rge_gt_trans with (r2 := F.injR (F.sub down F.unit u)).
+    - apply Rle_ge. apply F.sub_down_spec. 
+    - apply H1mu.
+  }
+  unfold models in Hxy.
+  unfold models; unfold exp_unit.
+  split.
+  - apply Rle_trans with (r2:=exp (F.injR l)).
+    apply Rle_trans with (r2:=Rtaylor_exp n (F.injR l)).
+    now apply FT.taylor_exp_rnd_down_spec.
+    rewrite -> Hm; now apply exp_ge_taylor_odd.
+    now apply exp_incr.
+  - apply Rle_trans with (r2:=exp (F.injR u)).
+    now apply exp_incr.
+    apply Rle_trans with (r2 := taylor_exp (2*m+1) (F.injR u) + 3 * (F.injR u)^(2*(S m)) / Rfact (2*(S m))).
+    apply (exp_le_taylor_even_up m (F.injR u) 1 3).
+      exact (Rlt_le (F.injR u) (1%nat) Hu). exact exp_le_3. lra.
+    apply F.add_up_step.
+    rewrite -> Hm; apply Rge_le; now apply FT.taylor_exp_rnd_up_spec.
+    rewrite -> HSn.
+    rewrite -> three_eq, <- (F.ninjr_spec 3).
+    rewrite -> Rmult_div_swap.
+    apply F.mul_up_step.
+    -- rewrite -> Rdiv_def. apply Rmult_le_pos.
+       rewrite -> F.ninjr_spec, <- three_eq; lra.
+       now apply Rlt_le, Rinv_pos, Rfact_pos.
+    -- rewrite -> Nat.mul_comm. rewrite -> pow_mult. now apply pow2_ge_0.
+    -- unfold Rfact. rewrite <- (F.ninjr_spec (fact (2 * S m)%nat)).
+       apply F.div_up_le_spec.
+       rewrite -> F.ninjr_spec. now apply Rfact_nonzero.
+    -- now apply F.pow_up_le_spec.
+Qed.
+
+Fixpoint exp_reduce (m : nat) (n : nat) : Bounds F -> Bounds F :=
+  fun x => match m with | O => exp_unit n x | S m' => sqr (exp_reduce m' n (hlf x)) end.
+
+Definition exp_deg (n : nat) : Bounds F -> Bounds F :=
+  fun x => exp_reduce (proj1_sig (FT.sig_log2_up (F.max (F.neg (lower x)) (upper x)))) n x.
+
+Definition exp := exp_deg 7.
+
+Lemma exp_reduce_correct :
+  forall (m n : nat) (x : Bounds F) (y : R), Nat.Odd n ->
+    F.injR (mag x) < Rpow 2 m ->
+      models x y -> models (exp_reduce m n x) (Rexp y).
+Proof.
+  induction m.
+  - intros n x y Hn H0 H.
+    destruct x as (l & u).
+    assert (F.injR (F.sub down F.unit u) > 0) as Hu. {
+      replace (2^0) with 1 in H0 by lra.
+      unfold mag in H0.
+      rewrite -> F.max_exact_spec in H0.
+        apply Fsub_down_less.
+      now apply (Rle_lt_trans _ _ _ (Rmax_r _ _) H0).
+    }
+    unfold exp_reduce.
+    now apply exp_unit_correct.
+  - intros n x y Hn HSm Hx.
+    simpl.
+    assert (F.injR (mag (hlf x)) < 2^m) as Hhlfx. {
+      replace (2^m) with (2^(S m)/2). 2: simpl; lra.
+      rewrite -> mag_hlf.
+      rewrite -> Fhlf_exact_spec.
+      apply Rdiv_lt_compat_r. lra. exact HSm.
+    }
+    assert (models (hlf x) (y/2)) as Hhlfy. {
+      now apply hlf_correct.
+    }
+    specialize (IHm n (hlf x) (y / 2)).
+    specialize (IHm Hn Hhlfx Hhlfy).
+    replace (Rexp y) with (Rsqr (Rexp (y/2))).
+    2: apply eq_sym; now apply exp_hlf_sqr.
+    apply sqr_correct.
+    exact IHm.
+Qed.
+
+Lemma exp_deg_correct :
+  forall (n : nat) (x : Bounds F) (y : R), Nat.Odd n ->
+    models x y -> models (exp_deg n x) (Rexp y).
+Proof.
+  intros n x y Hn H.
+  destruct x as (l & u).
+  unfold exp_deg; simpl.
+  apply exp_reduce_correct. 1: exact Hn. 2: exact H.
+  unfold mag.
+  remember (F.max (F.neg l) u) as w.
+  remember (FT.sig_log2_up w) as Hz.
+  destruct Hz as [z Hz].
+  simpl.
+  apply (Rle_lt_trans _ (F.injR (F.abs w)) _).
+  rewrite <- Heqw, -> F.abs_exact_spec; now apply Rle_abs.
+  now apply (Rgt_lt _ _ Hz).
+Qed.
+
+Lemma exp_correct :
+  forall (x : Bounds F) (y : R),
+    models x y -> models (exp x) (Rexp y).
+Proof.
+  intros x y. unfold exp. apply exp_deg_correct.
+  unfold Nat.Odd. exists (3%nat). reflexivity.
 Qed.
 
 
