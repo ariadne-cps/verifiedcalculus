@@ -52,7 +52,6 @@ Definition error (x : @Ball F FltF) : F := match x with ball _ e => e end.
 Definition models : Ball F -> R -> Prop :=
   fun x y => match x with ball v e => Rdist (F.injR v) y <= (F.injR e) end.
 
-
 Ltac step mid := (apply Rle_trans with mid).
 
 Open Scope R_scope.

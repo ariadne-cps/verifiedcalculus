@@ -88,6 +88,10 @@ Coercion INR : nat >-> R.
 
 Inductive Rounding := down | near | up.
 
+Local Definition opposite rnd :=
+  match rnd with | up => down | near => near | down => up end.
+
+
 
 Inductive BinOp := Add | Sub | Mul.
 (* Inductive BinOp := Add | Sub | Mul | Div. *)
@@ -239,12 +243,20 @@ Fixpoint sum {F} {Flt : Float F} (r : Rounding) (xs : list F) :=
 Definition sum_snd_add {I} {F} {Flt : Float F} (r : Rounding) : list (I * F) -> F
   := fold_right (fun nf=> add r (snd nf)) F.null.
 
-Fixpoint pow_up {F} {Flt : Float F} (x:F) (n:nat) :=
-    match n with
+Fixpoint pow_pos {F} {Flt : Float F} (r : Rounding) (x:F) (n:nat) :=
+  match n with
     | O => unit
-    | S n' => mul up x (pow_up x n')
+    | S n' => mul r x (pow_pos r x n')
     end.
 
+Definition pow {F} {Flt : Float F} (r : Rounding) (x:F) (n:nat) :=
+  let m := Nat.div2 n in
+  let o := opposite r in
+  if F.leb F.null x
+    then pow_pos r x n
+    else if Nat.even n
+      then pow_pos r (mul r x x) m
+      else mul r x (pow_pos o (mul o x x) m).
 
 
 Section Float_defs.
@@ -262,6 +274,15 @@ Proof.
   unfold F.unit. apply ninjr_spec.
 Qed.
 
+Lemma leb_false_spec : forall x y, F.leb x y = false <-> F.injR x > F.injR y.
+Proof. intros x y. split.
+  intro H. apply Rnot_le_gt. intro Hle; revert H.
+    apply Bool.not_false_iff_true. now apply leb_spec.
+  intro H. apply Bool.not_true_is_false. intro Ht; revert H.
+    rewrite -> leb_spec in Ht. now apply Rle_not_gt.
+Qed.
+
+
 Lemma add_up_le_spec : forall x y, F.injR x + F.injR y <= F.injR (F.add up x y).
 Proof. intros x y; apply Rge_le; now apply add_up_spec. Qed.
 
@@ -275,24 +296,144 @@ Lemma div_up_le_spec : forall x y,
   injR y <> 0 -> F.injR x / F.injR y <= F.injR (F.div up x y).
 Proof. intros x y Hy; apply Rge_le; now apply div_up_spec. Qed.
 
-Lemma pow_up_spec : forall x n,
-  (F.injR x >= 0) -> F.injR (F.pow_up x n) >= (F.injR x)^n.
+
+Lemma pow_pos_up_spec : forall x n,
+  (F.injR x >= 0) -> F.injR (pow_pos up x n) >= (F.injR x)^n.
 Proof.
   intros x n Hp.
   induction n.
   - simpl. apply Req_ge. apply ninjr_spec.
   - simpl.
-    apply Rge_trans with (F.injR x * F.injR (F.pow_up x n)).
+    apply Rge_trans with (F.injR x * F.injR (pow_pos up x n)).
     -- apply mul_up_spec.
     -- apply Rmult_ge_compat_l.  exact Hp. exact IHn.
 Qed.
 
-Lemma pow_up_le_spec : forall x n,
-  (0 <= F.injR x) -> (F.injR x)^n <= F.injR (F.pow_up x n).
+Lemma pow_pos_down_spec : forall x n,
+  (F.injR x >= 0) -> F.injR (pow_pos down x n) <= (F.injR x)^n.
 Proof.
   intros x n Hp.
-  apply Rge_le; apply pow_up_spec; apply Rle_ge; exact Hp.
+  induction n.
+  - simpl. rewrite -> unit_spec. now apply Rle_refl.
+  - simpl.
+    apply Rle_trans with (F.injR x * F.injR (pow_pos down x n)).
+    -- apply mul_down_spec.
+    -- apply Rmult_le_compat_l. apply Rge_le; exact Hp. exact IHn.
 Qed.
+
+Axiom mul_self_down_pos : forall x, injR (mul down x x) >= 0.
+
+Lemma pow_up_spec : forall x n,
+  F.injR (pow up x n) >= (F.injR x)^n.
+Proof.
+  intros x n.
+  remember (F.leb F.null x) as b. destruct b.
+  - assert (0 <= injR x). {
+      rewrite <- null_spec. now apply F.leb_spec. }
+    unfold pow. rewrite <- Heqb. simpl. apply pow_pos_up_spec.
+    now apply Rle_ge.
+  - assert (injR x <= 0) as Hxle0. {
+      rewrite <- null_spec. apply Rge_le, Rgt_ge. now apply leb_false_spec. }
+    destruct (Nat.Even_Odd_dec n) as [He|Ho].
+    -- unfold pow.
+       rewrite <- Heqb.
+       rewrite -> (proj2 (Nat.even_spec n) He).
+       destruct He as [m Hm].
+       replace (Nat.div2 n) with m.
+       rewrite -> Hm.
+       rewrite -> pow_Rsqr, Rsqr_def.
+       transitivity (Rpow (injR (mul up x x)) m).
+       --- apply pow_pos_up_spec.
+           transitivity ((injR x) * (injR x)).
+           now apply mul_up_spec.
+           apply Rle_ge; now apply Rmult_mult_nonneg.
+       --- apply Rle_ge; apply pow_incr.
+           split. now apply Rmult_mult_nonneg. now apply mul_up_le_spec.
+       --- rewrite -> Hm. symmetry; now apply Nat.div2_even.
+    -- unfold pow.
+       rewrite <- Heqb.
+       assert (Nat.even n = false) as Hnev. {
+         rewrite <- Nat.negb_odd. apply Bool.negb_false_iff. now apply Nat.odd_spec. }
+       rewrite -> Hnev.
+       destruct Ho as [m Hm].
+       replace (Nat.div2 n) with m.
+       rewrite -> Hm.
+       rewrite -> pow_add, Rmult_comm.
+       rewrite -> pow_1.
+       transitivity ((injR x) * injR ((pow_pos down (mul down x x) m))).
+       now apply mul_up_spec.
+       apply Rle_ge; apply Rmult_le_opp_compat_l. exact Hxle0.
+       rewrite -> pow_Rsqr, Rsqr_def.
+       transitivity (Rpow (injR (mul down x x)) m).
+       --- apply pow_pos_down_spec.
+             now apply mul_self_down_pos.
+       --- apply pow_incr.
+           split. apply Rge_le; now apply mul_self_down_pos.
+           now apply mul_down_spec.
+       --- rewrite -> Hm. symmetry.
+           replace ((2*m+1)%nat) with (S (2*m)%nat).
+           now apply Nat.div2_succ_double.
+           symmetry; now apply Nat.add_1_r.
+Qed.
+
+Lemma pow_up_le_spec : forall x n,
+  (F.injR x)^n <= F.injR (pow up x n).
+Proof. intros x n; apply Rge_le; now apply pow_up_spec. Qed.
+
+Lemma pow_down_spec : forall x n,
+  F.injR (pow down x n) <= (F.injR x)^n.
+Proof.
+  intros x n.
+  remember (F.leb F.null x) as b. destruct b.
+  - assert (0 <= injR x). {
+      rewrite <- null_spec. now apply F.leb_spec. }
+    unfold pow. rewrite <- Heqb. simpl. apply pow_pos_down_spec.
+    now apply Rle_ge.
+  - assert (injR x <= 0) as Hxle0. {
+      rewrite <- null_spec. apply Rge_le, Rgt_ge. now apply leb_false_spec. }
+    destruct (Nat.Even_Odd_dec n) as [He|Ho].
+    -- unfold pow.
+       rewrite <- Heqb.
+       rewrite -> (proj2 (Nat.even_spec n) He).
+       destruct He as [m Hm].
+       replace (Nat.div2 n) with m.
+       rewrite -> Hm.
+       rewrite -> pow_Rsqr, Rsqr_def.
+       transitivity (Rpow (injR (mul down x x)) m).
+       --- apply pow_pos_down_spec.
+           now apply mul_self_down_pos.
+       --- apply pow_incr.
+           split. apply Rge_le; now apply mul_self_down_pos.
+           now apply mul_down_spec.
+       --- rewrite -> Hm; symmetry; now apply Nat.div2_even.
+    -- unfold pow.
+       rewrite <- Heqb.
+       assert (Nat.even n = false) as Hnev. {
+         rewrite <- Nat.negb_odd. apply Bool.negb_false_iff. now apply Nat.odd_spec. }
+       rewrite -> Hnev.
+       destruct Ho as [m Hm].
+       replace (Nat.div2 n) with m.
+       rewrite -> Hm.
+       rewrite -> pow_add, Rmult_comm.
+       rewrite -> pow_1.
+       transitivity ((injR x) * injR ((pow_pos up (mul up x x) m))).
+       now apply mul_down_spec.
+       apply Rmult_le_opp_compat_l. exact Hxle0.
+       rewrite -> pow_Rsqr, Rsqr_def.
+       transitivity (Rpow (injR (mul up x x)) m).
+       --- apply pow_incr.
+           split. now apply Rmult_mult_nonneg.
+           now apply mul_up_le_spec.
+       --- apply Rge_le; apply pow_pos_up_spec.
+           transitivity ((injR x) * (injR x)).
+           now apply mul_up_spec.
+           apply Rle_ge; now apply Rmult_mult_nonneg.
+       --- rewrite -> Hm. symmetry.
+           replace ((2*m+1)%nat) with (S (2*m)%nat).
+           now apply Nat.div2_succ_double.
+           symmetry; now apply Nat.add_1_r.
+Qed.
+
 
 
 Lemma val_near_up_abs_spec : forall x y, (forall rnd, nullary_op_is_rounded x y rnd) ->
