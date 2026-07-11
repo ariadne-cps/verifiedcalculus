@@ -100,7 +100,7 @@ Qed.
 Definition PMrec (n : nat) (t : PolynomialModel F) : PolynomialModel F :=
   let t' := PMsub (PMconstant F.unit) t in
   let d' := PMnorm t' in
-  PMadd (PMgeometric n t') (PMerror_ball (F.div up (F.pow_up d' (n+1)) (F.sub down F.unit d'))).
+  PMadd (PMgeometric n t') (PMerror_ball (F.div up (F.pow up d' (n+1)) (F.sub down F.unit d'))).
 
 (* A lower bound on min[-1<=x<=1](1-t(x)) *)
 Definition PMunit_mig t :=
@@ -169,7 +169,7 @@ Proof.
     exact H.
     lra.
   }
-  set ( e := F.div up (F.pow_up b (n+1)) (F.sub down F.unit b) ).
+  set ( e := F.div up (F.pow up b (n+1)) (F.sub down F.unit b) ).
   set (fg := fun x => Fgeometric n f x).
   set (fe := fun x => /(1-f x) - Fgeometric n f x).
   apply PMmodels_extensional with (fun x => fg x + fe x).
@@ -191,13 +191,13 @@ Proof.
        apply Rle_trans with (d^(n+1)/(1-d)).
        --- apply Hde. exact Hx.
        --- unfold d, e.
-           apply Rle_trans with ( F.injR (F.pow_up b (n + 1)) / F.injR (F.sub down F.unit b) ).
+           apply Rle_trans with ( F.injR (F.pow up b (n + 1)) / F.injR (F.sub down F.unit b) ).
            ---- apply Rmult_le_compat.
                 ----- apply pow_le. exact Hb0.
                 ----- apply Rlt_le. apply Rinv_pos.
                       apply Rplus_lt_reg_r with (F.injR b). rewrite -> Rplus_0_l.
                       unfold Rminus. rewrite -> Rplus_assoc. rewrite -> Rplus_opp_l. rewrite -> Rplus_0_r. exact Hb1.
-                ----- apply F.pow_up_le_spec. exact Hb0.
+                ----- apply F.pow_up_le_spec.
                 ----- apply Rinv_le_contravar.
                       apply Rlt_gt. apply Hd.
                       rewrite <- F.unit_spec. apply F.sub_down_spec.

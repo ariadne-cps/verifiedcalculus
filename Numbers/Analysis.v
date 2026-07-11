@@ -27,7 +27,7 @@ From Stdlib Require Import Reals.
 From Stdlib Require Import Lra.
 
 Require Import RealAddenda.
-
+Require Import Calculus.
 
 
 Section Analysis.
@@ -282,6 +282,47 @@ Proof.
   replace (ay/(aw-d)*(aw-d)) with (ay). 2: { field. exact Hawdnz. }
   exact Hwdy.
 Qed.
+
+
+Lemma strictly_increasing_implies_increasing : forall (f : R -> R),
+  (forall (x y : R), x<y -> f x < f y) -> (forall (x y : R), x<=y -> f x <= f y).
+Proof.
+  intros f H x y. specialize (H x y).
+  intro Hle. destruct Hle as [Hlt | Heq].
+  - apply Rlt_le. exact (H Hlt).
+  - apply Req_le. f_equal. exact Heq.
+Qed.
+
+Lemma continuity_pt_id : forall x : R, continuity_pt id x.
+Proof.
+  intro x. unfold continuity_pt, continue_in, limit1_in, limit_in, id.
+  intros eps Heps. exists eps. split. exact Heps.
+  intros y [_ Hy]. exact Hy.
+Qed.
+
+Theorem MVT1
+  : forall (f : R -> R) (a b : R), a < b ->
+      forall (pr : forall c : R, a < c < b -> derivable_pt f c),
+      (forall c : R, a <= c <= b -> continuity_pt f c) ->
+           exists (c : R) (P : a < c < b),
+             (b - a) * derive_pt f c (pr c P) = (f b - f a).
+Proof.
+  set (g := id : R -> R).
+  intros f a b Hab pr1 ct1.
+  set (pr2 := (fun c _ => derivable_pt_id c)
+    : forall c, a < c < b ->  derivable_pt g c ).
+  assert (forall c, a <= c <= b -> continuity_pt g c) as ct2. {
+    intros; now apply continuity_pt_id. }
+  pose proof (MVT f g a b pr1 pr2 Hab ct1 ct2) as [c [P Hf]].
+  exists c, P.
+  replace (derive_pt g c (pr2 c P)) with 1 in Hf
+    by exact (eq_sym (derive_pt_id c)).
+  unfold g in Hf; rewrite -> Rmult_1_r in Hf.
+  exact Hf.
+Qed.
+
+Lemma Rlt_le_rng : forall {x1 x2 x3}, x1 < x2 < x3 -> x1 <= x2 <= x3.
+Proof. intros; split. all: now apply Rlt_le. Qed.
 
 
 End Analysis.
