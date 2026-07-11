@@ -47,6 +47,7 @@ Numbers/IntAddenda.v
 Numbers/RealAddenda.v
 Numbers/Dyadic.v
 Numbers/Analysis.v
+Numbers/Calculus.v
 Numbers/Sum.v
 Numbers/Floats.v
 Numbers/FixedDyadic.v
