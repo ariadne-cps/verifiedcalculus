@@ -81,6 +81,28 @@ Declare Left Step Rneq_stepl.
 Declare Right Step Rneq_stepr.
 
 
+Lemma Rle_not_eq_lt : forall r : R, r<=0 -> r<>0 -> r<0.
+Proof.
+  unfold Rle. intros r Hle0 Hne0.
+  apply or_ind with (A:=r<0) (B:=r=0).
+  - trivial.
+  - intro Heq0. contradiction.
+  - exact Hle0.
+Qed.
+
+Lemma Rge_not_eq_gt : forall r : R, 0<=r -> r<>0 -> 0<r.
+Proof.
+  unfold Rle. intros r Hge0 Hne0.
+  apply or_ind with (A:=0<r) (B:=0=r).
+  - trivial.
+  - intro Heq0. assert (r=0). { apply eq_sym. exact Heq0. } contradiction.
+  - exact Hge0.
+Qed.
+
+
+Lemma Ropp_0_le_le_contravar : forall r, 0 <= r -> -r <= 0.
+Proof. intros r Hr. apply Rge_le. now apply Ropp_0_le_ge_contravar. Qed.
+
 Lemma Ropp_0_le_contravar : forall (x:R), x <= 0 <-> 0 <= -x.
 Proof.
   intro x.
@@ -90,6 +112,13 @@ Proof.
   assert (x + 0 <= x + -x) as He.
   apply Rplus_le_compat. apply Rle_refl. exact H.
   rewrite -> Rplus_0_r in He. rewrite -> Rplus_opp_r in He. exact He.
+Qed.
+
+Lemma Ropp_0_lt_contravar : forall r : R, r < 0 <-> 0 < - r.
+Proof.
+  intro r. split.
+  - intro Hlt. apply Ropp_0_gt_lt_contravar. apply Rlt_gt. exact Hlt.
+  - intro Hngt. rewrite <- (Ropp_involutive r). apply Ropp_lt_gt_0_contravar. apply Rlt_gt. exact Hngt.
 Qed.
 
 Lemma Rminus_eq_0 : forall x, (x-x=0)%R.
@@ -102,6 +131,14 @@ Lemma Rminus_0_eq : forall r1 r2 : R, r1 - r2 = 0 -> r1 = r2.
 Proof.
   intros. assert (r1=r2 \/ r1<>r2) as Heq_dec by (apply Req_dec).
   destruct Heq_dec as [Heq|Hneq]. exact Heq. apply Rminus_eq_contra in Hneq. contradiction.
+Qed.
+
+Lemma Rminus_ge_0 : forall a b, 0<=b -> a-b <= a.
+Proof.
+  intros a b Hb.
+  assert (a-b <= a-0).
+  apply Rplus_le_compat_l; apply Ropp_le_contravar; exact Hb.
+  rewrite -> Rminus_0_r in H; assumption.
 Qed.
 
 Lemma Rlt_zero_Rminus : forall r1 r2:R , 0 < r1-r2  -> r2 < r1.
@@ -417,6 +454,24 @@ Proof.
  apply Rle_Rminus_zero; assumption.
 Qed.
 
+
+Lemma Rinv_neg : forall r : R, r < 0 -> / r < 0.
+Proof.
+  intro r. intro Hlt0.
+  rewrite -> Ropp_0_lt_contravar. rewrite <- Rinv_opp. apply Rinv_pos. rewrite <- Ropp_0_lt_contravar. exact Hlt0.
+Qed.
+
+Lemma Rinv_le_compat : forall r1 r2 : R, (0 < r1 \/ r2 < 0) -> r1 <= r2 ->  / r2 <=  / r1.
+Proof.
+  intros r1 r2 Hne0 H.
+  destruct Hne0.
+  - apply Rinv_le_contravar. exact H0. exact H.
+  - apply Ropp_le_cancel. rewrite <- Rinv_opp. rewrite <- Rinv_opp. apply Rinv_le_contravar.
+    -- apply Ropp_0_lt_contravar. exact H0.
+    -- apply Ropp_le_contravar. exact H.
+Qed.
+
+
 Lemma Rdiv_Rmult_simplify: forall x y z : R, z <> 0%R -> y <> 0%R -> (x * z / (y * z))%R = (x / y)%R.
 Proof.
  intros; field; auto.
@@ -454,6 +509,32 @@ Proof.
  unfold Rdiv; apply Fourier_util.Rlt_mult_inv_pos; auto;
  apply Rlt_Rminus_zero; assumption.
 Qed.
+
+Lemma Rdiv_le_compat_l : forall r r1 r2 : R, 0 <= r -> (0 < r1 \/ r2 < 0) -> r1 <= r2 -> r / r2 <= r / r1.
+Proof.
+  intros r r1 r2 Hge0 Hor H. unfold Rdiv.
+  apply Rmult_le_compat_l; [apply Hge0|]. exact (Rinv_le_compat _ _ Hor H).
+Qed.
+
+Lemma Rdiv_le_compat_r : forall r r1 r2 : R, 0 < r -> r1 <= r2 -> r1 / r <= r2 / r.
+Proof.
+  intros r r1 r2 Hgt0 H. unfold Rdiv.
+  apply Rmult_le_compat_r. { apply Rlt_le. apply Rinv_pos. exact Hgt0. } exact H.
+Qed.
+
+Lemma Rdiv_le_opp_compat_l : forall r r1 r2 : R, r <= 0 -> (0 < r1 \/ r2 < 0) -> r1 <= r2 -> r / r1 <= r / r2.
+Proof.
+  intros r r1 r2 Hle0 Hor H. unfold Rdiv.
+  apply Rmult_le_opp_compat_l; [apply Hle0|]. exact (Rinv_le_compat _ _ Hor H).
+Qed.
+
+Lemma Rdiv_le_opp_compat_r : forall r r1 r2 : R, r < 0 -> r1 <= r2 -> r2 / r <= r1 / r.
+Proof.
+  intros r r1 r2 Hlt0 H. unfold Rdiv.
+  apply Rmult_le_opp_compat_r. { apply Rlt_le. apply Rinv_neg. exact Hlt0. } exact H.
+Qed.
+
+
 
 Lemma Rlinear_non_zero_1:forall a b x y, (y<>0)%R -> (a*x+b*y<>0)%R -> (a*(x/y)+b<>0)%R.
 Proof.
@@ -693,6 +774,7 @@ Ltac ring_exact_R hyp :=
 Lemma Rdiv_mult_inv : forall x y, Rdiv x y = Rmult x (Rinv y).
 Proof. intros x y. unfold Rdiv. reflexivity. Qed.
 
+
 Lemma Rabs_0_eq (a:R) : (Rabs a = 0) -> a=0.
 Proof.
   intro H.
@@ -868,7 +950,7 @@ Proof.
   intros. unfold Rdist.
   replace ((w+x)-(y+z)) with ((w-y)+(x-z)) by ring.
   apply Rabs_triang.
- Qed.
+Qed.
 
 Lemma Rdist_minus_compat : forall w x y z, Rdist (w-x) (y-z) <= Rdist w y + Rdist x z.
 Proof.
@@ -876,7 +958,19 @@ Proof.
   replace (Rabs (x-z)) with (Rabs (z-x)) by (apply Rabs_minus_sym).
   replace ((w-x)-(y-z)) with ((w-y)+(z-x)) by ring.
   apply Rabs_triang.
- Qed.
+Qed.
+
+Lemma Rdist_ge : forall (r1 r2 : R), r1>=r2 -> Rdist r1 r2 = r1-r2.
+Proof.
+  intros r1 r2 H; unfold Rdist.
+  apply Rabs_pos_eq; apply Rle_Rminus_zero; apply Rge_le; exact H.
+Qed.
+
+Lemma Rdist_le : forall (r1 r2 : R), r1<=r2 -> Rdist r1 r2 = r2-r1.
+Proof.
+  intros r1 r2 H; unfold Rdist.
+  rewrite <- (Ropp_minus_distr r1 r2); apply Rabs_neg_eq; apply Rle_minus; exact H.
+Qed.
 
 Lemma Rdist_abs_l : forall w x y, Rdist (w*x) (w*y) = Rabs w * Rdist x y.
 Proof.

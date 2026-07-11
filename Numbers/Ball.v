@@ -306,14 +306,6 @@ Proof.
   apply F.sub_down_spec.
 Qed.
 
-Lemma Rminus_ge_0 : forall a b, 0<=b -> a-b <= a.
-Proof.
-  intros a b Hb.
-  assert (a-b <= a-0).
-  apply Rplus_le_compat_l; apply Ropp_le_contravar; exact Hb.
-  rewrite -> Rminus_0_r in H; assumption.
-Qed.
-
 Lemma div_err_up_correct : forall v1 v2 e1 e2 re,
   0<=F.injR e1 ->
     0<=F.injR e2 ->
