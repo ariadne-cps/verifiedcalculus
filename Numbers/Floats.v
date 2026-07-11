@@ -576,6 +576,110 @@ Proof.
 Qed.
 
 
+Lemma add_down_step : forall x1 x2 r1 r2,
+  F.injR x1 <= r1 -> F.injR x2 <= r2
+    -> F.injR (F.add down x1 x2) <= (r1 + r2).
+Proof. intros x1 x2 r1 r2 Hx1 Hx2.
+  transitivity ((F.injR x1) + (F.injR x2)).
+  now apply F.add_down_spec.
+  now apply Rplus_le_compat.
+Qed.
+
+Lemma add_up_step : forall x1 x2 r1 r2,
+  r1 <= F.injR x1 -> r2 <= F.injR x2
+    -> r1 + r2 <= F.injR (F.add up x1 x2).
+Proof. intros x1 x2 r1 r2 Hx1 Hx2.
+  transitivity ((F.injR x1) + (F.injR x2)).
+  now apply Rplus_le_compat.
+  now apply add_up_le_spec.
+Qed.
+
+Lemma sub_down_step : forall x1 x2 r1 r2,
+  F.injR x1 <= r1 -> r2 <= F.injR x2
+    -> F.injR (F.sub down x1 x2) <= (r1 - r2).
+Proof. intros x1 x2 r1 r2 Hx1 Hx2.
+  transitivity ((F.injR x1) - (F.injR x2)).
+  now apply F.sub_down_spec.
+  now apply Rminus_le_compat.
+Qed.
+
+Lemma sub_up_step : forall x1 x2 r1 r2,
+  r1 <= F.injR x1 -> F.injR x2 <= r2
+    -> r1 - r2 <= F.injR (F.sub up x1 x2).
+Proof. intros x1 x2 r1 r2 Hx1 Hx2.
+  transitivity ((F.injR x1) - (F.injR x2)).
+  now apply Rminus_le_compat.
+  now apply sub_up_le_spec.
+Qed.
+
+Lemma mul_up_step : forall x1 x2 r1 r2,
+  0 <= r1 -> 0 <= r2 -> r1 <= F.injR x1 -> r2 <= F.injR x2
+    -> r1 * r2 <= F.injR (F.mul up x1 x2).
+Proof. intros x1 x2 r1 r2 Hp1 Hp2 Hx1 Hx2.
+  transitivity ((F.injR x1) * (F.injR x2)).
+  now apply Rmult_le_compat.
+  now apply mul_up_le_spec.
+Qed.
+
+Lemma mul_down_step : forall x1 x2 r1 r2,
+  0 <= F.injR x1 -> 0 <= F.injR x2 -> F.injR x1 <= r1 -> F.injR x2 <= r2
+    -> F.injR (F.mul down x1 x2) <= r1 * r2.
+Proof. intros x1 x2 r1 r2 Hp1 Hp2 Hx1 Hx2.
+  transitivity ((F.injR x1) * (F.injR x2)).
+  now apply mul_down_spec.
+  now apply Rmult_le_compat.
+Qed.
+
+Lemma div_down_step : forall x1 x2 r1 r2,
+  0 <= F.injR x1 -> 0 < r2 -> F.injR x1 <= r1 -> r2 <= F.injR x2
+    -> F.injR (F.div down x1 x2) <= r1 / r2.
+Proof. intros x1 x2 r1 r2 Hp1 Hp2 Hx1 Hx2.
+  transitivity ((F.injR x1) / (F.injR x2)).
+  - apply div_down_spec.
+    apply Rgt_not_eq. apply Rlt_gt. apply (Rlt_le_trans _ r2). exact Hp2. exact Hx2.
+  - rewrite -> Rdiv_def. apply Rmult_le_compat.
+    -- exact Hp1.
+    -- apply Rlt_le; apply Rinv_pos. apply (Rlt_le_trans _ r2).
+       exact Hp2. exact Hx2.
+    -- exact Hx1.
+    -- apply Rinv_le_contravar.
+       exact Hp2. exact Hx2.
+Qed.
+
+Lemma div_up_step : forall x1 x2 r1 r2,
+  0 <= r1 -> 0 < F.injR x2 -> r1 <= F.injR x1 -> F.injR x2 <= r2
+    -> r1 / r2 <= F.injR (F.div up x1 x2).
+Proof. intros x1 x2 r1 r2 Hp1 Hp2 Hx1 Hx2.
+  transitivity ((F.injR x1) / (F.injR x2)).
+  - rewrite -> Rdiv_def. apply Rmult_le_compat.
+    -- exact Hp1.
+    -- apply Rlt_le; apply Rinv_pos. apply (Rlt_le_trans _ (F.injR x2)).
+       exact Hp2. exact Hx2.
+    -- exact Hx1.
+    -- apply Rinv_le_contravar.
+       exact Hp2. exact Hx2.
+  - apply div_up_le_spec.
+    apply Rgt_not_eq. apply Rlt_gt. exact Hp2.
+Qed.
+
+Lemma pow_down_step : forall x r n,
+  0 <= F.injR x -> F.injR x <= r ->
+    F.injR (F.pow down x n) <= Rpow r n.
+Proof. intros x r n Hr Hx.
+  transitivity (Rpow (F.injR x) n).
+  - now apply pow_down_spec.
+  - now apply pow_incr.
+Qed.
+
+Lemma pow_up_step : forall x r n,
+  0 <= r -> r <= F.injR x ->
+    Rpow r n <= F.injR (F.pow up x n).
+Proof. intros x r n Hr Hx.
+  transitivity (Rpow (F.injR x) n).
+  - now apply pow_incr.
+  - now apply pow_up_le_spec.
+Qed.
+
 End Float_defs.
 
 Close Scope R_scope.
