@@ -50,6 +50,7 @@ Numbers/Analysis.v
 Numbers/Calculus.v
 Numbers/Sum.v
 Numbers/Floats.v
+Numbers/FloatTranscendentals.v
 Numbers/FixedDyadic.v
 Numbers/FixedDyadicFloat.v
 Numbers/Bounds.v
