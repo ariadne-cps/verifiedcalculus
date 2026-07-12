@@ -246,6 +246,10 @@ Lemma Pax_eval_cons : forall a0 p1 y, Pax_eval (a0::p1) y =
   F.injR (snd a0) * (pow y (fst a0)) + (Pax_eval p1 y).
 Proof. intros. simpl. trivial. Qed.
 
+Lemma Pax_eval_cons_pair : forall a0 c0 p1 y, Pax_eval ((a0,c0)::p1) y =
+  F.injR c0 * (pow y a0) + (Pax_eval p1 y).
+Proof. intros. simpl. trivial. Qed.
+
 
 Lemma Peval_correct :
   forall p x y, Bnds.models x y -> Bnds.models (Peval p x) (Pax_eval p y).

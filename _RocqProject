@@ -64,6 +64,7 @@ Functions/PolynomialModelScale.v
 Functions/PolynomialModelMonomialScale.v
 Functions/PolynomialModelMultiply.v
 Functions/PolynomialModelDivide.v
+Functions/PolynomialModelAntiderivative.v
 
 Sets/OpenCompactOvertSets.v
 
