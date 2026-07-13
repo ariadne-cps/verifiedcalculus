@@ -24,7 +24,7 @@
 
 
 From Stdlib Require Import PeanoNat.
-
+From Stdlib Require RelationClasses.
 
 (* The Limited Principle of Omniscence for propositions *)
 Definition LPO := forall p : nat -> Prop, (forall n : nat, (p n) \/ (~ p n)) ->
@@ -111,7 +111,7 @@ Local Open Scope Sierpinskian_scope.
 
 
 Definition eqv (s1 s2 : S) : Prop := exists i, forall j, i <= j -> s1 j = s2 j.
-Infix "==" := eqv (at level 70, no associativity) : Sierpinskian_scope.
+Infix "==" := Sierpinskian.eqv (at level 70, no associativity) : Sierpinskian_scope.
 
 Lemma eqv_refl : forall s : S, s == s.
 Proof. unfold eqv. intro s. exists 0. intros j Hilej. reflexivity. Qed.
@@ -128,6 +128,12 @@ Proof.
   - assert (i23 <= i13) as Hi23lei13 by (apply Nat.le_max_r). apply (Nat.le_trans _ i13); assumption.
   - assert (i12 <= i13) as Hi12lei13 by (apply Nat.le_max_l). apply (Nat.le_trans _ i13); assumption.
 Qed.
+
+Global Instance eqvR : RelationClasses.Equivalence eqv.
+Proof.
+  split. exact eqv_refl. exact eqv_sym. exact eqv_trans.
+Qed.
+
 
 Lemma seq_eq_eqv : forall s1 s2 : S, (forall i, s1 i = s2 i) -> s1 == s2.
 Proof. unfold eqv. intros s1 s2 H. exists 0. intros j _. exact (H j). Qed.
