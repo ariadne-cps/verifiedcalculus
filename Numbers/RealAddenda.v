@@ -35,6 +35,7 @@ From Stdlib Require Import Reals.Rdefinitions.
 
 From Stdlib Require Import Lra.
 
+
 Open Scope R_scope.
 
 Notation Rpow := Rpow_def.pow.
@@ -1185,6 +1186,33 @@ Proof.
   rewrite -> INR_IZR_INZ. f_equal.
 Qed.
 
+
+Module R.
+
+Notation neg := Ropp.
+Notation add := Rplus.
+Notation sub := Rminus.
+Notation mul := Rmult.
+Notation div := Rdiv.
+Notation rec := Rinv.
+
+Notation sqr := Rsqr.
+Notation pow := Rpow_def.pow.
+
+Notation abs := Rabs.
+Notation max := Rmax.
+Notation min := Rmin.
+
+Notation shft := Rshft.
+Notation dist := Rdist.
+Notation fact := Rfact.
+
+Notation le := Rle.
+Notation ge := Rge.
+Notation lt := Rlt.
+Notation gt := Rgt.
+
+End R.
 
 Close Scope R_scope.
 
