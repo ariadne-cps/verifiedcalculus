@@ -22,6 +22,7 @@
  * the Verified Calculus Library. If not, see <https://www.gnu.org/licenses/>.
  *)
 
+From Stdlib Require Import Sets.Ensembles.
 
 Require Sierpinskian.
 
@@ -89,7 +90,8 @@ Proof.
   intro n; exact (H n x).
 Qed.
 
-
+Definition as_ensemble {X} (U : OpenSet X) : Ensemble X :=
+  fun x => U x == Strue.
 
 Theorem quantifier_monotone {X : Set} :
   forall Q : (X -> S) -> S, forall U V : X -> S, 
@@ -101,7 +103,7 @@ Theorem quantifier_continuous {X : Set} :
     (forall n, (forall x, (U n x == Strue) -> (U (Nat.succ n) x == Strue))) -> 
       Q (denumerable_union U) == Strue <-> exists n, Q (U n) == Strue.
 Proof. Admitted.
- 
+
 End OpenSets.
 
 

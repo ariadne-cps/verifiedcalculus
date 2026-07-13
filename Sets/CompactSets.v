@@ -22,6 +22,7 @@
  * the Verified Calculus Library. If not, see <https://www.gnu.org/licenses/>.
  *)
 
+From Stdlib Require Import Sets.Ensembles.
 From Stdlib Require Logic.FunctionalExtensionality.
 
 Require Sierpinskian.
@@ -219,6 +220,10 @@ Definition image {A B : Set} (C : CompactSet A) (F : A -> CompactSet B) : Compac
   := mkCompactSet (image_op (proj1_sig C) (fun a => proj1_sig (F a)))
        (image_is_respectful (proj1 (proj2_sig C)) (fun a => proj1 (proj2_sig (F a))))
        (image_is_proper (proj1 (proj2_sig C)) (proj2 (proj2_sig C)) (fun a => proj2 (proj2_sig (F a)))).
+
+
+Definition  as_ensemble {X} (C : CompactSet X) : Ensemble X :=
+  fun x => forall (U : OpenSet X), subset C U = Strue -> U x = Strue.
 
 
 Lemma cpure_is_respectful {A : Set} (a : A) : compact_respectful (Cpure a).

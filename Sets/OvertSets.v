@@ -22,6 +22,7 @@
  * the Verified Calculus Library. If not, see <https://www.gnu.org/licenses/>.
  *)
 
+From Stdlib Require Import Sets.Ensembles.
 
 Require Sierpinskian.
 Require Import OpenSets.
@@ -138,5 +139,9 @@ Definition interior {X} (H : effective_discrete X) (V: OvertSet X) : OpenSet X :
 
 Definition discrete_intersection {X} (H : effective_discrete X) (V1 V2 : OvertSet X) : OvertSet X :=
   intersection V1 (interior H V2).
+
+Definition  as_ensemble {X} (V : OvertSet X) : Ensemble X :=
+  fun x => forall (U : OpenSet X), U x = Strue -> intersects V U = Strue. 
+
 
 End OvertSets.
