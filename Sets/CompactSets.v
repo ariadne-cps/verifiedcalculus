@@ -22,11 +22,27 @@
  * the Verified Calculus Library. If not, see <https://www.gnu.org/licenses/>.
  *)
 
+From Stdlib Require Logic.FunctionalExtensionality.
 
 Require Sierpinskian.
 Require Import OpenSets.
 
+Require Import DependentChoice.
+
+(*
+Require Export Monads.
+Require Export SubMonads.
+Require Export LimitMonads.
+*)
+Require Export Monads.
+Require Export ContinuationMonads.
+
 Module CompactSets.
+
+Notation Continuation := ContinuationMonads.Continuation.
+Notation Continuation_Monad := ContinuationMonads.Continuation_Monad.
+Notation Cbind := ContinuationMonads.bind.
+Notation Cpure := ContinuationMonads.pure.
 
 Import OpenSets.
 
@@ -36,7 +52,7 @@ Definition compact_respectful {X} (c : OpenSet X -> S) : Prop :=
 Definition compact_proper {X} (c : OpenSet X -> S) : Prop := 
   forall U1 U2, Sierpinskian.eqv (c (intersection U1 U2)) (Sand (c U1) (c U2)).
 
-Definition CompactSet (X : Set) :=
+Definition CompactSet (X : Set) : Set :=
   { c : OpenSet X -> S | compact_respectful c /\ compact_proper c }.
 
 Definition mkCompactSet {X : Set} (c : OpenSet X -> S) 
@@ -137,5 +153,200 @@ Definition complement {X} (H : effective_hausdorff X) (C : CompactSet X) : OpenS
 
 Definition hausdorff_intersection {X} (H : effective_hausdorff X) (C1 C2 : CompactSet X) : CompactSet X :=
   difference C1 (complement H C2).
+
+
+Definition is_filter {A} (q : (A -> Sierpinskian) -> Sierpinskian) : Prop :=
+  forall U1 U2 : A -> Sierpinskian,
+    q (fun a => Sor (U1 a) (U2 a)) == Sor (q U1) (q U2).
+
+Definition is_cofilter {A} (q : @OpenSet A -> Sierpinskian) : Prop :=
+  forall U1 U2 : @OpenSet A,
+    q (fun a => Sand (U1 a) (U2 a)) == Sand (q U1) (q U2).
+
+
+Definition singleton_op {A : Set} (a : A) : OpenSet A -> Sierpinskian := 
+  fun U => U a.
+
+Lemma singleton_is_respectful : forall {A : Set} (a : A),
+  compact_respectful (singleton_op a).
+Proof.
+  unfold compact_respectful, singleton_op.
+  intros A a U1 U2 H. exact (H a).
+Qed.
+
+Lemma singleton_is_proper : forall {A : Set} (a : A),
+  compact_proper (singleton_op a).
+Proof.
+  unfold compact_proper, singleton_op, Ointersection.
+  intros A a U1 U2.
+  unfold Sierpinskian.eqv.
+  exists 0; reflexivity.
+Qed.
+
+Definition singleton {A : Set} (a : A) : @CompactSet A
+  := mkCompactSet (singleton_op a) (singleton_is_respectful  a) (singleton_is_proper a).
+
+
+Definition image_op {A B : Set}
+   (C : OpenSet A -> Sierpinskian) (F : A -> OpenSet B -> Sierpinskian) : OpenSet B -> Sierpinskian
+ := fun V => C (fun a => F a V).
+
+Lemma image_is_respectful {A B : Set} : forall {C : OpenSet A -> Sierpinskian} {F : A -> OpenSet B -> Sierpinskian},
+  compact_respectful C -> (forall a, compact_respectful (F a)) -> compact_respectful (image_op C F).
+Proof.
+  unfold Cbind, compact_respectful.
+  intros C F HC HF U1 U2 HU.
+  apply HC.
+  intros x.
+  apply HF.
+  intro y.
+  exact (HU y).
+Qed.
+
+Lemma image_is_proper {A B : Set} : forall {C : OpenSet A -> Sierpinskian} {F : A -> OpenSet B -> Sierpinskian},
+   compact_respectful C -> compact_proper C -> (forall a, compact_proper (F a))-> compact_proper (image_op C F).
+Proof.
+  unfold compact_proper, image_op.
+  intros C F HR HC HF.
+  intros V1 V2.
+  rewrite <- HC.
+  apply HR.
+  intro a.
+  now apply HF.
+Qed.
+
+Definition image {A B : Set} (C : CompactSet A) (F : A -> CompactSet B) : CompactSet B
+  := mkCompactSet (image_op (proj1_sig C) (fun a => proj1_sig (F a)))
+       (image_is_respectful (proj1 (proj2_sig C)) (fun a => proj1 (proj2_sig (F a))))
+       (image_is_proper (proj1 (proj2_sig C)) (proj2 (proj2_sig C)) (fun a => proj2 (proj2_sig (F a)))).
+
+
+Lemma cpure_is_respectful {A : Set} (a : A) : compact_respectful (Cpure a).
+Proof.
+  unfold compact_respectful, Cpure.
+  intros U1 U2 H. exact (H a).
+Qed.
+
+Lemma cpure_is_filter {A : Set} (a : A) : is_filter (Cpure A).
+Proof.
+  unfold is_filter, Cpure.
+  intros U1 U2.
+  reflexivity.
+Qed.
+
+Lemma cbind_is_respectful : forall {A B : Set} (F : A -> Continuation Sierpinskian B) (C : Continuation Sierpinskian A),
+  (forall a, compact_respectful (F a)) -> compact_respectful C -> compact_respectful (Cbind F C).
+Proof.
+  unfold Cbind, compact_respectful.
+  intros A B F C HF HC U1 U2 HU.
+  apply HC.
+  intros x.
+  apply HF.
+  intro y.
+  now apply HU.
+Qed.
+
+Lemma cbind_is_filter : forall {A B : Set} (F : A -> Continuation Sierpinskian B) (C : Continuation Sierpinskian A),
+  (compact_respectful C) -> (forall a, is_filter (F a)) -> is_filter C -> is_filter (Cbind F C).
+Proof.
+  unfold compact_respectful, is_filter, Cbind.
+  intros A B F C HR HF HC.
+  intros V1 V2.
+  rewrite <- HC.
+  apply HR. 
+  intro a.
+  now apply HF.
+Qed.
+
+
+Class SetMonad (M : Set -> Set) :=
+{
+    (* monad has pure and bind *)
+    SMpure : forall {A : Set}, A -> M A;
+    SMbind : forall {A B : Set}, (A -> M B) -> M A -> M B;
+
+    (* coherence conditions *)
+    SMleft_identity : forall {A B : Set} (f:A->M B) (a:A), SMbind f (SMpure a) = f a;
+    SMright_identity : forall {A} (x : M A), SMbind (@SMpure A) x = x;
+    SMassociativity : forall {A B C} (x : M A) (f : A -> M B) (g : B -> M C),
+        SMbind g (SMbind f x) = SMbind (fun a => SMbind g (f a)) x;
+
+    (* Mfunctor_map : forall {A B : Set}, (A -> B) -> M A -> M B; *)
+    SMfunctor_map {A B : Set} : (A -> B) -> M A -> M B
+      := fun (f : A -> B) (x : M A) => SMbind (fun x' => SMpure (f x')) x;
+    SMlift {A B : Set} (f : A -> B) (a : M A) : M B
+      := SMbind (fun a' => SMpure (f a')) a;
+
+   SMleft_product {X Y} : M X -> M Y -> (M (prod X Y)) :=
+      fun (mu : M X) (nu : M Y) => SMbind ( fun y => ( SMbind (fun x => SMpure (pair x y)) mu ) ) nu;
+   SMright_product {A B} : M A -> M B -> M (prod A B)
+      := fun mu nu => SMbind ( fun x => ( SMbind (fun y => SMpure (pair x y)) nu ) ) mu;
+}.
+
+Definition bind {A B : Set} (F : A -> CompactSet B) (C : CompactSet A) : CompactSet B :=
+  @image A B C F.
+
+
+Lemma compact_set_equal {A} : forall C1 C2 : CompactSet A, proj1_sig C1 = proj1_sig C2 -> C1 = C2.
+Proof.
+  unfold CompactSet.
+  intros C1 C2 H. destruct C1; destruct C2.
+  simpl in H.
+  apply ProofIrrelevance.ProofIrrelevanceTheory.subset_eq_compat.
+  exact H.
+Qed.
+
+
+
+#[global]
+Instance CompactSetMonad : SetMonad (CompactSet).
+Proof.
+  apply (Build_SetMonad CompactSet (@singleton) (@bind)).
+  - intros A B F a; unfold bind, singleton, image, mkCompactSet; simpl.
+    apply compact_set_equal; simpl.
+    unfold image_op, singleton_op; simpl.
+    apply FunctionalExtensionality.functional_extensionality.
+    intro V.
+    reflexivity.
+  - intros A C; unfold bind, singleton, mkCompactSet; simpl.
+    apply compact_set_equal; simpl.
+    unfold image_op, singleton_op; simpl.
+    apply FunctionalExtensionality.functional_extensionality.
+    intro U.
+    f_equal.
+  - admit.
+Admitted.
+
+
+(*
+Definition image {A B : Type}
+   (C : @CompactSet A) (F : A -> @CompactSet B) : @CompactSet B
+ := mkCompactSet (Cbind (fun a => (F a).(intersects)) C.(intersects);
+ := {| intersects := Cbind (fun a => (F a).(intersects)) C.(intersects);
+       intersects_is_filter :=
+         Cbind_is_filter
+           (fun a => (F a).(intersects)) C.(intersects)
+           (fun a => (F a).(intersects_is_filter)) C.(intersects_is_filter);
+         |}.
+*)
+
+
+Fail Instance CompactSetMonad {A : Set} : Monad (@CompactSet)
+  := @Subtype (Continuation Sierpinskian A) (is_filter).
+
+
+Fail Definition CompactSetSubtype {A:Type} : Type
+  := @Subtype (Continuation Sierpinskian A) (is_filter).
+
+Fail Instance CompactSetSubtypeMonad : Monad (@CompactSetSubtype) :=
+  @Subtype_Monad
+    (@Continuation Sierpinskian)
+    (@is_filter)
+    (@Continuation_Monad Sierpinskian)
+    (@cpure_is_filter)
+    (@cbind_is_filter)
+.
+
+
 
 End CompactSets.
