@@ -227,6 +227,19 @@ Proof.
     destruct (s i). contradiction. reflexivity.
 Qed.
 
+Lemma true_or_not_true : LPO -> forall s : Sierpinskian, s == true \/ ~ (s == true). 
+Proof.
+  intros lpo s.
+  assert (forall n, s n = tru \/ ~ (s n = tru)) as HD. {
+    intro n; destruct (s n). left; reflexivity. right; intro HF; discriminate HF. }
+  pose proof (lpo (fun n => s n = tru) HD) as H.
+  destruct H as [HT|HI].
+  - left; now apply true_iff_exists.
+  - right. intro Ht. unfold eqv in Ht. destruct Ht as [i Hi].
+    specialize (Hi i (Nat.le_refl i)).
+    specialize (HI i). apply HI. exact Hi.
+Qed.
+
 
 
 Definition and_seq (s1 s2 : N -> SB) := fun n => SBand (s1 n) (s2 n).

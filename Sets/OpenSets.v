@@ -28,6 +28,7 @@ Require Sierpinskian.
 
 Notation N := nat.
 Notation Strue := Sierpinskian.true.
+Notation Sindeterminate := Sierpinskian.indeterminate.
 Notation Sand := Sierpinskian.and.
 Notation Sor := Sierpinskian.or.
 Notation Sdisj := Sierpinskian.disj.
@@ -107,8 +108,13 @@ Proof. Admitted.
 End OpenSets.
 
 
+Definition effective_tychonoff (X : Set) : Set :=
+  forall x1 x2, x1 <> x2 -> 
+    (exists U1 : X -> S, U1 x1 == Strue /\ U1 x2 == Sindeterminate)
+      \/ (exists U2 : X -> S, U2 x2 == Strue /\ U2 x1 == Sindeterminate).
+
 Definition effective_discrete (X : Set) : Set :=
-  { equal : X -> X -> Sierpinskian.Sierpinskian | forall x1 x2, (equal x1 x2 == Sierpinskian.true) <-> (x1 = x2) }.
+  { equal : X -> X -> Sierpinskian | forall x1 x2, (equal x1 x2 == Strue) <-> (x1 = x2) }.
 
 Definition effective_hausdorff (X : Set) : Set :=
-  { apart : X -> X -> Sierpinskian.Sierpinskian | forall x1 x2, (apart x1 x2 == Sierpinskian.true) <-> (x1 <> x2) }.
+  { apart : X -> X -> Sierpinskian | forall x1 x2, (apart x1 x2 == Strue) <-> (x1 <> x2) }.

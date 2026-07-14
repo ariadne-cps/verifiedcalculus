@@ -62,6 +62,8 @@ Definition mkCompactSet {X : Set} (c : OpenSet X -> S)
 
 Definition subset {X} (C : CompactSet X) (U : OpenSet X) := (proj1_sig C) U.
 
+Lemma compact_eq {X} : forall C1 C2 : CompactSet X, (forall U, subset C1 U == subset C2 U) -> C1 = C2.
+Proof. admit. Admitted.
 
 Notation Ounion := OpenSets.union.
 Notation Ointersection := OpenSets.intersection.
@@ -147,7 +149,7 @@ Qed.
 
 Definition difference {X} (C : CompactSet X) (W : OpenSet X) : CompactSet X :=
   let c := proj1_sig C in let r := proj1 (proj2_sig C) in let p := proj2 (proj2_sig C) in
-    mkCompactSet (difference_op c W) (difference_respectful c W r) (difference_proper c W r p).
+    mkCompactSet (fun U => c (OpenSets.union W U)) (difference_respectful c W r) (difference_proper c W r p).
 
 Definition complement {X} (H : effective_hausdorff X) (C : CompactSet X) : OpenSet X :=
   fun x => (proj1_sig C) (fun x' => (proj1_sig H) x x').
@@ -185,7 +187,7 @@ Proof.
 Qed.
 
 Definition singleton {A : Set} (a : A) : @CompactSet A
-  := mkCompactSet (singleton_op a) (singleton_is_respectful  a) (singleton_is_proper a).
+  := mkCompactSet (fun U => U a) (singleton_is_respectful  a) (singleton_is_proper a).
 
 
 Definition image_op {A B : Set}
@@ -222,8 +224,437 @@ Definition image {A B : Set} (C : CompactSet A) (F : A -> CompactSet B) : Compac
        (image_is_proper (proj1 (proj2_sig C)) (proj2 (proj2_sig C)) (fun a => proj2 (proj2_sig (F a)))).
 
 
+Lemma compose_image_image {X Y Z : Set} :
+  forall (C : CompactSet X) (F : X -> CompactSet Y) (G : Y -> CompactSet Z), 
+    image (image C F) G = image C (fun x => image (F x) G).
+Proof.
+  intros C F G. apply compact_eq. intro U; reflexivity.
+Qed.
+
+
+Definition singleton_image_op {A B : Set}
+   (C : OpenSet A -> Sierpinskian) (f : A -> B) : OpenSet B -> Sierpinskian
+ := fun V => C (fun a => V (f a)).
+
+Lemma singleton_image_is_respectful {A B : Set} : forall {C : OpenSet A -> Sierpinskian} (f : A -> B),
+  compact_respectful C -> compact_respectful (singleton_image_op C f).
+Proof.
+  unfold Cbind, compact_respectful.
+  intros C f HC V1 V2 HV.
+  apply HC.
+  intros x.
+  exact (HV (f x)).
+Qed.
+
+Lemma singleton_image_is_proper {A B : Set} : forall {C : OpenSet A -> Sierpinskian} (f : A -> B),
+   compact_respectful C -> compact_proper C -> compact_proper (singleton_image_op C f).
+Proof.
+  unfold compact_proper, singleton_image_op, Ointersection.
+  intros C f HR HC.
+  intros V1 V2.
+  rewrite <- HC.
+  apply HR.
+  intro a.
+  reflexivity.
+Qed.
+
+
+Definition singleton_image {A B : Set} (C : CompactSet A) (f : A -> B) : CompactSet B
+  := mkCompactSet (singleton_image_op (proj1_sig C) f)
+       (singleton_image_is_respectful f (proj1 (proj2_sig C)))
+       (singleton_image_is_proper f (proj1 (proj2_sig C)) (proj2 (proj2_sig C))).
+
+
+Lemma singleton_image_spec {X Y : Set} : forall (C : CompactSet X) (f : X -> Y), 
+  singleton_image C f = image C (fun (x : X) => singleton (f x)).
+Proof.
+  intros C f. apply compact_eq.
+  unfold singleton_image, singleton_image_op, image, image_op, singleton, singleton_op. simpl.
+  intro U. reflexivity.
+Qed.
+
+Lemma compose_image_singleton_image {X Y Z : Set} :
+  forall (C : CompactSet X) (f : X -> Y) (G : Y -> CompactSet Z), 
+    image (singleton_image C f) G = image C (fun x => G (f x)).
+Proof.
+  intros C f G. apply compact_eq. intro U; reflexivity.
+Qed.
+
+
+Definition image_save {X Y : Set} (A : CompactSet X) (F : X -> CompactSet Y) : CompactSet (X*Y) :=
+  image A (fun x => singleton_image (F x) (fun y => (x,y))).
+
+
+
+
+Definition element := Ensembles.In.
+
 Definition  as_ensemble {X} (C : CompactSet X) : Ensemble X :=
-  fun x => forall (U : OpenSet X), subset C U = Strue -> U x = Strue.
+  fun x => forall (U : OpenSet X), subset C U == Strue -> U x == Strue.
+
+Notation Oas_ensemble := OpenSets.as_ensemble.
+
+
+Definition Ocontains {X} (U : OpenSet X) (x : X) := U x == Strue.
+
+Definition is_subset {X} (C : CompactSet X) U := subset C U == Strue.
+
+Definition contains {X} (C : CompactSet X) (x : X) :=
+  forall U, is_subset C U -> Ocontains U x.
+
+
+Lemma compact_singleton_contains_point {X : Set} : forall (x : X), (as_ensemble (singleton x)) x.
+Proof. intro x. unfold singleton, as_ensemble, subset. simpl. tauto. Qed.
+
+Lemma compact_singleton_is_compactification {X : Set} : forall (x y : X), 
+  (as_ensemble (singleton x)) y <-> forall (U : OpenSet X),  (Oas_ensemble U) x -> (Oas_ensemble U) y.
+Proof. intros x y. unfold singleton, as_ensemble, Oas_ensemble, subset. simpl. tauto. Qed.
+
+
+Lemma image_of_point {X Y} : forall (C : CompactSet X) (F : X -> CompactSet Y) x, 
+  contains C x -> forall V, is_subset (image C F) V -> is_subset (F x) V.
+Proof. 
+  intros C F x H.
+  unfold contains in H.
+  unfold is_subset.
+  intros V HV.
+  set (U := fun x => subset (F x) V).
+  specialize (H U).
+  unfold U in H.
+  pose proof (H HV) as HF.
+  unfold Ocontains in HF.
+  exact HF.
+Qed.
+
+
+
+Axiom compact_subset_entire : forall {X : Set} (C : CompactSet X) (U : OpenSet X), 
+  (forall x, U x == Strue) -> subset C U == Strue.
+
+Axiom compact_subset_monotone : forall {X : Set} (C : CompactSet X) (U V : OpenSet X), 
+  (forall x, U x == Strue -> V x == Strue)  ->
+    subset C U == Strue -> subset C V == Strue.
+
+(*
+Axiom classical_exists_negation_implication :
+  forall (X : Type) (p q : X -> Prop), ~ (forall x, p x -> q x) -> (exists x, p x /\ ~ q x).
+*)
+
+Definition classical_exists_negation_implication (X : Type) :=
+  forall (p q : X -> Prop), ~ (forall x, p x -> q x) -> (exists x, p x /\ ~ q x).
+
+Definition discernable_equality (X : Set) := forall (x1 x2 : X), x1=x2 \/ x1<>x2.
+
+
+Lemma singleton_contains {X : Set} : 
+  (discernable_equality X) -> (effective_hausdorff X) -> 
+    forall (C : CompactSet X) (x : X) (y : X),
+      (contains (singleton x) y) <-> x = y.
+Proof.
+  unfold singleton, contains, is_subset, subset, Ocontains; simpl.
+  intros He [ap Hap] C x y.
+  split; intro H; simpl.
+  - set (V := (fun w => ap w y) : OpenSet X).
+    specialize (H V). unfold V in H.
+    rewrite -> Hap, Hap in H.
+    destruct (He x y) as [Heq|Ha]. assumption. 
+    now contradiction (H Ha).
+  - rewrite <- H. tauto.
+Qed.
+
+
+Lemma complement_contains_fwd {X} : forall (HX : effective_hausdorff X),
+  forall (A : CompactSet X) (x : X),
+    Ocontains (complement HX A) x -> ~ contains A x.
+Proof.
+  intros HX A x H HAx.
+  unfold complement in H.
+  destruct HX as [ap Hap].
+  unfold Ocontains in H; simpl in H.
+  set (V := (fun x' => ap x x') : OpenSet X).
+  unfold contains in HAx.
+  specialize (HAx V).
+  pose proof (HAx H) as HVx.
+  unfold V, Ocontains in HVx.
+  apply Hap in HVx.
+  contradiction.
+Qed.
+
+Lemma complement_contains_bwd {X} :
+  Sierpinskian.LPO -> forall (HX : effective_hausdorff X),
+    forall (C : CompactSet X) (x : X),
+      ~ Ocontains (complement HX C) x -> contains C x.
+Proof.
+  intros lpo HX C x H.
+  unfold Ocontains, complement in H. 
+  unfold contains; simpl.
+  destruct HX as [ap Hap]; simpl in H.
+  intros U HCU.
+  set (Unx := (fun (x' : X) => ap x x') : OpenSet X).
+  replace (fun x' => ap x x') with Unx in H by reflexivity.
+  pose proof (compact_subset_monotone C) as HmC.
+  unfold Ocontains.
+  destruct (Sierpinskian.true_or_not_true lpo (U x)) as [Ht|Hi]; [assumption|].
+  assert (forall y, Ocontains U y -> Ocontains Unx y) as HUmono. {
+    intros y HUy. apply Hap. intro Hxy. rewrite <- Hxy in HUy. contradiction. }
+  apply (compact_subset_monotone C U Unx HUmono) in HCU.
+  contradiction.
+Qed.
+
+Lemma complement_contains_bwd' {X : Set} : 
+  (classical_exists_negation_implication (OpenSet X)) -> forall (HX : effective_hausdorff X),
+    forall (C : CompactSet X) (x : X), 
+       ~ (contains C x) -> Ocontains (complement HX C) x.
+Proof.
+  intros HE HX C x H.
+  unfold Ocontains, complement.
+  destruct HX as [ap Hap]; simpl in H; simpl.
+  unfold contains in H.
+  apply HE in H.
+  destruct H as [U [HCU HnUx]].
+  set (Unx := (fun x' => ap x x') : OpenSet X).
+  apply (compact_subset_monotone C U).
+  2: exact HCU.
+  intros y HU. unfold Unx. rewrite -> Hap. intro Hxy. rewrite <- Hxy in HU. 
+  contradiction HnUx.
+Qed.
+
+
+
+Lemma difference_contains_fwd {X} : 
+  (discernable_equality X) -> (effective_hausdorff X) -> 
+    forall (A : CompactSet X) (U : OpenSet X) (x : X), 
+      contains (difference A U) x -> (contains A x /\ ~Ocontains U x).
+Proof.
+  intros He [ap Hap] A U x H. split.
+  - unfold difference, contains, is_subset, subset in *; simpl in *.
+    unfold contains. intros W HAW.
+    specialize (H W). apply H.
+    apply (compact_subset_monotone _ W).
+    intros w Hw; unfold Ounion. apply Sierpinskian.or_up. right. exact Hw.
+    exact HAW.
+  - unfold difference, contains, is_subset, subset in *; simpl in *.
+    set (V := (fun y => ap x y) : OpenSet X).
+    intro Hu.
+    specialize (H V).
+    assert (is_subset A (Ounion U V)) as HAUV. { 
+      apply (compact_subset_entire A). intro y. unfold Ounion.
+      apply Sierpinskian.or_up. 
+      assert (x=y \/ x<>y) as HXeq_dec. now apply He.
+      destruct HXeq_dec. left. now rewrite <- H0. right. now apply Hap.
+    }
+    apply H in HAUV as HV.
+    unfold Ocontains, V in HV. rewrite -> Hap in HV. contradiction.
+Qed.
+
+
+Lemma difference_contains_bwd {X} : 
+  forall (A : CompactSet X) (U : OpenSet X) (x : X), 
+    contains A x /\ ~ Ocontains U x -> contains (difference A U) x.
+Proof.
+  intros A U x [HA HU]. 
+  unfold difference, contains, is_subset, subset; simpl.
+  intros W HW.
+  unfold contains in HA; simpl in HA.
+  specialize (HA (Ounion U W) HW).
+  unfold Ounion, Ocontains in HA.
+  apply Sierpinskian.or_up in HA.
+  destruct HA. 
+  -- contradiction.
+  -- assumption.
+Qed.
+
+
+Lemma image_contains_bwd {X Y} : 
+  forall (C : CompactSet X) (F : X -> CompactSet Y) (y : Y),
+    (exists x, contains C x /\ contains (F x) y) -> contains (image C F) y.
+Proof.
+  intros C F y H.
+  destruct H as [x [Hx Hy]].
+  intros V HV. apply (Hy V).
+  apply (image_of_point C).
+  exact Hx.
+  exact HV.
+Qed.
+
+Lemma image_contains_fwd {X Y} : 
+  forall (C : CompactSet X) (F : X -> CompactSet Y) (y : Y),
+    contains (image C F) y -> exists x, contains C x /\ contains (F x) y.
+Proof.
+Admitted.
+
+
+Lemma singleton_image_contains_fwd {X Y : Set} : 
+  (discernable_equality Y) -> (effective_hausdorff Y) -> 
+    forall (C : CompactSet X) (f : X -> Y) (y : Y),
+      (contains (singleton_image C f) y) -> (exists x, contains C x /\ f x = y).
+Proof.
+  intros He Hh C f y H.
+  rewrite -> singleton_image_spec in H.
+  set (F := fun x => singleton (f x)).
+  pose proof (image_contains_fwd C F y H) as [x [Hx Hy]].
+  exists x; split. 
+  - exact Hx.
+   - apply (singleton_contains He Hh (F x) (f x) y). exact Hy.
+Qed.
+
+Lemma singleton_image_contains_bwd {X Y : Set} : 
+  forall (A : CompactSet X) (f : X -> Y) (y : Y),
+    (exists x, contains A x /\ f x = y) -> contains (singleton_image A f) y.
+Proof.
+  intros C f y H.
+  rewrite -> singleton_image_spec.
+  apply image_contains_bwd.
+  destruct H as [x [Hx Hy]].
+  exists x. split. exact Hx. unfold singleton, contains, is_subset; simpl. 
+  rewrite -> Hy; tauto.
+Qed.
+
+
+Lemma image_save_contains_fwd {X Y} : forall (A : CompactSet X) (F : X -> CompactSet Y) (xy : X*Y),
+  discernable_equality (X * Y) -> effective_hausdorff (X * Y) ->
+    contains (image_save A F) xy -> contains A (fst xy) /\ contains (F (fst xy)) (snd xy).
+Proof.
+  intros A F xy He Hf. destruct xy as [x y]; simpl.
+  intro H; unfold image_save in H.
+  apply image_contains_fwd in H.
+  destruct H as [x' [HAx' HFx']].
+  apply singleton_image_contains_fwd in HFx'.
+  2,3: assumption.
+  destruct HFx' as [y' [HFx' Hxy]].
+  apply pair_equal_spec in Hxy. destruct Hxy as [Hx Hy].
+  rewrite -> Hx in HAx'; rewrite -> Hx, Hy in HFx'.
+  tauto.
+Qed.
+
+Lemma image_save_contains_bwd {X Y} : forall (A : CompactSet X) (F : X -> CompactSet Y) (xy : X*Y),
+  (contains A (fst xy) /\ contains (F (fst xy)) (snd xy)) -> contains (image_save A F) xy.
+Proof.
+  intros A F xy [Hx Hy]. destruct xy as (x,y). simpl in *.
+  unfold image_save. apply image_contains_bwd.
+  exists x. split. exact Hx.
+  apply singleton_image_contains_bwd. 
+  exists y. split. exact Hy. reflexivity.
+Qed.
+
+
+Lemma as_ensemble_iff_contains {X} : forall (C : CompactSet X) (x : X), as_ensemble C x = contains C x.
+Proof. intros C x; unfold contains, as_ensemble. tauto. Qed.
+
+
+Lemma discernable_equality_product_fwd : forall X Y, 
+  inhabited X -> inhabited Y ->
+    discernable_equality (X*Y) -> discernable_equality X /\ discernable_equality Y.
+Proof.
+  unfold discernable_equality.
+  intros X Y HX HY H.
+  destruct HX as [x0]; destruct HY as [y0]. 
+  split.
+  - intros x1 x2. specialize (H (x1,y0) (x2,y0)). destruct H. 
+    left. apply pair_equal_spec in H. tauto. right. intro Hx. apply H. now rewrite -> Hx. 
+  - intros y1 y2. specialize (H (x0,y1) (x0,y2)). destruct H. 
+    left. apply pair_equal_spec in H. tauto. right. intro Hy. apply H. now rewrite -> Hy. 
+Qed.
+
+Lemma discernable_equality_product_bwd : forall X Y, 
+    discernable_equality X /\ discernable_equality Y -> discernable_equality (X*Y).
+Proof.
+  unfold discernable_equality.
+  intros X Y [HX HY].
+  intros xy1 xy2.
+  destruct xy1 as [x1 y1]; destruct xy2 as [x2 y2].
+  specialize (HX x1 x2).
+  specialize (HY y1 y2).
+  destruct HX as [Hx|Hx].
+  destruct HY as [Hy|Hy].
+  - left. now rewrite -> Hx, Hy.
+  - right. intro Hf. apply pair_equal_spec in Hf. contradiction (Hy (proj2 Hf)).
+  - right. intro Hf. apply pair_equal_spec in Hf. contradiction (Hx (proj1 Hf)).
+Qed.
+
+
+Definition system_composition_helper {X Y Z : Set} 
+  (EXYZ : discernable_equality (X*Y*Z))
+  (HXY : effective_hausdorff (X*Y)) 
+  (F : Y -> CompactSet (X * Z)) (G : X -> CompactSet Y)
+    (lpo : Sierpinskian.LPO) ( HF : { A : CompactSet X | forall y, singleton_image (F y) (fst) = A } ) : 
+      { C : CompactSet (X*Y*Z) | forall x y z, as_ensemble C (x,y,z) <-> ( as_ensemble (F y) (x,z) /\ as_ensemble (G x) y) }.
+Proof.
+  set (p := fun (y_xz : Y*(X*Z)) => (fst (snd y_xz), fst (y_xz), snd (snd y_xz))).
+  destruct HF as [A HA].
+  set (AB := image_save A G).
+  set (B := image A G).
+  set (opAB' := complement HXY AB). 
+  set (opABZ' := (fun (xy_z : X*Y*Z) => opAB' (fst xy_z)) : OpenSet (X*Y*Z)).
+  set (FB := singleton_image (image_save B F) p).
+  set (ABC := difference FB opABZ').
+
+  (* Shouldn't be needed; due to definition of ABC only need Hausdorff on X*Y *)
+  assert (discernable_equality (X*Y)) as EXY. admit.
+  assert (effective_hausdorff (X*Y*Z)) as HXYZ. admit.
+  assert (discernable_equality (Y*(X*Z))) as EYXZ. admit.
+  assert (effective_hausdorff (Y*(X*Z))) as HYXZ. admit.
+
+  exists ABC.
+  intros x y z.
+  rewrite -> (as_ensemble_iff_contains ABC), (as_ensemble_iff_contains (F y)), (as_ensemble_iff_contains (G x)).
+
+  assert (forall yxz, p yxz = (x,y,z) -> yxz = (y, (x,z))) as Hyxz. {
+    intros yxz Hp. unfold p in Hp.
+    destruct yxz as [y' [x' z']]; simpl in Hp; simpl.
+    apply pair_equal_spec in Hp as [Hxy Hz].
+    apply pair_equal_spec in Hxy as [Hx Hy].
+    apply pair_equal_spec; split. 
+    2: apply pair_equal_spec; split.
+    all: assumption.
+  }
+ 
+  split; intro H.
+  - unfold ABC in H.
+    apply difference_contains_fwd in H. 2,3: assumption.
+    destruct H as [HFB HABZ].
+    unfold FB in HFB.
+    apply singleton_image_contains_fwd in HFB.
+    destruct HFB as [yxz [HFB Hp]]. 
+    apply image_save_contains_fwd in HFB.
+    rewrite (Hyxz yxz Hp) in HFB; simpl in HFB.
+    unfold opABZ', Ocontains in HABZ. simpl in HABZ.
+    unfold opAB' in HABZ.
+    pose proof (complement_contains_bwd lpo HXY AB (x,y) HABZ) as HAB.
+    unfold AB in HAB. apply image_save_contains_fwd in HAB; simpl in HAB.
+    tauto.
+    all: assumption.
+  - destruct H as [HF HG].
+    unfold ABC.
+    apply difference_contains_bwd.
+    split.
+    -- unfold FB.
+       apply singleton_image_contains_bwd.
+       exists (y,(x,z)). split. 2: { tauto. }
+       apply image_save_contains_bwd; simpl. 
+       split.
+       --- unfold B. apply image_contains_bwd.
+           exists x. split. 2: exact HG.
+           rewrite <- (HA y).
+           apply singleton_image_contains_bwd.
+           exists (x,z).
+           split. exact HF. reflexivity.
+       --- exact HF.
+    -- unfold opABZ', opAB'.
+       unfold Ocontains.
+       replace (fst (x,y,z)) with (x,y) by reflexivity.
+       intro HAB; apply (complement_contains_fwd HXY AB (x,y)) in HAB; apply HAB; clear HAB.
+       unfold AB.
+       apply image_save_contains_bwd; simpl.
+       split.
+       --- rewrite <- (HA y).
+           apply singleton_image_contains_bwd.
+           exists (x,z). 
+           split. exact HF. reflexivity.
+       --- exact HG.
+Qed.
+
+
 
 
 Lemma cpure_is_respectful {A : Set} (a : A) : compact_respectful (Cpure a).
@@ -257,7 +688,7 @@ Proof.
   unfold compact_respectful, is_filter, Cbind.
   intros A B F C HR HF HC.
   intros V1 V2.
-  rewrite <- HC.
+   rewrite <- HC.
   apply HR. 
   intro a.
   now apply HF.
