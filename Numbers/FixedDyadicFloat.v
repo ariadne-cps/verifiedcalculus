@@ -67,23 +67,24 @@ Proof.
   - apply W.min_exact.
   - apply W.max_exact.
   - intros rnd; destruct rnd.
-    -- intros x y; apply Req_le; apply W.add_exact.
+    -- intros x y; split. apply Req_le; apply W.add_exact.
+       admit.
     -- intros x y z.
        assert (Hadd := W.add_exact); specialize (Hadd n near x y).
        unfold W.injR in *; simpl in *.
        rewrite -> Hadd; apply Rdist_eq_le.
-    -- intros x y; apply Req_ge; apply W.add_exact.
+    -- intros x y; split. apply Req_ge; apply W.add_exact. admit.
   - intros rnd; destruct rnd.
-    -- intros x y; apply Req_le; apply W.sub_exact.
+    -- intros x y; split. apply Req_le; apply W.sub_exact. admit.
     -- intros x y z.
        assert (Hsub := W.sub_exact); specialize (Hsub n near x y).
        unfold W.injR in *; simpl in *.
        rewrite -> Hsub; apply Rdist_eq_le.
-    -- intros x y; apply Req_ge; apply W.sub_exact.
+    -- intros x y; split. apply Req_ge; apply W.sub_exact. admit.
   - intros rnd; destruct rnd.
-    -- apply W.mul_down.
+    -- intros x y; split. apply W.mul_down. apply W.mul_near_down.
     -- apply W.mul_near.
-    -- apply W.mul_up.
+    -- intros x y; split. apply W.mul_down. apply W.mul_near_up.
   - intros rnd; destruct rnd.
     -- apply (W.div_correct n down).
     -- apply (W.div_correct n near).

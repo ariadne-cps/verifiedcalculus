@@ -30,6 +30,8 @@ From Stdlib Require Import Reals.Rbasic_fun.
 From Stdlib Require Import Reals.Rbasic_fun.
 From Stdlib Require Import Reals.Rdefinitions.
 
+From Stdlib Require Import Lra.
+
 Require Import RealAddenda.
 
 Require Import Floats(Rounding,up,near,down,Rapply).
@@ -586,6 +588,146 @@ Proof.
   apply Zpow2n_gt_0.
 Qed.
 
+(*
+Rmult_le_reg_l
+     : forall r r1 r2 : R, 0 < r -> r * r1 <= r * r2 -> r1 <= r2
+*)
+
+Local Lemma Rinv_le_reg : forall r1 r2 : R,
+  0 < r2 ->  / r2 <=  / r1 -> r1 <= r2.
+Proof.
+  intros r1 r2 Hr1 Hr12. rewrite <- (Rinv_inv r1),  <- (Rinv_inv r2).
+  apply Rinv_le_contravar. now apply Rinv_0_lt_compat. exact Hr12.
+Qed.
+
+Local Lemma Rdiv_le_reg_l : forall r r1 r2 : R,
+  0 < r -> 0 < r2 -> r / r2 <= r / r1 -> r1 <= r2.
+Proof. intros r r1 r2 Hr Hr2 H. rewrite -> Rdiv_def in *. apply Rmult_le_reg_l in H; [|exact Hr]. now apply Rinv_le_reg. Qed.
+
+Local Lemma Rdiv_le_reg_r : forall r r1 r2 : R,
+  0 < r -> r1 / r <= r2 / r -> r1 <= r2.
+Proof. intros r r1 r2 Hr H. rewrite -> Rdiv_def in *. apply Rmult_le_reg_r in H. exact H. now apply Rinv_0_lt_compat. Qed.
+
+Local Lemma Rdiv_mult_lt_reg_r : forall r r1 r2 : R
+  0 < r -> r1 < r2 / r <-> r1 * r < r2.
+Proof. intros r r1 r2 Hr; split; intro H.
+  - rewrite <- (Rmult_div_l r2 r). rewrite -> Rmult_div_swap. apply Rmult_lt_compat_r.
+    assumption. assumption. now apply Rgt_not_eq.
+  - rewrite <- (Rmult_div_l r1 r). apply Rdiv_lt_compat_r.
+    assumption. assumption. now apply Rgt_not_eq.
+Qed.
+
+Local Lemma Rdiv_mult_lt_reg_l : forall r r1 r2 : R,
+  0 < r -> r1 / r < r2 <-> r1 < r2 * r.
+Proof. intros r r1 r2 Hr; split; intro H.
+  - rewrite <- (Rmult_div_l r1 r). rewrite -> Rmult_div_swap. apply Rmult_lt_compat_r.
+    assumption. assumption. now apply Rgt_not_eq.
+  - rewrite <- (Rmult_div_l r2 r). apply Rdiv_lt_compat_r.
+    assumption. assumption. now apply Rgt_not_eq.
+Qed.
+
+Local Lemma Rdiv_mult_le_reg_r : forall r r1 r2 : R,
+  0 < r -> r1 <= r2 / r <-> r1 * r <= r2.
+Proof. intros r r1 r2 Hr; split; intro H.
+  - rewrite <- (Rmult_div_l r2 r). rewrite -> Rmult_div_swap. apply Rmult_le_compat_r.
+    now apply Rlt_le. assumption. now apply Rgt_not_eq.
+  - rewrite <- (Rmult_div_l r1 r). apply Rdiv_le_compat_r.
+    assumption. assumption. now apply Rgt_not_eq.
+Qed.
+
+Local Lemma Rdiv_mult_le_reg_l : forall r r1 r2 : R,
+  0 < r -> r1 / r <= r2 <-> r1 <= r2 * r.
+Proof. intros r r1 r2 Hr; split; intro H.
+  - rewrite <- (Rmult_div_l r1 r). rewrite -> Rmult_div_swap. apply Rmult_le_compat_r.
+    now apply Rlt_le. assumption. now apply Rgt_not_eq.
+  - rewrite <- (Rmult_div_l r2 r). apply Rdiv_le_compat_r.
+    assumption. assumption. now apply Rgt_not_eq.
+Qed.
+
+Local Definition Zdiv_down := fun z1 z2 => (z1 / z2)%Z.
+Local Definition Zdiv_up := fun z1 z2 => ( (z1 + (z2-1)) / z2 )%Z.
+
+Local Lemma Zdiv_down_range : forall z1 z2, (0 < z2)%Z ->
+  IZR (Zdiv_down z1 z2) <= IZR z1 / IZR z2 < IZR (Z.succ (Zdiv_down z1 z2)).
+Proof.
+  intros z1 z2 Hz2.
+  assert (z2 <> 0)%Z as Hz2ne0. symmetry; now apply Z.lt_neq.
+  split.
+  - now apply div_IZR.
+  - pose proof (Z.mul_succ_div_gt z1 z2 Hz2) as HS. rewrite -> Z.mul_comm in HS.
+    apply Rdiv_mult_lt_reg_l. now apply IZR_lt.
+    rewrite <- mult_IZR.
+    apply IZR_lt.
+    exact HS.
+Qed.
+
+Local Lemma Zdiv_up_range : forall z1 z2, (0 < z2)%Z ->
+  IZR (Z.pred (Zdiv_up z1 z2)) < IZR z1 / IZR z2 <= IZR (Zdiv_up z1 z2).
+Proof.
+  intros z1 z2 Hz2. unfold Zdiv_up.
+  assert (z2 <> 0)%Z as Hz2ne0. symmetry; now apply Z.lt_neq.
+  assert (0 < IZR z2) as Hr2. now apply IZR_lt.
+  replace (z1+(z2-1))%Z with ((z1-1)+1*z2)%Z.
+  2: now rewrite -> Z.mul_1_l, <- Z.add_sub_swap, <- Z.add_sub_assoc.
+  rewrite -> Zdiv.Z_div_plus, Z.add_1_r, Z.pred_succ. 2: now apply Z.lt_gt.
+  split.
+  - apply Rle_lt_trans with (IZR (z1-1) / IZR z2).
+    -- now apply div_IZR.
+    -- apply Rdiv_lt_compat_r; [exact Hr2|]. apply IZR_lt; apply Z.lt_sub_pos; exact Z.lt_0_1.
+  - pose proof (Z.mul_succ_div_gt (z1-1) z2 Hz2) as HS. rewrite -> Z.mul_comm, Z.sub_1_r in HS.
+    -- apply Rdiv_mult_le_reg_l; [exact Hr2|].
+       rewrite <- mult_IZR.
+       apply IZR_le. apply Z.lt_pred_le. exact HS.
+Qed.
+
+
+Local Lemma Zdiv_down_nearest : forall w z1 z2, (0 < z2)%Z -> IZR w <= IZR z1 / IZR z2 -> (w <= Zdiv_down z1 z2)%Z.
+Proof.
+  intros w z1 z2 Hz2 H'.
+  assert (0 < IZR z2) as Hr2 by now apply IZR_lt.
+  assert (w  * z2 <= z1)%Z as H. { apply le_IZR. rewrite -> mult_IZR. now apply Rdiv_mult_le_reg_r. }
+  pose proof (Z.mul_succ_div_gt z1 z2 Hz2) as HS. rewrite -> Z.mul_comm in HS.
+  apply Zlt_succ_le.
+  apply Zmult_gt_0_lt_reg_r with z2. apply Z.lt_gt; exact Hz2.
+  now apply Z.le_lt_trans with z1.
+Qed.
+
+Local Lemma Zdiv_up_nearest : forall w z1 z2, (0 < z2)%Z -> IZR z1 / IZR z2 <= IZR w -> ((z1 + (z2-1)) / z2 <= w)%Z.
+Proof.
+  intros w z1 z2 Hz2 H.
+  assert (0 < IZR z2) as Hr2 by now apply IZR_lt.
+  assert (z2 <> 0)%Z as Hz2ne. symmetry; now apply Z.lt_neq.
+  replace (z1+(z2-1))%Z with ((z1-1)+1*z2)%Z.
+    2: now rewrite -> Z.mul_1_l, <- Z.add_sub_swap, <- Z.add_sub_assoc.
+  rewrite -> Zdiv.Z_div_plus, Z.add_1_r, Z.le_succ_l. 2: now apply Z.lt_gt.
+  apply lt_IZR.
+  apply Rle_lt_trans with (IZR (z1-1) / IZR z2).
+  2: apply Rlt_le_trans with (IZR z1 / IZR z2).
+  now apply div_IZR.
+  apply Rdiv_lt_compat_r; [exact Hr2|]. apply IZR_lt; apply Z.lt_sub_pos; exact Z.lt_0_1.
+  exact H.
+Qed.
+
+Lemma mul_near_down : forall n (w1 w2 : FixedDyadic n),
+  forall (z : FixedDyadic n),
+    injR z <= Rmult (injR w1) (injR w2) -> injR z <= injR (mul down w1 w2).
+Proof.
+  intros n x y z.
+  unfold mul, injR; simpl.
+  set (px := mantissa x); set (py := mantissa y); set (pz := mantissa z); set (m:=Zpow2 n).
+  intro H.
+  assert (0 < IZR m) as Hrm by (now apply pow2n_gt_0).
+  assert (0 < m)%Z as Hm by (now apply lt_IZR).
+  rewrite -> Rmult_div_assoc in H by (exact Hrm).
+  apply Rdiv_le_reg_r in H. 2: exact Hrm.
+  rewrite <- Rmult_div_swap in H.
+  rewrite <- mult_IZR in H.
+  apply Rdiv_le_compat_r. exact Hrm.
+  apply IZR_le.
+  apply Zdiv_down_nearest. exact Hm.
+  exact H.
+Qed.
+
 Lemma mul_near : forall n (w1 w2 wr : FixedDyadic n),
   Rdist (injR (mul near w1 w2)) (Rmult (injR w1) (injR w2))
     <= Rdist (injR wr) (Rmult (injR w1) (injR w2)).
@@ -616,6 +758,28 @@ Proof.
     f_equal.
     field; apply pow2n_neq_0.
     field; apply pow2n_neq_0.
+Qed.
+
+Lemma mul_near_up : forall n (w1 w2 : FixedDyadic n),
+  forall (z : FixedDyadic n),
+    Rmult (injR w1) (injR w2) <= injR z -> injR (mul up w1 w2) <= injR z.
+Proof.
+  intros n x y z.
+  unfold mul, injR; simpl.
+  set (px := mantissa x); set (py := mantissa y); set (pz := mantissa z); set (m:=Zpow2 n).
+  intro H.
+  assert (0 < IZR m) as Hrm by (now apply pow2n_gt_0).
+  assert (0 < m)%Z as Hm by (now apply lt_IZR).
+  assert (m >=? 0 = true)%Z as Hmt.  { apply Z.geb_ge. apply Z.le_ge. now apply Z.lt_le_incl. }
+  rewrite -> Hmt; simpl.
+  rewrite -> Rmult_div_assoc in H by (exact Hrm).
+  apply Rdiv_le_reg_r in H. 2: exact Hrm.
+  rewrite <- Rmult_div_swap in H.
+  rewrite <- mult_IZR in H.
+  apply Rdiv_le_compat_r. exact Hrm.
+  apply IZR_le.
+  apply Zdiv_up_nearest. exact Hm.
+  exact H.
 Qed.
 
 Lemma mul_up : forall n (w1 w2 : FixedDyadic n),
@@ -680,6 +844,71 @@ Proof.
     apply Rmult_le_reg_l in H; [|exact Hc].
     exact H.
   - apply Rge_le in H; apply Rmult_le_reg_l in H; apply Rle_ge in H; [exact H | exact Hc].
+Qed.
+
+
+Lemma div_near_down : forall n (w1 w2 : FixedDyadic n), (injR w2 <> 0) ->
+  forall (z : FixedDyadic n),
+    injR z <= Rdiv (injR w1) (injR w2) -> injR z <= injR (div down w1 w2).
+Proof.
+  intros n x y Hy z.
+  unfold div, injR; simpl.
+  set (px := mantissa x); set (py := mantissa y); set (pz := mantissa z); set (m:=Zpow2 n).
+  intro H.
+  assert (0 < IZR m) as Hrm by (now apply pow2n_gt_0).
+  assert (0 < m)%Z as Hm by (now apply lt_IZR).
+  assert (py<>0)%Z as Hpy. { unfold py. intro Hpy; apply Hy. unfold injR. rewrite -> Hpy. now apply Rdiv_0_l. }
+  rewrite <- Rdiv_mult_distr in H. rewrite  -> Rmult_div_assoc, Rmult_div_swap in H.
+  rewrite -> Rdiv_diag, Rmult_1_l in H. 2: symmetry; now apply Rlt_not_eq.
+  apply (Rdiv_mult_le_reg_l (IZR m)) in H. 2: exact Hrm.
+  apply Rdiv_le_compat_r. 1: exact Hrm.
+  destruct (Z.lt_total py 0) as [Hylt0|[Hyeq0|H0lty]].
+  - replace (m * px / py)%Z with (m * (-px) / (-py))%Z.
+      2: now rewrite -> Z.mul_opp_r, -> Z.div_opp_opp.
+    pose proof (Zdiv_down_nearest pz (m*(-px)) (-py)) as HS.
+    apply IZR_le. apply HS. apply Z.opp_pos_neg. exact Hylt0.
+    rewrite -> mult_IZR, Rmult_comm, Rmult_div_swap.
+    rewrite -> opp_IZR, -> (opp_IZR py). now rewrite -> Rdiv_opp_l, Rdiv_opp_r, Ropp_involutive.
+  - contradiction.
+  - pose proof (Zdiv_down_nearest pz (m*px) py) as HS.
+    apply IZR_le. apply HS. exact H0lty.
+    now rewrite -> mult_IZR, Rmult_comm, Rmult_div_swap.
+Qed.
+
+Local Lemma Zopp_sub_add : forall (z1 z2 : Z), (-z1 - z2 = - (z1 + z2))%Z.
+Proof. intros z1 z2. rewrite <- Z.add_opp_r. now rewrite <- Z.opp_add_distr. Qed.
+
+Lemma div_near_up : forall n (w1 w2 : FixedDyadic n), (injR w2 <> 0) ->
+  forall (z : FixedDyadic n),
+    Rdiv (injR w1) (injR w2) <= injR z -> injR (div up w1 w2) <= injR z.
+Proof.
+  intros n x y Hy z.
+  unfold div, injR; simpl.
+  set (px := mantissa x); set (py := mantissa y); set (pz := mantissa z); set (m:=Zpow2 n).
+  intro H.
+  assert (0 < IZR m) as Hrm by (now apply pow2n_gt_0).
+  assert (0 < m)%Z as Hm by (now apply lt_IZR).
+  assert (py<>0)%Z as Hpy. { unfold py. intro Hpy; apply Hy. unfold injR. rewrite -> Hpy. now apply Rdiv_0_l. }
+  rewrite <- Rdiv_mult_distr in H. rewrite  -> Rmult_div_assoc, Rmult_div_swap in H.
+  rewrite -> Rdiv_diag, Rmult_1_l in H. 2: symmetry; now apply Rlt_not_eq.
+  apply (Rdiv_mult_le_reg_r (IZR m)) in H. 2: exact Hrm.
+  apply Rdiv_le_compat_r. 1: exact Hrm.
+  destruct (Z.lt_total py 0) as [Hylt0|[Hyeq0|H0lty]].
+Search Z.geb Z.leb.
+  - replace (py >=? 0)%Z with false. 2: { rewrite -> Z.geb_leb. symmetry. now apply Z.leb_gt. }
+    replace ((m * px + (py+1)) / py)%Z with ((m * (-px) + (-py-1)) / (-py))%Z.
+      2: { rewrite -> Z.mul_opp_r. rewrite -> Zopp_sub_add. now rewrite <- Z.opp_add_distr, Z.div_opp_opp. }
+    pose proof (Zdiv_up_nearest pz (m*(-px)) (-py)) as HS.
+    apply IZR_le.
+    apply HS. apply Z.opp_pos_neg. exact Hylt0.
+    rewrite -> mult_IZR, Rmult_comm, Rmult_div_swap.
+    rewrite -> opp_IZR, -> (opp_IZR py). now rewrite -> Rdiv_opp_l, Rdiv_opp_r, Ropp_involutive.
+  - contradiction.
+  - replace (py >=? 0)%Z with true; simpl.
+    pose proof (Zdiv_up_nearest pz (m*px) py) as HS.
+    apply IZR_le. apply HS. exact H0lty.
+    now rewrite -> mult_IZR, Rmult_comm, Rmult_div_swap.
+    symmetry. now apply Z.geb_ge, Z.le_ge, Z.lt_le_incl.
 Qed.
 
 

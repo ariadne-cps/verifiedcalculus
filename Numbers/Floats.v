@@ -2,7 +2,7 @@
  *  Numbers/Floats.v
  *
  *  Copyright 2010 Milad Niqui
- *            2023 Pieter Collins
+ *            2023-26 Pieter Collins
  *
  ******************************************************************************)
 
@@ -106,10 +106,34 @@ Definition Rapply (fval:BinOp) : R -> R -> R :=
 
 Module F.
 
+Definition val_is_rounded' {F : Type} (injR : F -> R) (fval : F) (rval : R) (rnd : Rounding) :=
+  match rnd with
+  | down => injR fval <= rval
+  | near => forall w, Rdist (injR fval) rval <= Rdist (injR w) rval
+  | up   => injR fval >= rval
+  end.
+
+Definition val_is_nearest_rounded' {F : Type} (injR : F -> R) (fval : F) (rval : R) (rnd : Rounding) :=
+  match rnd with
+  | down => injR fval <= rval /\ forall w, injR w <= rval -> injR w <= injR fval
+  | near => forall w, Rdist (injR fval) rval <= Rdist (injR w) rval
+  | up   => injR fval >= rval /\ forall w, injR w >= rval -> injR w >= injR fval
+  end.
+
+Lemma neareat_rounded_implies_rounded {F : Type} : forall injR (fval : F) rval rnd,
+  val_is_nearest_rounded' injR fval rval rnd -> val_is_rounded' injR fval rval rnd.
+Proof.
+  unfold val_is_nearest_rounded', val_is_rounded'.
+  intros injR fval rval rnd H.
+  destruct rnd; tauto.
+Qed.
+
+
 Class Float (F : Type) :=
 {
-  of_nat : nat -> F;
   injR : F -> R;
+
+  of_nat : nat -> F;
 
   null := of_nat 0;
   unit := of_nat 1;
@@ -167,12 +191,13 @@ Class Float (F : Type) :=
   apply (fop : BinOp) : Rounding -> F -> F -> F :=
     match fop with | Add => add | Sub => sub | Mul => mul end;
 
-
   val_is_exact (fval : F) (rval : R) :=
     injR fval = rval;
+  nullary_op_is_exact (fop : F) (rop : R) :=
+     injR fop = rop;
   unary_op_is_exact (fop : F -> F) (rop : R -> R) :=
      forall x : F, injR (fop x) = rop (injR x);
-  op_is_exact (fop : F -> F -> F) (rop : R -> R -> R) :=
+  binary_op_is_exact (fop : F -> F -> F) (rop : R -> R -> R) :=
      forall x1 x2 : F, injR (fop x1 x2)  = rop (injR x1) (injR x2);
 
   val_is_rounded (fval : F) (rval : R) (rnd : Rounding) :=
@@ -188,6 +213,25 @@ Class Float (F : Type) :=
   binary_op_is_rounded (fop : Rounding -> F -> F -> F) (rop : R -> R -> R) (rnd : Rounding) :=
     forall (x1 x2 : F), val_is_rounded (fop rnd x1 x2) (rop (injR x1) (injR x2)) rnd;
 
+  val_is_nearest_rounded (fval : F) (rval : R) (rnd : Rounding) :=
+    match rnd with
+    | down => injR fval <= rval /\ forall w, injR w <= rval -> injR w <= injR fval
+    | near => forall w, Rdist (injR fval) rval <= Rdist (injR w) rval
+    | up   => injR fval >= rval /\ forall w, injR w >= rval -> injR w >= injR fval
+    end;
+  nullary_op_is_nearest_rounded (fop : Rounding -> F) (rop : R) (rnd : Rounding) :=
+    val_is_nearest_rounded (fop rnd) (rop) rnd;
+  unary_op_is_nearest_rounded (fop : Rounding -> F -> F) (rop : R -> R) (rnd : Rounding) :=
+    forall (x : F), val_is_nearest_rounded (fop rnd x) (rop (injR x)) rnd;
+  binary_op_is_nearest_rounded (fop : Rounding -> F -> F -> F) (rop : R -> R -> R) (rnd : Rounding) :=
+    forall (x1 x2 : F), val_is_nearest_rounded (fop rnd x1 x2) (rop (injR x1) (injR x2)) rnd;
+
+  val_is_approximate_rounded (fval : F) (rval : R) (rnd : Rounding) :=
+    match rnd with
+    | down => injR fval <= rval
+    | near => True
+    | up   => injR fval >= rval
+    end;
 
   ninjr_spec : forall n : nat, injR (of_nat n) = INR n;
 
@@ -198,6 +242,39 @@ Class Float (F : Type) :=
 
   min_exact_spec : forall x1 x2 : F, injR (min x1 x2) = Rmin (injR x1) (injR x2);
   max_exact_spec : forall x1 x2 : F, injR (max x1 x2) = Rmax (injR x1) (injR x2);
+
+  add_nearest_rounded_spec : forall rnd, (binary_op_is_nearest_rounded add Rplus) rnd;
+  sub_nearest_rounded_spec : forall rnd, (binary_op_is_nearest_rounded sub Rminus) rnd;
+  mul_nearest_rounded_spec : forall rnd, (binary_op_is_nearest_rounded mul Rmult) rnd;
+  div_nearest_rounded_spec : forall (rnd : Rounding) (x1 x2 : F),
+    (injR x2 <> 0%R) -> (val_is_nearest_rounded (div rnd x1 x2) (Rdiv (injR x1) (injR x2)) rnd);
+  rec_nearest_rounded_spec : forall (rnd : Rounding) (x : F),
+    (injR x <> 0%R) -> (val_is_nearest_rounded (rec rnd x) (Rinv (injR x)) rnd);
+
+  shft_nearest_rounded_spec : forall (rnd : Rounding) (x : F) (n : Z),
+    (val_is_nearest_rounded (shft rnd x n) (Rshft (injR x) n) rnd);
+
+
+  add_down_near_spec := add_nearest_rounded_spec down;
+  add_near_spec := add_nearest_rounded_spec near;
+  add_up_near_spec   := add_nearest_rounded_spec up;
+
+  sub_down_near_spec := sub_nearest_rounded_spec down;
+  sub_near_spec := sub_nearest_rounded_spec near;
+  sub_up_near_spec   := sub_nearest_rounded_spec up;
+
+  mul_down_near_spec := mul_nearest_rounded_spec down;
+  mul_near_spec := mul_nearest_rounded_spec near;
+  mul_up_near_spec   := mul_nearest_rounded_spec up;
+
+  div_down_near_spec := div_nearest_rounded_spec down;
+  div_near_spec := div_nearest_rounded_spec near;
+  div_up_near_spec   := div_nearest_rounded_spec up;
+
+  rec_down_near_spec := rec_nearest_rounded_spec down;
+  rec_near_spec := rec_nearest_rounded_spec near;
+  rec_up_near_spec   := rec_nearest_rounded_spec up;
+
 
   add_rounded_spec : forall rnd, (binary_op_is_rounded add Rplus) rnd;
   sub_rounded_spec : forall rnd, (binary_op_is_rounded sub Rminus) rnd;
@@ -211,25 +288,21 @@ Class Float (F : Type) :=
     (val_is_rounded (shft rnd x n) (Rshft (injR x) n) rnd);
 
   add_down_spec := add_rounded_spec down;
-  add_near_spec := add_rounded_spec near;
   add_up_spec   := add_rounded_spec up;
 
   sub_down_spec := sub_rounded_spec down;
-  sub_near_spec := sub_rounded_spec near;
   sub_up_spec   := sub_rounded_spec up;
 
   mul_down_spec := mul_rounded_spec down;
-  mul_near_spec := mul_rounded_spec near;
   mul_up_spec   := mul_rounded_spec up;
 
   div_down_spec := div_rounded_spec down;
-  div_near_spec := div_rounded_spec near;
   div_up_spec   := div_rounded_spec up;
 
   rec_down_spec := rec_rounded_spec down;
-  rec_near_spec := rec_rounded_spec near;
   rec_up_spec   := rec_rounded_spec up;
 }.
+
 
 (* Coercion (forall F : `Float F), F.injR : F >-> R. *)
 
@@ -433,7 +506,6 @@ Proof.
            now apply Nat.div2_succ_double.
            symmetry; now apply Nat.add_1_r.
 Qed.
-
 
 
 Lemma val_near_up_abs_spec : forall x y, (forall rnd, nullary_op_is_rounded x y rnd) ->
