@@ -44,17 +44,6 @@ Module Floats.
 Open Scope R_scope.
 
 
-Lemma or_impl_compat : forall p1 p2 p3 p4 : Prop,
-  (p1 -> p3) -> (p2 -> p4) -> (p1 \/ p2) -> (p3 \/ p4).
-Proof.
-  intros p1 p2 p3 p4 Hp13 Hp24 Hor.
-  apply or_ind with (A:=p1) (B:=p2).
-  - left. apply Hp13. exact H.
-  - right. apply Hp24. exact H.
-  - exact Hor.
-Qed.
-
-
 (*
 INR_eq: forall n m : nat, INR n = INR m -> n = m
 not_O_S_INR: forall n : nat, INR (S n) <> 0

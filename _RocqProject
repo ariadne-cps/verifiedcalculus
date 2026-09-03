@@ -52,6 +52,7 @@ Numbers/Sum.v
 Numbers/Floats.v
 Numbers/FloatTranscendentals.v
 Numbers/FixedDyadic.v
+Numbers/RationalFloat.v
 Numbers/FixedDyadicFloat.v
 Numbers/Bounds.v
 Numbers/Ball.v

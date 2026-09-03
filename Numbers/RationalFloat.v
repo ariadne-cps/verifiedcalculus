@@ -25,14 +25,35 @@
 
 From Stdlib Require Import Floats.
 
+From Stdlib Require Export QArith.
+From Stdlib Require Export QArith.Qabs.
+From Stdlib Require Export QArith.Qminmax.
+From Stdlib Require Export Reals.Qreals.
 
-Require Export QArith.
-Require Export QArith.Qabs.
-Require Export QArith.Qminmax.
-Require Export QArith.Qreals.
+From Stdlib Require Import ZArith.Znat.
+From Stdlib Require Import Reals.Rdefinitions.
+From Stdlib Require Import Reals.Rbasic_fun.
+From Stdlib Require Import Reals.Raxioms.
+From Stdlib Require Import Reals.RIneq.
+
+Require Import Numbers.RealAddenda.
+Require Import Numbers.Floats.
+
+From Stdlib Require micromega.RMicromega.
 
 Open Scope Q_scope.
 
+
+
+Local Lemma or_impl_compat : forall p1 p2 p3 p4 : Prop,
+  (p1 -> p3) -> (p2 -> p4) -> (p1 \/ p2) -> (p3 \/ p4).
+Proof.
+  intros p1 p2 p3 p4 Hp13 Hp24 Hor.
+  apply or_ind with (A:=p1) (B:=p2).
+  - left. apply Hp13. exact H.
+  - right. apply Hp24. exact H.
+  - exact Hor.
+Qed.
 
 
 Lemma Qleb : forall q1 q2 : Q, Qle_bool q1 q2 = true <-> Rle (Q2R q1) (Q2R q2).
@@ -100,6 +121,12 @@ Qed.
 
 Definition Q2R_0 := RMicromega.Q2R_0.
 Definition Q2R_1 := RMicromega.Q2R_1.
+
+Lemma Q2R_2 : Q2R 2 = 2%R.
+Proof. unfold Q2R; simpl. now rewrite -> Rinv_1, Rmult_1_r. Qed.
+
+Lemma Qapart_0_2 : ~ (0%Q == 2%Q).
+Proof. intro H. apply Qden_cancel in H. discriminate H. Qed.
 
 Lemma Q2R_neq_0 : forall q, Q2R q <> 0%R -> ~(q == 0%Q).
 Proof.
@@ -179,66 +206,78 @@ Proof.
   - apply Qle_total.
 Qed.
 
+Lemma Qpow2Z_Rpow2Z : forall z, Q2R (Qpower (2%Q) z) = (Rfunctions.powerRZ (2%R) z).
+Proof. 
+  intro z. rewrite -> micromega.RMicromega.Q2RpowerRZ. now rewrite -> Q2R_2.
+  left. intro H. symmetry in H. now apply Qapart_0_2.
+Qed.
 
 
 #[refine]
-Instance Rational_Float : Float Q :=
+Instance Rational_Float : F.Float Q :=
 {
-  NinjF := (fun n => Qmake (Z.of_nat n) 1);
-  FinjR := (fun q => Q2R q);
-  Fneg := Qopp;
-  Fabs := Qabs;
+  of_nat := (fun n => Qmake (Z.of_nat n) 1);
+  injR := (fun q => Q2R q);
+  neg := Qopp;
+  abs := Qabs;
 
-  Fadd := (fun (r:Rounding) q1 q2 => Qplus q1 q2);
-  Fsub := (fun (r:Rounding) q1 q2 => Qminus q1 q2);
-  Fmul := (fun (r:Rounding) q1 q2 => Qmult q1 q2);
-  Fdiv := (fun (r:Rounding) q1 q2 => Qdiv q1 q2);
+  add := (fun (r:Rounding) q1 q2 => Qplus q1 q2);
+  sub := (fun (r:Rounding) q1 q2 => Qminus q1 q2);
+  mul := (fun (r:Rounding) q1 q2 => Qmult q1 q2);
+  div := (fun (r:Rounding) q1 q2 => Qdiv q1 q2);
 
-  Frec := (fun (r:Rounding) q => Qinv q);
+  rec := (fun (r:Rounding) q => Qinv q);
 
-  Fmin := Qmin;
-  Fmax := Qmax;
+  shft := (fun (r:Rounding) q n => q * Qpower 2 n);
+  min := Qmin;
+  max := Qmax;
 
-  Fleb := Qle_bool;
+  leb := Qle_bool;
 
-  flt_ninjr := Qnijnr;
+  ninjr_spec := Qnijnr;
 
-  flt_leb := Qleb;
+  leb_spec := Qleb;
 
-  flt_neg_exact := Q2R_opp;
-  flt_abs_exact := Qabs_Rabs;
-  flt_min_exact := Qmin_Rmin;
-  flt_max_exact := Qmax_Rmax;
+  neg_exact_spec := Q2R_opp;
+  abs_exact_spec := Qabs_Rabs;
+  min_exact_spec := Qmin_Rmin;
+  max_exact_spec := Qmax_Rmax;
 }.
 Proof.
  - (* add rounded *)
     intros rnd x1 x2.
     destruct rnd; rewrite <- Q2R_plus.
     -- apply Req_ge; reflexivity.
-    -- intro z; unfold Rdist; rewrite -> Rminus_eq_0; rewrite -> Rabs_R0; apply Rabs_pos.
+    -- intro w; unfold Rdist; rewrite -> Rminus_eq_0; rewrite -> Rabs_R0; apply Rabs_pos.
     -- apply Req_ge; reflexivity.
  - (* sub rounded *)
     intros rnd x1 x2.
     destruct rnd; rewrite <- Q2R_minus.
     -- apply Req_ge; reflexivity.
-    -- intro z; unfold Rdist; rewrite -> Rminus_eq_0; rewrite -> Rabs_R0; apply Rabs_pos.
+    -- intro w; unfold Rdist; rewrite -> Rminus_eq_0; rewrite -> Rabs_R0; apply Rabs_pos.
     -- apply Req_ge; reflexivity.
  - (* mul rounded *)
     intros rnd x1 x2.
     destruct rnd; rewrite <- Q2R_mult.
     -- apply Req_ge; reflexivity.
-    -- intro z; unfold Rdist; rewrite -> Rminus_eq_0; rewrite -> Rabs_R0; apply Rabs_pos.
+    -- intro w; unfold Rdist; rewrite -> Rminus_eq_0; rewrite -> Rabs_R0; apply Rabs_pos.
     -- apply Req_ge; reflexivity.
  - (* div rounded *)
     intros rnd x1 x2 Hx2.
     destruct rnd; rewrite <- Q2R_div by (exact (Q2R_neq_0 x2 Hx2)).
     -- apply Req_ge; reflexivity.
-    -- intro z; unfold Rdist; rewrite -> Rminus_eq_0; rewrite -> Rabs_R0; apply Rabs_pos.
+    -- intro w; unfold Rdist; rewrite -> Rminus_eq_0; rewrite -> Rabs_R0; apply Rabs_pos.
     -- apply Req_ge; reflexivity.
  - (* rec rounded *)
     intros rnd x Hx.
     destruct rnd; rewrite <- Q2R_inv by (exact (Q2R_neq_0 x Hx)).
     -- apply Req_ge; reflexivity.
-    -- intro z; unfold Rdist; rewrite -> Rminus_eq_0; rewrite -> Rabs_R0; apply Rabs_pos.
+    -- intro w; unfold Rdist; rewrite -> Rminus_eq_0; rewrite -> Rabs_R0; apply Rabs_pos.
+    -- apply Req_ge; reflexivity.
+ - (* shft rounded *)
+    intros rnd x z. unfold Rshft.
+    destruct rnd; rewrite -> Q2R_mult, Qpow2Z_Rpow2Z.
+    -- apply Req_le; reflexivity.
+    -- intro w; unfold Rdist; rewrite -> Rminus_eq_0; rewrite -> Rabs_R0; apply Rabs_pos.
     -- apply Req_ge; reflexivity.
 Qed.
